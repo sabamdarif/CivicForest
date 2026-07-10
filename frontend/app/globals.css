@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-serif;
+  }
+}
+
+@layer components {
+  /* Small uppercase gold eyebrow used above headings throughout the mockups. */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-brand text-gold;
+  }
+
+  .container-page {
+    @apply mx-auto w-full max-w-content px-5 sm:px-8;
+  }
+
+  /* Primary dark CTA (e.g. "SHOP T-SHIRTS", "PROCEED TO CHECKOUT"). */
+  .btn-dark {
+    @apply inline-flex items-center gap-2 rounded-sm bg-charcoal px-6 py-3 text-sm
+      font-semibold uppercase tracking-wide text-cream transition
+      hover:bg-charcoal-700;
+  }
+
+  /* Gold CTA (e.g. hero "SHOP NOW"). */
+  .btn-gold {
+    @apply inline-flex items-center gap-2 rounded-sm bg-gold px-6 py-3 text-sm
+      font-semibold uppercase tracking-wide text-charcoal transition
+      hover:bg-gold-light;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center gap-2 rounded-sm border border-charcoal/20 px-6 py-3
+      text-sm font-semibold uppercase tracking-wide text-ink transition
+      hover:border-charcoal/50;
+  }
+
+  /* Form input on light backgrounds (contact form, etc.). */
+  .input-field {
+    @apply w-full rounded-sm border border-black/15 bg-cream px-4 py-3 text-sm text-ink
+      placeholder:text-ink/40 focus:border-charcoal focus:outline-none;
+  }
+
+  /* The leaf divider (gold line + leaf) that sits under hero headings. */
+  .rule-leaf {
+    @apply flex items-center gap-2 text-gold;
+  }
+  .rule-leaf::before {
+    content: "";
+    @apply block h-px w-16 bg-gold;
+  }
+}
+
+/* Thin scrollbar for the search dropdown / filter panels. */
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  @apply rounded bg-charcoal/20;
+}

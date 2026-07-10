@@ -1,0 +1,46 @@
+# Environments & secrets
+.env
+.env.*
+!.env.example
+*.pem
+caddy/certs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+staticfiles/
+mediafiles/
+media/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.eslintcache
+
+# Databases / volumes
+*.sqlite3
+data/
+meili_data/
+pgdata/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+/.agents/skills
+/designs
+/images
+/skills-lock.json

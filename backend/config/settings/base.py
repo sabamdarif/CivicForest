@@ -1,0 +1,292 @@
+"""
+Base settings shared by every environment.
+
+Everything here reads from the environment (django-environ). Environment-specific
+overrides live in ``local.py`` / ``production.py``. Security-relevant flags are set
+identically everywhere because HTTPS is on in dev and prod alike — see plan.md §13.
+"""
+
+from pathlib import Path
+
+import environ
+
+# backend/config/settings/base.py -> backend/
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+env = environ.Env(
+    DJANGO_DEBUG=(bool, False),
+    DJANGO_ALLOWED_HOSTS=(list, []),
+    CORS_ALLOWED_ORIGINS=(list, []),
+    CSRF_TRUSTED_ORIGINS=(list, []),
+)
+
+# Read a local .env if present (compose passes real env vars in containers).
+env_file = BASE_DIR.parent / ".env"
+if env_file.exists():
+    env.read_env(str(env_file))
+
+SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-dev-key-override-me")
+DEBUG = env("DJANGO_DEBUG")
+ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
+
+# ─── Applications ────────────────────────────────────────────────────────────
+DJANGO_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django.contrib.sites",
+]
+
+THIRD_PARTY_APPS = [
+    "rest_framework",
+    "corsheaders",
+    "django_filters",
+    "drf_spectacular",
+    "allauth",
+    "allauth.account",
+    "allauth.headless",
+    "allauth.mfa",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "django_celery_beat",
+]
+
+LOCAL_APPS = [
+    "apps.common",
+    "apps.accounts",
+    "apps.catalog",
+    "apps.search",
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# ─── Middleware ──────────────────────────────────────────────────────────────
+MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+]
+
+ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+# ─── Database ────────────────────────────────────────────────────────────────
+DATABASES = {
+    "default": env.db(
+        "DATABASE_URL",
+        default="postgres://civicforest:civicforest@postgres:5432/civicforest",
+    ),
+}
+DATABASES["default"]["ATOMIC_REQUESTS"] = False
+DATABASES["default"]["CONN_MAX_AGE"] = 60
+
+# ─── Cache / Redis ───────────────────────────────────────────────────────────
+REDIS_URL = env("REDIS_URL", default="redis://redis:6379/0")
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
+}
+
+# ─── Auth ────────────────────────────────────────────────────────────────────
+AUTH_USER_MODEL = "accounts.User"
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# Argon2id first — stronger against GPU cracking than the PBKDF2 default (plan.md §5).
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+]
+
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# ─── allauth ─────────────────────────────────────────────────────────────────
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_SESSION_REMEMBER = None  # honor the "remember me" checkbox from the client
+
+# Headless mode powers the Next.js frontend. The frontend URLs let allauth build
+# correct email/redirect links back into the SPA.
+HEADLESS_ONLY = True
+FRONTEND_ORIGIN = env("FRONTEND_ORIGIN", default="https://civicforest.local")
+HEADLESS_FRONTEND_URLS = {
+    "account_confirm_email": FRONTEND_ORIGIN + "/account/verify-email/{key}",
+    "account_reset_password": FRONTEND_ORIGIN + "/account/password/reset",
+    "account_reset_password_from_key": FRONTEND_ORIGIN + "/account/password/reset/key/{key}",
+    "account_signup": FRONTEND_ORIGIN + "/signup",
+}
+
+MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": env("GOOGLE_OAUTH_CLIENT_ID", default=""),
+            "secret": env("GOOGLE_OAUTH_CLIENT_SECRET", default=""),
+            "key": "",
+        },
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    }
+}
+
+# ─── DRF ─────────────────────────────────────────────────────────────────────
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "apps.common.pagination.StandardResultsPagination",
+    "PAGE_SIZE": 12,
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.OrderingFilter",
+    ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "120/min",
+        "user": "600/min",
+        "auth": "20/min",  # login / signup / password reset
+        "search": "60/min",  # autocomplete suggestion endpoint
+    },
+    "EXCEPTION_HANDLER": "apps.common.exceptions.standard_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "CivicForest API",
+    "DESCRIPTION": "Internal storefront API. Not exposed publicly in production.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
+
+# ─── CORS / CSRF ─────────────────────────────────────────────────────────────
+# Explicit allow-list only — credentials (cookies) are involved, never use "*".
+CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
+CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
+
+# ─── Sessions & cookie security ──────────────────────────────────────────────
+# Secure everywhere — HTTPS is on in dev too, so no `if DEBUG` branching (plan.md §13).
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", default=None)
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # 2 weeks
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False  # JS must read the token to echo it back
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# ─── Security headers ────────────────────────────────────────────────────────
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# ─── i18n / tz ───────────────────────────────────────────────────────────────
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "Asia/Kolkata"
+USE_I18N = True
+USE_TZ = True
+
+# ─── Static / media ──────────────────────────────────────────────────────────
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "mediafiles"
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB request body cap
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ─── Admin ───────────────────────────────────────────────────────────────────
+# Non-guessable admin path from env; never the default /admin/ (plan.md §11).
+ADMIN_URL = env("DJANGO_ADMIN_URL", default="admin/")
+
+# ─── Celery ──────────────────────────────────────────────────────────────────
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/1")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://redis:6379/2")
+CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# ─── Meilisearch ─────────────────────────────────────────────────────────────
+MEILISEARCH_URL = env("MEILISEARCH_URL", default="http://meilisearch:7700")
+MEILISEARCH_MASTER_KEY = env("MEILISEARCH_MASTER_KEY", default="")
+MEILISEARCH_INDEX_PREFIX = env("MEILISEARCH_INDEX_PREFIX", default="civicforest")
+
+# ─── Logging (structured-ish; JSON formatter wired in production) ────────────
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {
+        "django.security": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+    },
+}

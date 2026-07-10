@@ -1,0 +1,36 @@
+"""Local development settings.
+
+HTTPS is still on locally (Caddy + mkcert), so cookie/security flags stay identical
+to production. The only real relaxations here are DEBUG, a permissive email backend,
+and a SQLite fallback so the project boots without a running Postgres for quick checks.
+"""
+
+from .base import *  # noqa: F403
+from .base import env
+
+DEBUG = env("DJANGO_DEBUG", default=True)
+
+# Boot without external services (Postgres/Redis/Meili) for `manage.py check`,
+# the offline test run, and quick local work when USE_SQLITE=1.
+OFFLINE = env.bool("USE_SQLITE", default=False)
+
+if OFFLINE:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",  # noqa: F405
+        }
+    }
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
+    # No Meili in offline mode — search transparently uses the Postgres fallback,
+    # so the index-sync task returns instantly instead of waiting on TCP timeouts.
+    MEILISEARCH_URL = ""  # noqa: F811
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# Eager Celery runs signal→index sync inline (no broker needed). On by default in
+# offline mode so tests and no-worker dev don't hit Redis; override with the env var.
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=OFFLINE)
+
+INTERNAL_IPS = ["127.0.0.1"]
