@@ -1,5 +1,5 @@
 # Dev image — hot-reloading Next.js server. Production uses a multi-stage standalone build.
-FROM node:22-alpine
+FROM node:26-alpine
 
 WORKDIR /app
 
