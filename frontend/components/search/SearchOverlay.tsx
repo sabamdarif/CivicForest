@@ -25,18 +25,27 @@ export function SearchOverlay({
   const inputRef = useRef<HTMLInputElement>(null);
   const { hits, loading } = useSearchSuggestions(query);
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setQuery("");
       setActive(-1);
+    }
+  }
+
+  const [prevHits, setPrevHits] = useState(hits);
+  if (hits !== prevHits) {
+    setPrevHits(hits);
+    setActive(-1);
+  }
+
+  useEffect(() => {
+    if (open) {
       // Focus after the panel mounts.
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [open]);
-
-  useEffect(() => {
-    setActive(-1);
-  }, [hits]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
