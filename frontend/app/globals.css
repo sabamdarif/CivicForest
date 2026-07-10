@@ -1,6 +1,42 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-charcoal: #0E0E0D;
+  --color-charcoal-800: #161513;
+  --color-charcoal-700: #1F1C18;
+  --color-charcoal-600: #2A2621;
+
+  --color-gold: #C89B4A;
+  --color-gold-light: #DDB973;
+  --color-gold-dark: #A87E33;
+
+  --color-cream: #F4F1EA;
+  --color-cream-dark: #EAE5DA;
+
+  --color-ink: #1A1713;
+
+  --font-serif: var(--font-display), Georgia, serif;
+  --font-sans: var(--font-body), system-ui, sans-serif;
+
+  --tracking-brand: 0.18em;
+
+  --max-width-content: 1280px;
+
+  --shadow-card: 0 8px 30px rgba(0,0,0,0.08);
+
+  --animate-fade-in: fade-in 0.4s ease-out both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
 
 :root {
   --font-display: "Playfair Display", Georgia, serif;

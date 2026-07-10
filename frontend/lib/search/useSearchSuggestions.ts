@@ -21,15 +21,15 @@ interface State {
  *  - a stale-response guard discards answers to an outdated query
  *  - a last-20 in-memory LRU cache makes retypes/backspaces instant
  */
+const cache = new Map<string, SuggestionHit[]>();
+
 export function useSearchSuggestions(query: string): State {
   const [state, setState] = useState<State>({ hits: [], loading: false });
 
-  const cacheRef = useRef<Map<string, SuggestionHit[]>>(new Map());
   const abortRef = useRef<AbortController | null>(null);
   const latestQueryRef = useRef("");
 
   const readCache = useCallback((key: string): SuggestionHit[] | undefined => {
-    const cache = cacheRef.current;
     const value = cache.get(key);
     if (value) {
       // Refresh recency (LRU).
@@ -40,12 +40,27 @@ export function useSearchSuggestions(query: string): State {
   }, []);
 
   const writeCache = useCallback((key: string, value: SuggestionHit[]) => {
-    const cache = cacheRef.current;
     cache.set(key, value);
     if (cache.size > CACHE_LIMIT) {
       cache.delete(cache.keys().next().value as string);
     }
   }, []);
+
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (query !== prevQuery) {
+    setPrevQuery(query);
+    const trimmed = query.trim();
+    if (trimmed.length < MIN_QUERY_LEN) {
+      setState({ hits: [], loading: false });
+    } else {
+      const cached = readCache(trimmed.toLowerCase());
+      if (cached) {
+        setState({ hits: cached, loading: false });
+      } else {
+        setState((s) => ({ ...s, loading: true }));
+      }
+    }
+  }
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -53,17 +68,13 @@ export function useSearchSuggestions(query: string): State {
 
     if (trimmed.length < MIN_QUERY_LEN) {
       abortRef.current?.abort();
-      setState({ hits: [], loading: false });
       return;
     }
 
     const cached = readCache(trimmed.toLowerCase());
     if (cached) {
-      setState({ hits: cached, loading: false });
       return;
     }
-
-    setState((s) => ({ ...s, loading: true }));
 
     const handle = setTimeout(async () => {
       abortRef.current?.abort();

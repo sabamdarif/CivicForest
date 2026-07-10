@@ -3,8 +3,8 @@ FROM node:26-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package.json package-lock.json* patch-ts.js ./
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
