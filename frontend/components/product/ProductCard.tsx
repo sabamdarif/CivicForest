@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { HeartIcon } from "@/components/ui/icons";
+import { WishlistButton } from "@/components/product/WishlistButton";
 import type { ProductListItem } from "@/lib/api/types";
 import { formatPrice } from "@/lib/brand/format";
 
@@ -32,13 +32,11 @@ export function ProductCard({ product }: { product: ProductListItem }) {
           </span>
         )}
 
-        <button
-          type="button"
-          aria-label="Add to wishlist"
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-cream/90 text-ink shadow-sm transition hover:text-gold"
-        >
-          <HeartIcon className="h-4 w-4" />
-        </button>
+        <WishlistButton
+          productId={product.id}
+          variant="badge"
+          className="absolute right-3 top-3"
+        />
       </div>
 
       <div className="mt-3 space-y-1">

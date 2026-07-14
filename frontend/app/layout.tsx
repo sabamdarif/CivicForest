@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 
+import { CartProvider } from "@/lib/cart/CartProvider";
+import { WishlistProvider } from "@/lib/wishlist/WishlistProvider";
+
 import "./globals.css";
 
 const display = Playfair_Display({
@@ -32,7 +35,11 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
-      <body>{children}</body>
+      <body>
+        <CartProvider>
+          <WishlistProvider>{children}</WishlistProvider>
+        </CartProvider>
+      </body>
     </html>
   );
 }
