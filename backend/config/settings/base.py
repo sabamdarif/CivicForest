@@ -59,6 +59,10 @@ LOCAL_APPS = [
     "apps.accounts",
     "apps.catalog",
     "apps.search",
+    "apps.cart",
+    "apps.orders",
+    "apps.payments",
+    "apps.custom_orders",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -271,6 +275,42 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 MEILISEARCH_URL = env("MEILISEARCH_URL", default="http://meilisearch:7700")
 MEILISEARCH_MASTER_KEY = env("MEILISEARCH_MASTER_KEY", default="")
 MEILISEARCH_INDEX_PREFIX = env("MEILISEARCH_INDEX_PREFIX", default="civicforest")
+
+# ─── Cart / checkout pricing rules ───────────────────────────────────────────
+# Server-side pricing constants — the client never sends shipping or totals.
+SHIPPING_FLAT_RATE = env("SHIPPING_FLAT_RATE", default="59.00")
+FREE_SHIPPING_THRESHOLD = env("FREE_SHIPPING_THRESHOLD", default="999.00")
+CURRENCY = env("CURRENCY", default="INR")
+
+# ─── Payments (Razorpay) ─────────────────────────────────────────────────────
+# Never touch raw card data — Razorpay's hosted checkout keeps PCI scope at SAQ-A
+# (plan.md §9). The webhook secret is separate from the API secret.
+RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", default="")
+RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", default="")
+RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET", default="")
+
+# ─── Print fulfilment (Qikink Open API) ──────────────────────────────────────
+# Base URL and paths are configurable so they can be corrected against Qikink's live
+# Postman reference without a code change. Credentials stay server-side only.
+QIKINK_BASE_URL = env("QIKINK_BASE_URL", default="https://sandbox.qikink.com")
+QIKINK_CLIENT_ID = env("QIKINK_CLIENT_ID", default="")
+QIKINK_CLIENT_SECRET = env("QIKINK_CLIENT_SECRET", default="")
+QIKINK_TOKEN_PATH = env("QIKINK_TOKEN_PATH", default="/api/token")
+QIKINK_ORDER_CREATE_PATH = env("QIKINK_ORDER_CREATE_PATH", default="/api/order/create")
+QIKINK_ORDER_STATUS_PATH = env("QIKINK_ORDER_STATUS_PATH", default="/api/order/status")
+QIKINK_TOKEN_TTL = env.int("QIKINK_TOKEN_TTL", default=60 * 60)  # cache token ~1h
+
+# ─── Object storage (S3 / Cloudflare R2) ─────────────────────────────────────
+# Design uploads must never live on the app disk. When S3_BUCKET_NAME is set the
+# default file storage switches to S3-compatible object storage with private ACL and
+# signed URLs; otherwise local disk is used for dev (plan.md §8, §12).
+S3_BUCKET_NAME = env("S3_BUCKET_NAME", default="")
+S3_ACCESS_KEY_ID = env("S3_ACCESS_KEY_ID", default="")
+S3_SECRET_ACCESS_KEY = env("S3_SECRET_ACCESS_KEY", default="")
+S3_ENDPOINT_URL = env("S3_ENDPOINT_URL", default="")
+S3_REGION = env("S3_REGION", default="auto")
+DESIGN_UPLOAD_MAX_BYTES = env.int("DESIGN_UPLOAD_MAX_BYTES", default=15 * 1024 * 1024)
+DESIGN_UPLOAD_MAX_DIMENSION = env.int("DESIGN_UPLOAD_MAX_DIMENSION", default=8000)
 
 # ─── Logging (structured-ish; JSON formatter wired in production) ────────────
 LOGGING = {

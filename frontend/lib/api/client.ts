@@ -25,6 +25,32 @@ export class ApiError extends Error {
 
 type FetchOptions = RequestInit & { revalidate?: number };
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS", "TRACE"]);
+
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+/**
+ * Prime and read Django's CSRF token for browser mutations. Django's
+ * SessionAuthentication enforces CSRF on unsafe methods, so every non-GET request
+ * from the browser must echo the token from the (non-HttpOnly) cookie. A guest with
+ * no session yet won't have the cookie; hitting allauth's session endpoint sets it.
+ */
+async function ensureCsrfToken(): Promise<string> {
+  let token = getCookie("csrftoken");
+  if (!token) {
+    await fetch(`${apiBase()}/_allauth/browser/v1/auth/session`, {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    }).catch(() => {});
+    token = getCookie("csrftoken");
+  }
+  return token ?? "";
+}
+
 export async function apiFetch<T>(
   path: string,
   options: FetchOptions = {},
@@ -32,12 +58,23 @@ export async function apiFetch<T>(
   const { revalidate, ...init } = options;
   const url = path.startsWith("http") ? path : `${apiBase()}/api/v1${path}`;
 
+  const method = (init.method ?? "GET").toUpperCase();
+  const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
+
+  // CSRF only matters browser-side; server components never mutate.
+  const csrfHeader =
+    !isServer && !SAFE_METHODS.has(method)
+      ? { "X-CSRFToken": await ensureCsrfToken() }
+      : {};
+
   const res = await fetch(url, {
     ...init,
     credentials: "include",
     headers: {
       Accept: "application/json",
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      // Let the browser set the multipart boundary for FormData bodies.
+      ...(init.body && !isForm ? { "Content-Type": "application/json" } : {}),
+      ...csrfHeader,
       ...init.headers,
     },
     // ISR for public catalog data; opt out with revalidate: 0.
