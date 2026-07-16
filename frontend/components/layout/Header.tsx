@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { Logo } from "@/components/brand/Logo";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 import { SearchOverlay } from "@/components/search/SearchOverlay";
 import { BagIcon, SearchIcon, UserIcon } from "@/components/ui/icons";
+import { useCart } from "@/lib/cart/CartProvider";
 
 const NAV = [
   ["Home", "/"],
@@ -19,6 +21,7 @@ const NAV = [
 export function Header() {
   const pathname = usePathname();
   const [searchOpen, setSearchOpen] = useState(false);
+  const { itemCount, openDrawer } = useCart();
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -63,20 +66,24 @@ export function Header() {
           >
             <UserIcon />
           </Link>
-          <Link
-            href="/cart"
-            aria-label="Cart"
+          <button
+            type="button"
+            onClick={openDrawer}
+            aria-label={`Cart (${itemCount} items)`}
             className="relative text-cream/85 transition hover:text-gold"
           >
             <BagIcon />
-            <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-bold text-charcoal">
-              0
-            </span>
-          </Link>
+            {itemCount > 0 && (
+              <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-bold text-charcoal">
+                {itemCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <CartDrawer />
     </header>
   );
 }

@@ -133,7 +133,7 @@ documented template. `.env` is git-ignored; **never commit real secrets.** Key g
 | Meilisearch | `MEILISEARCH_URL`, `MEILISEARCH_MASTER_KEY` | |
 | Object storage | `S3_*` | for uploads/media (deferred) |
 | Payments | `RAZORPAY_*` | deferred; see below |
-| Print | `PRINT_PROVIDER`, `PRINT_PROVIDER_API_TOKEN` | deferred |
+| Print | `QIKINK_CLIENT_ID`, `QIKINK_CLIENT_SECRET`, `QIKINK_BASE_URL` | Qikink Open API |
 | Social login | `GOOGLE_OAUTH_*`, `APPLE_OAUTH_*` | UI built, keys optional |
 
 For local dev the committed defaults are sufficient — **no external API keys are
@@ -151,7 +151,7 @@ None are needed for the foundation slice. You'll need these as later phases land
 | Service | Env vars | Where to get it | Notes |
 |---------|----------|-----------------|-------|
 | **Razorpay** (payments) | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Razorpay Dashboard → **Settings → API Keys** (generate key/secret). Webhook secret: **Settings → Webhooks → Add webhook** (you set the secret there). <https://dashboard.razorpay.com/> | Use **Test mode** keys for dev. The webhook secret is separate from the API secret and is what verifies incoming webhooks. |
-| **Printful** *(or Printify)* (print fulfilment) | `PRINT_PROVIDER_API_TOKEN` (`PRINT_PROVIDER=printful`) | Printful → **Settings → Developers → API Tokens** (<https://developers.printful.com/>). Printify → **My Profile → Connections → Generate token** (<https://printify.com/app/account/api>). | Store-scoped token. Never expose it to the browser — the backend calls the provider. |
+| **Qikink** (custom-print fulfilment) | `QIKINK_CLIENT_ID`, `QIKINK_CLIENT_SECRET` (base URL/paths overridable via `QIKINK_BASE_URL`, `QIKINK_TOKEN_PATH`, `QIKINK_ORDER_CREATE_PATH`, `QIKINK_ORDER_STATUS_PATH`) | Qikink Dashboard → **Settings → API / Open API** for the ClientId + client secret. Reference: Qikink Open API Postman docs. <https://qikink.com/> | Server-side only — the backend exchanges these for a short-lived token (cached ~1h) and calls Qikink; never expose to the browser. Defaults point at the sandbox host; set `QIKINK_BASE_URL` to production when going live. |
 | **Cloudflare R2** *(or AWS S3)* (media/uploads) | `S3_ENDPOINT_URL`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `S3_REGION` | R2: Cloudflare Dashboard → **R2 → Manage R2 API Tokens** (<https://dash.cloudflare.com/>). S3: AWS IAM → **Users → Security credentials → Access keys**, plus an S3 bucket. | R2 is S3-compatible; set `S3_ENDPOINT_URL` to your R2 endpoint. |
 
 ### Optional (social login — the UI exists, keys just enable it)

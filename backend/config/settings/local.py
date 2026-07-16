@@ -26,6 +26,12 @@ if OFFLINE:
     # No Meili in offline mode — search transparently uses the Postgres fallback,
     # so the index-sync task returns instantly instead of waiting on TCP timeouts.
     MEILISEARCH_URL = ""  # noqa: F811
+    # Force local-disk storage offline even if S3_BUCKET_NAME is set in .env —
+    # object storage needs credentials the offline/test run doesn't have.
+    STORAGES = {  # noqa: F405
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 

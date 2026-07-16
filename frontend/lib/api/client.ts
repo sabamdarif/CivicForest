@@ -61,22 +61,19 @@ export async function apiFetch<T>(
   const method = (init.method ?? "GET").toUpperCase();
   const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
 
+  const headers: Record<string, string> = { Accept: "application/json" };
+  // Let the browser set the multipart boundary for FormData bodies.
+  if (init.body && !isForm) headers["Content-Type"] = "application/json";
   // CSRF only matters browser-side; server components never mutate.
-  const csrfHeader =
-    !isServer && !SAFE_METHODS.has(method)
-      ? { "X-CSRFToken": await ensureCsrfToken() }
-      : {};
+  if (!isServer && !SAFE_METHODS.has(method)) {
+    headers["X-CSRFToken"] = await ensureCsrfToken();
+  }
+  Object.assign(headers, init.headers);
 
   const res = await fetch(url, {
     ...init,
     credentials: "include",
-    headers: {
-      Accept: "application/json",
-      // Let the browser set the multipart boundary for FormData bodies.
-      ...(init.body && !isForm ? { "Content-Type": "application/json" } : {}),
-      ...csrfHeader,
-      ...init.headers,
-    },
+    headers,
     // ISR for public catalog data; opt out with revalidate: 0.
     ...(revalidate !== undefined ? { next: { revalidate } } : {}),
   });

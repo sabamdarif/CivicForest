@@ -45,9 +45,8 @@ export default function AccountPage() {
 
       <div className="mt-10 grid gap-4 sm:grid-cols-3">
         {[
-          ["Orders", "Track and review your orders", "/account"],
-          ["Wishlist", "Items you've saved for later", "/account"],
-          ["Addresses", "Manage your delivery addresses", "/account"],
+          ["Orders", "Track and review your orders", "/account/orders"],
+          ["Wishlist", "Items you've saved for later", "/account/wishlist"],
         ].map(([title, body, href]) => (
           <Link
             key={title}

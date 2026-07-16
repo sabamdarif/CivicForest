@@ -75,6 +75,19 @@ export async function login(email: string, password: string): Promise<SessionRes
   return request<SessionResponse>("/auth/login", "POST", { email, password });
 }
 
+export async function signup(email: string, password: string): Promise<SessionResponse> {
+  // Prime the csrftoken cookie before POSTing (same as login).
+  await getSession();
+  return request<SessionResponse>("/auth/signup", "POST", { email, password });
+}
+
+/** Kick off the password-reset email flow. allauth always returns 200 here so the
+ * response never reveals whether an account exists (plan.md §12). */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await getSession();
+  await request("/auth/password/request", "POST", { email });
+}
+
 export async function logout(): Promise<void> {
   await request("/auth/session", "DELETE");
 }

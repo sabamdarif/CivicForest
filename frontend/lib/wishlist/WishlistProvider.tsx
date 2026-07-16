@@ -46,6 +46,8 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Async load on mount — state is set in a later microtask, not a sync cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
 

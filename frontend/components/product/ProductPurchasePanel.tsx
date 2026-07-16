@@ -2,9 +2,13 @@
 
 import { useMemo, useState } from "react";
 
-import { ArrowRight, HeartIcon } from "@/components/ui/icons";
+import { CustomDesignUpload } from "@/components/product/CustomDesignUpload";
+import { WishlistButton } from "@/components/product/WishlistButton";
+import { ArrowRight } from "@/components/ui/icons";
+import { ApiError } from "@/lib/api/client";
 import type { ProductDetail } from "@/lib/api/types";
 import { formatPrice } from "@/lib/brand/format";
+import { useCart } from "@/lib/cart/CartProvider";
 
 /**
  * Size/color selection + add-to-cart. Selection and quantity are client UI state;
@@ -16,6 +20,9 @@ export function ProductPurchasePanel({ product }: { product: ProductDetail }) {
   const [color, setColor] = useState(colors[0]?.name ?? "");
   const [size, setSize] = useState("");
   const [qty, setQty] = useState(1);
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { addItem } = useCart();
 
   // Sizes available for the chosen color, based on in-stock variants.
   const sizesForColor = useMemo(() => {
@@ -31,6 +38,19 @@ export function ProductPurchasePanel({ product }: { product: ProductDetail }) {
   );
   const displayPrice = selectedVariant?.price ?? product.price_from;
   const canAdd = Boolean(selectedVariant?.in_stock);
+
+  async function onAddToCart() {
+    if (!selectedVariant) return;
+    setError(null);
+    setAdding(true);
+    try {
+      await addItem(selectedVariant.id, qty);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't add to cart.");
+    } finally {
+      setAdding(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -117,19 +137,35 @@ export function ProductPurchasePanel({ product }: { product: ProductDetail }) {
           </button>
         </div>
 
-        <button type="button" disabled={!canAdd} className="btn-dark flex-1 justify-center disabled:opacity-40">
-          {canAdd ? "Add to Cart" : size ? "Out of Stock" : "Select a Size"}
-          {canAdd && <ArrowRight />}
-        </button>
-
         <button
           type="button"
-          aria-label="Add to wishlist"
-          className="flex h-11 w-11 items-center justify-center rounded-sm border border-black/15 text-ink transition hover:text-gold"
+          disabled={!canAdd || adding}
+          onClick={onAddToCart}
+          className="btn-dark flex-1 justify-center disabled:opacity-40"
         >
-          <HeartIcon />
+          {adding
+            ? "Adding…"
+            : canAdd
+              ? "Add to Cart"
+              : size
+                ? "Out of Stock"
+                : "Select a Size"}
+          {canAdd && !adding && <ArrowRight />}
         </button>
+
+        <WishlistButton productId={product.id} variant="square" />
       </div>
+
+      {error && (
+        <p className="rounded-sm bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          {error}
+        </p>
+      )}
+
+      <CustomDesignUpload
+        variantId={selectedVariant?.id ?? null}
+        selectionHint={!selectedVariant ? "Select a color and size first." : null}
+      />
 
       {product.description && (
         <div className="border-t border-black/10 pt-5 text-sm leading-relaxed text-ink/70">

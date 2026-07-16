@@ -312,6 +312,27 @@ S3_REGION = env("S3_REGION", default="auto")
 DESIGN_UPLOAD_MAX_BYTES = env.int("DESIGN_UPLOAD_MAX_BYTES", default=15 * 1024 * 1024)
 DESIGN_UPLOAD_MAX_DIMENSION = env.int("DESIGN_UPLOAD_MAX_DIMENSION", default=8000)
 
+# When a bucket is configured, the default file storage becomes private S3/R2:
+# objects are never public, and every URL is a short-lived signed link — so design
+# uploads (customer artwork) are only reachable by the print partner, not by guessing
+# a URL (plan.md §8, §12). No bucket set ⇒ local disk (dev only).
+if S3_BUCKET_NAME:
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": S3_BUCKET_NAME,
+            "access_key": S3_ACCESS_KEY_ID,
+            "secret_key": S3_SECRET_ACCESS_KEY,
+            "endpoint_url": S3_ENDPOINT_URL or None,
+            "region_name": S3_REGION,
+            "default_acl": "private",
+            "querystring_auth": True,  # serve via signed URLs
+            "querystring_expire": env.int("S3_SIGNED_URL_TTL", default=3600),
+            "file_overwrite": False,
+            "signature_version": "s3v4",
+        },
+    }
+
 # ─── Logging (structured-ish; JSON formatter wired in production) ────────────
 LOGGING = {
     "version": 1,

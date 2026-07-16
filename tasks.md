@@ -30,7 +30,7 @@ status/tracking polling.
 | Phase 10 — CI/CD security scanning | ⏳ Deferred |
 | Phase 11 — observability | 🟡 Partial (`/readyz` done) |
 | Phase 12 — testing breadth & launch | 🟡 Partial (unit tests done; no E2E/k6/axe) |
-| **Frontend for phases 6–8 (cart/checkout/orders UI)** | ⏳ **Not started** |
+| **Frontend for phases 6–8 (cart/checkout/orders UI)** | ✅ **Done** (build + lint green) |
 
 **Verification (this machine, `USE_SQLITE=1`):**
 - `manage.py check` → 0 issues · `makemigrations --check` → **no drift**
@@ -105,29 +105,33 @@ going live needs Razorpay + Qikink credentials, Redis, and object storage (below
       Delivered), delivered→terminal
 - [ ] **Frontend** design upload on product page + tracking in `/account/orders` → task #5
 
-## Settings / URLs / env wiring  🟡 (in progress)
+## Settings / URLs / env wiring  ✅ done
 - [x] All new apps in `INSTALLED_APPS`; URLs mounted under `/api/v1`
 - [x] `/readyz` readiness probe (DB + cache) added
 - [x] Commerce settings block (shipping, Razorpay, **Qikink**, object storage) in `base.py`
 - [x] Celery Beat schedule
-- [ ] Update `.env.example` with new keys (Razorpay, Qikink, S3/R2, shipping)
-- [ ] Update `README.md` §6 (API keys) — swap Printful/Printify → **Qikink**
-- [ ] Object storage backend: install `django-storages[s3]` + boto3 and switch
-      `STORAGES["default"]` to private S3/R2 (design files are on local disk today)
+- [x] Update `.env.example` with new keys (Razorpay, Qikink, S3/R2, shipping)
+- [x] Update `README.md` §5+§6 — swap Printful/Printify → **Qikink**
+- [x] Object storage backend: added `django-storages[s3]` + boto3; `STORAGES["default"]`
+      switches to **private S3/R2 (signed URLs)** when `S3_BUCKET_NAME` is set — local disk
+      otherwise (and always in `USE_SQLITE` offline/test mode)
 
 ---
 
 ## Deferred — remaining ~30%
 
-### Phase 5 (task #5) — FRONTEND for cart / checkout / orders  ⏳ NOT STARTED
-- [-] `lib/api/{cart,wishlist,orders,checkout}.ts` typed clients + `types.ts` additions
-- [-] Cart drawer/page: qty stepper (optimistic), coupon input, **server totals**, nav badge
-- [-] Wishlist page + real heart persistence (replace UI-only toggle)
-- [-] Checkout page: address prefill, Razorpay hosted checkout, poll order status
-- [-] `/account/orders` list + detail (incl. custom-order tracking/AWB)
-- [-] Custom-design upload UI on the product page (cosmetic validation + preview)
-- [-] Signup + password-reset UI (allauth endpoints already exist; login is built)
-- [-] `tsc --noEmit` + `next build` green
+### Phase 5 (task #5) — FRONTEND for cart / checkout / orders  ✅ DONE
+- [x] `lib/api/{cart,wishlist,orders,customDesigns,account}.ts` typed clients + `types.ts` additions
+- [x] `client.ts`: browser CSRF-token priming/echo on unsafe methods + FormData support
+- [x] `CartProvider` (root-mounted, server-priced) + live nav badge; `WishlistProvider` + real heart persistence (`WishlistButton` replaces UI-only toggle on card + product page)
+- [x] Cart drawer: qty stepper (server re-price each mutation), coupon input, **server totals**
+- [x] Cart page (`/cart`) — full-page view
+- [x] Wishlist page (`/account/wishlist`)
+- [x] Checkout page: address prefill, Razorpay hosted checkout, poll order status
+- [x] `/account/orders` list + detail (incl. custom-order tracking/AWB)
+- [x] Custom-design upload UI on the product page (cosmetic validation + preview) — `CustomDesignUpload` wired into purchase panel
+- [x] Signup + password-reset UI (allauth endpoints already exist; login is built)
+- [x] `tsc --noEmit` + `next build` green — all 17 routes compile, `eslint .` clean
 
 ### Phase 9 — admin hardening (`remaining_plan.md` §9)
 - [-] IP allow-list / Zero-Trust in front of the admin path (Caddy) → 404 for outsiders
