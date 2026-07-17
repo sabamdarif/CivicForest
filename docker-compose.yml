@@ -93,6 +93,8 @@ services:
 
   caddy:
     image: caddy:2-alpine
+    # Admin path + IP allow-list feed the Caddyfile's env substitution (plan.md §11).
+    env_file: .env
     depends_on:
       - backend
       - frontend

@@ -26,6 +26,16 @@ api.civicforest.local {
 		-Server
 	}
 
+	# Defence-in-depth for the admin: only allow-listed source IPs reach it; everyone
+	# else gets a generic 404 (no hint the panel exists) before the request touches
+	# Django. Django additionally enforces staff TOTP MFA (plan.md §11). The path and
+	# CIDR list come from the environment so the admin URL stays non-guessable.
+	@admin_blocked {
+		path {$DJANGO_ADMIN_PATH:/__admin_disabled__/}*
+		not remote_ip {$ADMIN_IP_ALLOWLIST:127.0.0.1/32}
+	}
+	respond @admin_blocked 404
+
 	reverse_proxy backend:8000 {
 		header_up X-Forwarded-Proto https
 		header_up Host {host}

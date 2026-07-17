@@ -20,5 +20,7 @@ SECURE_HSTS_PRELOAD = True
 # Shorter idle window for everyone; staff hardening (even shorter) handled per-session.
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 1 week
 
-# Structured JSON logs for aggregation; correlation IDs threaded in later (plan.md §16).
+# Structured JSON logs for aggregation, with the correlation ID on every record so a
+# single failed checkout traces end-to-end (plan.md §16).
 LOGGING["root"]["level"] = "INFO"  # noqa: F405
+LOGGING["handlers"]["console"]["formatter"] = "json"  # noqa: F405

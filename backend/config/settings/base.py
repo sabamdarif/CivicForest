@@ -52,6 +52,7 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "django_celery_beat",
+    "auditlog",
 ]
 
 LOCAL_APPS = [
@@ -69,6 +70,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # ─── Middleware ──────────────────────────────────────────────────────────────
 MIDDLEWARE = [
+    "apps.common.middleware.RequestIDMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -79,6 +81,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    # After auth (needs request.user) — gates the admin path on staff MFA.
+    "apps.common.middleware.StaffAdminMiddleware",
+    # auditlog: records which user made a change (before/after diffs on registered models).
+    "auditlog.middleware.AuditlogMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -257,11 +263,28 @@ MEDIA_ROOT = BASE_DIR / "mediafiles"
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB request body cap
 
+# ─── Email ───────────────────────────────────────────────────────────────────
+# SMTP when EMAIL_HOST is provided (any transactional provider), else console (dev).
+# Order emails are sent off the Celery queue so a slow mail server never blocks the
+# payment webhook (plan.md §7, §8).
+EMAIL_HOST = env("EMAIL_HOST", default="")
+if EMAIL_HOST:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+    EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+    EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+    EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="CivicForest <no-reply@civicforest.local>")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ─── Admin ───────────────────────────────────────────────────────────────────
 # Non-guessable admin path from env; never the default /admin/ (plan.md §11).
 ADMIN_URL = env("DJANGO_ADMIN_URL", default="admin/")
+# Staff sessions expire faster than customer sessions; enforced in StaffAdminMiddleware.
+STAFF_SESSION_AGE = env.int("STAFF_SESSION_AGE", default=60 * 60)
 
 # ─── Celery ──────────────────────────────────────────────────────────────────
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/1")
@@ -333,21 +356,48 @@ if S3_BUCKET_NAME:
         },
     }
 
-# ─── Logging (structured-ish; JSON formatter wired in production) ────────────
+# ─── Logging (correlation-ID on every line; JSON formatter wired in production) ─
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "request_id": {"()": "apps.common.middleware.RequestIDLogFilter"},
+    },
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {name} {message}",
+            "format": "{levelname} {asctime} {name} [{request_id}] {message}",
             "style": "{",
+        },
+        "json": {
+            "()": "pythonjsonlogger.json.JsonFormatter",
+            "format": "%(levelname)s %(asctime)s %(name)s %(request_id)s %(message)s",
         },
     },
     "handlers": {
-        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+            "filters": ["request_id"],
+        },
     },
     "root": {"handlers": ["console"], "level": "INFO"},
     "loggers": {
         "django.security": {"handlers": ["console"], "level": "WARNING", "propagate": False},
     },
 }
+
+# ─── Error tracking (Sentry) — no-op when SENTRY_DSN is unset ─────────────────
+SENTRY_DSN = env("SENTRY_DSN", default="")
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration(), CeleryIntegration()],
+        traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.1),
+        environment=env("SENTRY_ENVIRONMENT", default="development"),
+        # PII (emails, card data) must never leave our systems — DPDP Act (plan.md §12).
+        send_default_pii=False,
+    )

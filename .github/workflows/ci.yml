@@ -6,8 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-# Foundation slice: lint only. Type-check, tests, image build+scan (Trivy), and
-# CodeQL are layered in later per plan.md §14.
 jobs:
   backend-lint:
     runs-on: ubuntu-latest
@@ -20,6 +18,62 @@ jobs:
       - run: uv sync --dev
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+
+  backend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: civicforest
+          POSTGRES_USER: civicforest
+          POSTGRES_PASSWORD: civicforest
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U civicforest -d civicforest"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      # Test against the real Postgres/Redis so PG-specific behavior is exercised, not
+      # just the SQLite offline fallback. Celery runs eager so no worker is needed.
+      DJANGO_SETTINGS_MODULE: config.settings.local
+      DATABASE_URL: postgres://civicforest:civicforest@localhost:5432/civicforest
+      REDIS_URL: redis://localhost:6379/0
+      CELERY_BROKER_URL: redis://localhost:6379/1
+      CELERY_RESULT_BACKEND: redis://localhost:6379/2
+      CELERY_TASK_ALWAYS_EAGER: "1"
+      DJANGO_SECRET_KEY: ci-insecure-test-key
+      DJANGO_DEBUG: "false"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      CORS_ALLOWED_ORIGINS: https://civicforest.local
+      CSRF_TRUSTED_ORIGINS: https://civicforest.local
+      MEILISEARCH_URL: ""
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --dev
+      - run: uv run python manage.py makemigrations --check --dry-run
+      - run: uv run pytest -q
+
+  backend-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --dev
+      # Fail the build on a known-vulnerable Python dependency (plan.md §14).
+      - run: uv run pip-audit --strict --desc
 
   frontend-lint:
     runs-on: ubuntu-latest
@@ -36,3 +90,41 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
+      - run: npm run build
+      # High/critical advisories fail the build; lower severities are reported only.
+      - run: npm audit --audit-level=high
+
+  image-scan:
+    runs-on: ubuntu-latest
+    needs: [backend-lint, frontend-lint]
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            context: ./backend
+            dockerfile: ./backend/Dockerfile
+          - name: frontend
+            context: ./frontend
+            dockerfile: ./frontend/Dockerfile.dev
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build ${{ matrix.name }} image
+        run: docker build -t civicforest-${{ matrix.name }}:ci -f ${{ matrix.dockerfile }} ${{ matrix.context }}
+      - name: Trivy scan ${{ matrix.name }}
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: civicforest-${{ matrix.name }}:ci
+          format: sarif
+          output: trivy-${{ matrix.name }}.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+      - name: Upload Trivy results to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-${{ matrix.name }}.sarif
+          category: trivy-${{ matrix.name }}

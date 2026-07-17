@@ -10,10 +10,13 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` deferred
 
 ## 📊 Progress summary
 
-**Foundation slice (1–5): ✅ done.  Commerce backend (6–8): ✅ done & verified.**
-The whole purchase path now exists on the backend: cart → coupon → checkout → Razorpay
+**Foundation slice (1–5): ✅ done.  Commerce backend (6–8): ✅ done & verified.
+Frontend for 6–8: ✅ done.  Hardening (9–11): ✅ mostly done.**
+The whole purchase path now exists end-to-end: cart → coupon → checkout → Razorpay
 → verified webhook → stock decrement → custom-print submission to **Qikink** →
-status/tracking polling.
+status/tracking polling — with the storefront UI for all of it, plus admin hardening
+(Caddy IP allow-list + staff TOTP + auditlog), CI with tests/audits/Trivy, and
+observability (Sentry, JSON logs, correlation IDs, order emails).
 
 | Area | Status |
 |------|--------|
@@ -26,9 +29,9 @@ status/tracking polling.
 | **Phase 6 — cart / wishlist / coupons (backend)** | ✅ **Done** |
 | **Phase 7 — orders + Razorpay payments (backend)** | ✅ **Done** |
 | **Phase 8 — custom orders + Qikink print (backend)** | ✅ **Done** |
-| Phase 9 — admin hardening | ⏳ Deferred |
-| Phase 10 — CI/CD security scanning | ⏳ Deferred |
-| Phase 11 — observability | 🟡 Partial (`/readyz` done) |
+| Phase 9 — admin hardening | ✅ Done |
+| Phase 10 — CI/CD security scanning | 🟡 Mostly done (repo-settings items remain) |
+| Phase 11 — observability | 🟡 Mostly done (alert rules remain) |
 | Phase 12 — testing breadth & launch | 🟡 Partial (unit tests done; no E2E/k6/axe) |
 | **Frontend for phases 6–8 (cart/checkout/orders UI)** | ✅ **Done** (build + lint green) |
 
@@ -40,11 +43,12 @@ status/tracking polling.
 **Test breakdown:** accounts 3 · catalog 4 · **cart 11** · **orders 11** ·
 **payments 9** · **custom_orders 14**.
 
-**Roughly where the whole product stands:** ~40% (foundation) + the commerce **backend**
-now built ⇒ **~65–70% of the end-to-end store**. What's left is the **frontend** for
-cart/checkout/orders, production **hardening** (admin/CI/observability), and **test
-breadth** (E2E/load/a11y). None of the new backend needs external keys to *run* offline;
-going live needs Razorpay + Qikink credentials, Redis, and object storage (below).
+**Roughly where the whole product stands:** foundation + commerce backend + frontend +
+hardening ⇒ **~85–90% of the end-to-end store**. What's left is **test breadth**
+(E2E/load/a11y, factory_boy), GitHub repo settings (CodeQL/secret scanning/branch
+protection), alert rules in Sentry, and live credentials. None of the code needs
+external keys to *run* offline; going live needs Razorpay + Qikink credentials, Redis,
+SMTP, and object storage (below).
 
 ---
 
@@ -133,20 +137,27 @@ going live needs Razorpay + Qikink credentials, Redis, and object storage (below
 - [x] Signup + password-reset UI (allauth endpoints already exist; login is built)
 - [x] `tsc --noEmit` + `next build` green — all 17 routes compile, `eslint .` clean
 
-### Phase 9 — admin hardening (`remaining_plan.md` §9)
-- [-] IP allow-list / Zero-Trust in front of the admin path (Caddy) → 404 for outsiders
-- [-] Require TOTP MFA for all staff; shorter staff session timeout
-- [-] `django-auditlog` before/after field diffs
+### Phase 9 — admin hardening (`remaining_plan.md` §9)  ✅ done
+- [x] IP allow-list in front of the admin path (Caddy `@admin_blocked` matcher, env-driven
+      `DJANGO_ADMIN_PATH` + `ADMIN_IP_ALLOWLIST`) → 404 for outsiders
+- [x] Require TOTP MFA for all staff (`StaffAdminMiddleware`); shorter staff session
+      timeout (`STAFF_SESSION_AGE`, default 1h)
+- [x] `django-auditlog` before/after field diffs (Order, Coupon, Product, ProductVariant)
 
-### Phase 10 — CI/CD & security scanning (`remaining_plan.md` §10)
-- [-] Extend `ci.yml`: typecheck → tests (ephemeral PG/Redis) → build → Trivy
-- [-] CodeQL default setup, Dependabot, secret scanning + push protection
-- [-] `pip-audit`/`npm audit`; branch protection on `main`
+### Phase 10 — CI/CD & security scanning (`remaining_plan.md` §10)  🟡 mostly done
+- [x] Extend `ci.yml`: typecheck → tests (ephemeral PG/Redis) → build → Trivy (SARIF → code scanning)
+- [x] `pip-audit` (backend job) / `npm audit --audit-level=high` (frontend job)
+- [-] CodeQL default setup, secret scanning + push protection, branch protection on
+      `main` (Dependabot done earlier; rest are GitHub repo settings, not code)
 
-### Phase 11 — observability (`remaining_plan.md` §11)
+### Phase 11 — observability (`remaining_plan.md` §11)  🟡 mostly done
 - [x] `/readyz` (DB + cache) — done
-- [-] Sentry (Django + Next.js); structured JSON logs + correlation IDs
+- [x] Sentry (Django + Celery via `SENTRY_DSN`; Next.js via `@sentry/nextjs` +
+      instrumentation hooks) — no-op when DSN unset, `send_default_pii=False`
+- [x] Structured JSON logs (production formatter) + correlation IDs (`RequestIDMiddleware`
+      → contextvar → log filter → Celery headers, echoed as `X-Request-ID`)
 - [-] Alerts: webhook-verify failures, Celery failure rate, payment/order mismatch
+      (configured in Sentry/monitoring dashboards, not code)
 
 ### Phase 12 — testing breadth & launch (`remaining_plan.md` §12)
 - [x] Unit tests for the highest-blast-radius paths (webhook, state machine, uploads, Qikink)
@@ -156,7 +167,9 @@ going live needs Razorpay + Qikink credentials, Redis, and object storage (below
 - [-] Full `plan.md` §12 security-checklist pass; DB backup restore test
 
 ### Cross-cutting
-- [-] Object storage (R2/S3) for product media **and** design uploads (currently local disk)
-- [-] Email delivery (order confirmation, shipping, password reset) via a provider + Celery
+- [x] Object storage (R2/S3) switch wired for design uploads + media (private, signed
+      URLs when `S3_BUCKET_NAME` set; local disk in dev/offline)
+- [x] Email delivery (order confirmation / shipped / delivered) via SMTP env + Celery
+      task (`apps.common.email`); console backend when `EMAIL_HOST` unset
 - [-] Social-login provider credentials (Google/Apple) — UI built, keys env-gated
 - [-] Live Razorpay + Qikink credentials (test-mode keys for dev; live access via dashboards)
