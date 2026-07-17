@@ -115,7 +115,7 @@ jobs:
       - name: Build ${{ matrix.name }} image
         run: docker build -t civicforest-${{ matrix.name }}:ci -f ${{ matrix.dockerfile }} ${{ matrix.context }}
       - name: Trivy scan ${{ matrix.name }}
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: civicforest-${{ matrix.name }}:ci
           format: sarif
