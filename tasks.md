@@ -37,7 +37,8 @@ observability (Sentry, JSON logs, correlation IDs, order emails).
 
 **Verification (this machine, `USE_SQLITE=1`):**
 - `manage.py check` → 0 issues · `makemigrations --check` → **no drift**
-- `pytest` → **52 passed** (was 7 → **+45 new tests** this session)
+- `pytest` → **72 passed** (52 → +20 breadth tests: factories, merge edges, email,
+  middleware, storage switch)
 - `ruff check` + `ruff format --check` → clean across all apps + config
 
 **Test breakdown:** accounts 3 · catalog 4 · **cart 11** · **orders 11** ·
@@ -161,7 +162,10 @@ SMTP, and object storage (below).
 
 ### Phase 12 — testing breadth & launch (`remaining_plan.md` §12)
 - [x] Unit tests for the highest-blast-radius paths (webhook, state machine, uploads, Qikink)
-- [-] `factory_boy` fixtures; broaden coverage
+- [x] `factory_boy` fixtures (`apps/common/factories.py`) + broadened coverage (+20):
+      cart-merge edge cases (noop/creates/OOS-drop/coupon-carry/idempotent), order-email
+      task (content/AWB/skip/SMTP-fail), StaffAdminMiddleware (404/redirect/TOTP-pass/
+      session-age), RequestIDMiddleware (generate/echo), S3 storage switch (on/off/offline)
 - [-] Playwright E2E (signup→login, search→cart→checkout, custom upload)
 - [-] k6 load test on the suggestion endpoint; axe a11y pass
 - [-] Full `plan.md` §12 security-checklist pass; DB backup restore test
