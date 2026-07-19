@@ -8,6 +8,7 @@
     "start": "next start -p 3000",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "e2e": "playwright test",
     "postinstall": "node patch-ts.js"
   },
   "dependencies": {
@@ -17,6 +18,8 @@
     "react-dom": "19.2.7"
   },
   "devDependencies": {
+    "@axe-core/puppeteer": "^4.12.1",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "4.3.2",
     "@types/node": "26.1.1",
     "@types/react": "19.2.17",
@@ -25,6 +28,7 @@
     "eslint": "9.21.0",
     "eslint-config-next": "16.2.10",
     "postcss": "8.5.16",
+    "puppeteer": "^25.3.0",
     "tailwindcss": "4.3.2",
     "typescript": "7.0.2",
     "typescript-standard": "npm:typescript@5.7.2"

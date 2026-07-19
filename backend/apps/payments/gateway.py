@@ -46,6 +46,11 @@ def create_order(
     if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
         raise PaymentError("Payments are not configured.", code="not_configured")
 
+    # E2E/offline fake (settings.e2e only): skip the network call so the rest of the
+    # money path — order, webhook, fulfilment — can run against the real code.
+    if getattr(settings, "RAZORPAY_FAKE_MODE", False):
+        return {"id": f"order_fake_{receipt}", "status": "created"}
+
     payload = json.dumps(
         {
             "amount": to_paise(amount),

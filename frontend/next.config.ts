@@ -12,12 +12,16 @@ const apiHost = (() => {
 const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  // A stray lockfile in $HOME makes Next infer the wrong workspace root.
+  turbopack: { root: __dirname },
   images: {
     // Product/brand imagery is served by the Django API / object storage.
     remotePatterns: [
       { protocol: "https", hostname: apiHost },
       { protocol: "https", hostname: "**.r2.cloudflarestorage.com" },
       { protocol: "http", hostname: "backend" },
+      // Local E2E (Playwright) runs the API on plain http://localhost.
+      { protocol: "http", hostname: "localhost" },
     ],
   },
 };

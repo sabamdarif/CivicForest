@@ -44,3 +44,8 @@ Thumbs.db
 /designs
 /images
 /skills-lock.json
+
+# E2E artifacts
+backend/e2e_media/
+frontend/test-results/
+frontend/playwright-report/
