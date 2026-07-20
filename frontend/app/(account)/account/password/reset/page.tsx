@@ -57,7 +57,7 @@ export default function PasswordResetPage() {
                 className="btn-dark w-full justify-center disabled:opacity-60"
               >
                 <span className="text-gold">{loading ? "Sending…" : "Send reset link"}</span>
-                {!loading && <ArrowRight className="text-gold" />}
+                {!loading && <ArrowRight className="h-4 w-4 text-gold" />}
               </button>
             </form>
           </>

@@ -106,7 +106,7 @@ export function LoginForm() {
 
         <button type="submit" disabled={loading} className="btn-dark w-full justify-center disabled:opacity-60">
           <span className="text-gold">{loading ? "Logging in…" : "Login"}</span>
-          {!loading && <ArrowRight className="text-gold" />}
+          {!loading && <ArrowRight className="h-4 w-4 text-gold" />}
         </button>
       </form>
 
