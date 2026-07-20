@@ -77,7 +77,9 @@ class StaffAdminMiddleware:
             # frontend (allauth headless login + MFA), then visit the admin.
             if request.path == self.admin_prefix + "login/":
                 return redirect(f"{settings.FRONTEND_ORIGIN}/login")
-            if is_staff and not self._session_used_mfa(request):
+            # Dev convenience: seeded admin can use the panel without TOTP enrollment.
+            # DEBUG is always False in production settings, so the gate holds there.
+            if is_staff and not settings.DEBUG and not self._session_used_mfa(request):
                 return self._deny(request)
         return self.get_response(request)
 

@@ -12,6 +12,11 @@ export function apiBase(): string {
   return isServer ? INTERNAL_BASE : PUBLIC_BASE;
 }
 
+/** Base URL the *browser* must use — for hrefs/redirects, never the Docker-internal host. */
+export function publicApiBase(): string {
+  return PUBLIC_BASE;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,

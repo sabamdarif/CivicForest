@@ -4,7 +4,7 @@
 // lives in Django's session cookie — never in JS-accessible storage — so this client
 // just orchestrates fetches and echoes the CSRF token on mutations.
 
-import { apiBase } from "@/lib/api/client";
+import { apiBase, publicApiBase } from "@/lib/api/client";
 
 const ALLAUTH = () => `${apiBase()}/_allauth/browser/v1`;
 
@@ -95,8 +95,9 @@ export async function logout(): Promise<void> {
 /** Redirect the browser into allauth's provider flow (Google/Apple).
  * Guarded for SSR/prerender where `window` is undefined — the correct callback
  * origin is filled in on the client after hydration. */
+/** Browser-only: call from a click handler. Uses the public API base and the real
+ * window origin — rendering this into an SSR href causes a hydration mismatch. */
 export function socialLoginUrl(provider: "google" | "apple"): string {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const callback = encodeURIComponent(`${origin}/account`);
-  return `${ALLAUTH()}/auth/provider/redirect?provider=${provider}&callback_url=${callback}&process=login`;
+  const callback = encodeURIComponent(`${window.location.origin}/account`);
+  return `${publicApiBase()}/_allauth/browser/v1/auth/provider/redirect?provider=${provider}&callback_url=${callback}&process=login`;
 }

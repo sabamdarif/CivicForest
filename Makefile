@@ -1,6 +1,6 @@
 # CivicForest developer commands. Onboarding is: `make certs && make up && make migrate && make seed`.
 .DEFAULT_GOAL := help
-.PHONY: help certs up down logs migrate makemigrations seed test lint fmt shell createsuperuser reindex
+.PHONY: help certs up down logs migrate makemigrations seed seed-users test lint fmt shell createsuperuser reindex
 
 COMPOSE := docker compose
 
@@ -33,6 +33,9 @@ makemigrations: ## Create new migrations
 
 seed: ## Seed categories + demo catalog
 	$(COMPOSE) run --rm backend python manage.py seed_catalog
+
+seed-users: ## Create dev admin + test user (DEBUG only)
+	$(COMPOSE) run --rm backend python manage.py seed_dev_users
 
 reindex: ## Rebuild the Meilisearch index from Postgres
 	$(COMPOSE) run --rm backend python manage.py reindex_search

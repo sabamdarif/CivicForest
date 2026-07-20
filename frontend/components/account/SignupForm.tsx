@@ -103,9 +103,13 @@ export function SignupForm() {
       </div>
 
       <div className="space-y-3">
-        <a href={socialLoginUrl("google")} className="btn-outline w-full justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => window.location.assign(socialLoginUrl("google"))}
+          className="btn-outline w-full justify-center gap-3"
+        >
           <span className="font-bold text-[#4285F4]">G</span> Continue with Google
-        </a>
+        </button>
       </div>
 
       <p className="mt-6 text-center text-sm text-ink/60">
