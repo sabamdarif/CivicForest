@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Logo } from "@/components/brand/Logo";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { SearchOverlay } from "@/components/search/SearchOverlay";
 import { BagIcon, SearchIcon, UserIcon } from "@/components/ui/icons";
+import { getSession } from "@/lib/auth/allauth";
 import { useCart } from "@/lib/cart/CartProvider";
 
 const NAV = [
@@ -20,8 +21,20 @@ const NAV = [
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
-  const { itemCount, openDrawer } = useCart();
+  const { itemCount } = useCart();
+
+  async function onCartClick() {
+    let authed = false;
+    try {
+      const session = await getSession();
+      authed = session.meta?.is_authenticated ?? false;
+    } catch {
+      // Session check failed (API down etc.) — treat as logged out.
+    }
+    router.push(authed ? "/cart" : "/login");
+  }
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -68,7 +81,7 @@ export function Header() {
           </Link>
           <button
             type="button"
-            onClick={openDrawer}
+            onClick={onCartClick}
             aria-label={`Cart (${itemCount} items)`}
             className="relative text-cream/85 transition hover:text-gold"
           >

@@ -12,6 +12,9 @@ const apiHost = (() => {
 const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  // Dev is served through Caddy at civicforest.local; without this Next blocks
+  // all /_next/* dev assets cross-origin and the page never hydrates.
+  allowedDevOrigins: ["civicforest.local", "api.civicforest.local"],
   // A stray lockfile in $HOME makes Next infer the wrong workspace root.
   turbopack: { root: __dirname },
   images: {
