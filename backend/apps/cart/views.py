@@ -8,9 +8,21 @@ envelope."""
 from __future__ import annotations
 
 from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+
+class GuestCSRFSessionAuthentication(SessionAuthentication):
+    """SessionAuthentication only CSRF-checks *authenticated* sessions; guest cart
+    writes would otherwise accept cross-site POSTs (bugs.md #11)."""
+
+    def authenticate(self, request):
+        result = super().authenticate(request)
+        if result is None:
+            self.enforce_csrf(request)
+        return result
 
 from apps.catalog.models import Product
 
@@ -42,6 +54,7 @@ def _error(exc: services.CartError) -> Response:
 class CartView(APIView):
     """GET the current cart (guest or user), always freshly priced."""
 
+    authentication_classes = [GuestCSRFSessionAuthentication]
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -52,6 +65,7 @@ class CartView(APIView):
 class CartItemsView(APIView):
     """POST to add an item to the cart."""
 
+    authentication_classes = [GuestCSRFSessionAuthentication]
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -72,6 +86,7 @@ class CartItemsView(APIView):
 class CartItemDetailView(APIView):
     """PATCH to set an absolute quantity, DELETE to remove — keyed by variant id."""
 
+    authentication_classes = [GuestCSRFSessionAuthentication]
     permission_classes = [AllowAny]
 
     def patch(self, request, variant_id):
@@ -93,6 +108,7 @@ class CartItemDetailView(APIView):
 class CartCouponView(APIView):
     """POST to apply a coupon code, DELETE to clear it."""
 
+    authentication_classes = [GuestCSRFSessionAuthentication]
     permission_classes = [AllowAny]
 
     def post(self, request):

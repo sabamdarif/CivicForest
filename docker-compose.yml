@@ -54,9 +54,9 @@ services:
   backend:
     build: ./backend
     <<: *backend-env
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
+    # Migrations run only via `make migrate` — a startup migrate here raced the
+    # Makefile's one (two concurrent migrates corrupt the schema on first boot).
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
       - media:/app/mediafiles

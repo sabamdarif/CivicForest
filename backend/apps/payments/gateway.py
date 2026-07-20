@@ -82,6 +82,10 @@ def create_order(
 def verify_payment_signature(order_id: str, payment_id: str, signature: str) -> bool:
     """Verify the client-side checkout callback signature. Advisory only — the webhook
     is the source of truth for 'paid' (plan.md §9)."""
+    if not settings.RAZORPAY_KEY_SECRET:
+        # Never sign with an empty key — a misconfigured deployment would accept
+        # forged callbacks (bugs.md #8).
+        return False
     expected = _sign(settings.RAZORPAY_KEY_SECRET, f"{order_id}|{payment_id}".encode())
     return hmac.compare_digest(expected, signature or "")
 

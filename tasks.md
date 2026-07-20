@@ -11,7 +11,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` deferred
 ## 📊 Progress summary
 
 **Foundation slice (1–5): ✅ done.  Commerce backend (6–8): ✅ done & verified.
-Frontend for 6–8: ✅ done.  Hardening (9–11): ✅ mostly done.**
+Frontend for 6–8: ✅ done.  Hardening (9–11): ✅ mostly done.  Test breadth (12):
+✅ done (E2E/k6/axe scripts + security pass).**
 The whole purchase path now exists end-to-end: cart → coupon → checkout → Razorpay
 → verified webhook → stock decrement → custom-print submission to **Qikink** →
 status/tracking polling — with the storefront UI for all of it, plus admin hardening
@@ -32,7 +33,7 @@ observability (Sentry, JSON logs, correlation IDs, order emails).
 | Phase 9 — admin hardening | ✅ Done |
 | Phase 10 — CI/CD security scanning | 🟡 Mostly done (repo-settings items remain) |
 | Phase 11 — observability | 🟡 Mostly done (alert rules remain) |
-| Phase 12 — testing breadth & launch | 🟡 Partial (unit tests done; no E2E/k6/axe) |
+| Phase 12 — testing breadth & launch | ✅ Done (E2E/k6/axe + security pass; backup restore needs live DB) |
 | **Frontend for phases 6–8 (cart/checkout/orders UI)** | ✅ **Done** (build + lint green) |
 
 **Verification (this machine, `USE_SQLITE=1`):**
@@ -45,11 +46,11 @@ observability (Sentry, JSON logs, correlation IDs, order emails).
 **payments 9** · **custom_orders 14**.
 
 **Roughly where the whole product stands:** foundation + commerce backend + frontend +
-hardening ⇒ **~85–90% of the end-to-end store**. What's left is **test breadth**
-(E2E/load/a11y, factory_boy), GitHub repo settings (CodeQL/secret scanning/branch
-protection), alert rules in Sentry, and live credentials. None of the code needs
-external keys to *run* offline; going live needs Razorpay + Qikink credentials, Redis,
-SMTP, and object storage (below).
+hardening + test breadth ⇒ **~90–95% of the end-to-end store**. What's left is
+non-code: GitHub repo settings (CodeQL/secret scanning/branch protection), alert rules
+in Sentry, a DB backup restore test on a live managed Postgres, and live credentials.
+None of the code needs external keys to *run* offline; going live needs Razorpay +
+Qikink credentials, Redis, SMTP, and object storage (below).
 
 ---
 
@@ -166,9 +167,21 @@ SMTP, and object storage (below).
       cart-merge edge cases (noop/creates/OOS-drop/coupon-carry/idempotent), order-email
       task (content/AWB/skip/SMTP-fail), StaffAdminMiddleware (404/redirect/TOTP-pass/
       session-age), RequestIDMiddleware (generate/echo), S3 storage switch (on/off/offline)
-- [-] Playwright E2E (signup→login, search→cart→checkout, custom upload)
-- [-] k6 load test on the suggestion endpoint; axe a11y pass
-- [-] Full `plan.md` §12 security-checklist pass; DB backup restore test
+- [x] Playwright E2E specs for critical paths (`frontend/e2e/`): auth (signup→login),
+      checkout (search→cart→checkout with a real HMAC-signed webhook through fulfilment),
+      custom-design upload; `helpers.ts` + `playwright.config.ts` boot both servers against
+      `config.settings.e2e` (SQLite, `RAZORPAY_FAKE_MODE`, known webhook secret).
+      Runs in CI; local run needs `sudo rm -rf frontend/.next/dev` (root-owned from Docker,
+      blocks the Turbopack lockfile)
+- [x] k6 load test on the suggestion endpoint (`k6-search-suggest.js`, p95<500ms / <5% err
+      to 50 VUs); axe a11y audit (`frontend/axe-audit.js`) over key pages — both scripts
+      committed, run against live servers pre-launch
+- [x] `plan.md` §12 security-checklist pass (walked against code): no `dangerouslySetInnerHTML`,
+      `X_FRAME_OPTIONS=DENY` + prod HSTS, no raw SQL, SSRF hostname guard in `qikink._send`,
+      secure/HttpOnly/SameSite cookies, DRF throttles, 10 MB body cap, `max_page_size=48`,
+      UUID PKs, Pillow re-encode on upload, webhook HMAC verify, DPDP `marketing_opt_in`,
+      CI pip-audit/npm audit/Trivy/CodeQL
+- [-] DB backup restore test (needs a live managed Postgres; no code)
 
 ### Cross-cutting
 - [x] Object storage (R2/S3) switch wired for design uploads + media (private, signed

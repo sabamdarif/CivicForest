@@ -64,20 +64,31 @@ class StaffAdminMiddleware:
         self.admin_prefix = "/" + settings.ADMIN_URL
 
     def __call__(self, request):
+        user = getattr(request, "user", None)
+        is_staff = user is not None and user.is_authenticated and user.is_staff
+        if is_staff:
+            # Staff sessions expire faster on *every* path, not just admin — otherwise
+            # a staff session browsing the storefront keeps the customer-length
+            # lifetime (bugs.md #12). Idempotent; cheap.
+            request.session.set_expiry(settings.STAFF_SESSION_AGE)
         if request.path.startswith(self.admin_prefix):
-            user = getattr(request, "user", None)
-            if user is not None and user.is_authenticated and user.is_staff:
-                # Shorten this session for staff (idempotent; cheap).
-                request.session.set_expiry(settings.STAFF_SESSION_AGE)
-                if not self._has_mfa(user):
-                    return self._deny(request)
+            # Django's native admin login authenticates with password only and skips
+            # allauth's MFA step — never serve it (bugs.md #2). Staff log in via the
+            # frontend (allauth headless login + MFA), then visit the admin.
+            if request.path == self.admin_prefix + "login/":
+                return redirect(f"{settings.FRONTEND_ORIGIN}/login")
+            if is_staff and not self._session_used_mfa(request):
+                return self._deny(request)
         return self.get_response(request)
 
     @staticmethod
-    def _has_mfa(user) -> bool:
-        from allauth.mfa.models import Authenticator
+    def _session_used_mfa(request) -> bool:
+        """True only if *this session* completed an MFA step — enrollment alone isn't
+        enough, since a session created without MFA (e.g. before enrollment, or via a
+        non-allauth login path) would otherwise ride in on a phished password."""
+        from allauth.account.authentication import get_authentication_records
 
-        return Authenticator.objects.filter(user=user, type=Authenticator.Type.TOTP).exists()
+        return any(r.get("method") == "mfa" for r in get_authentication_records(request))
 
     @staticmethod
     def _deny(request):

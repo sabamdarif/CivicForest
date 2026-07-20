@@ -162,12 +162,31 @@ def fulfil_paid_order(order: Order, cart=None) -> Order:
     order.save(update_fields=["status", "updated_at"])
 
     if order.coupon_code:
+        from django.db.models import Q
+
         from apps.cart.models import Coupon
 
-        Coupon.objects.filter(code=order.coupon_code).update(used_count=F("used_count") + 1)
+        # Conditional increment closes the check-then-increment race: N concurrent
+        # checkouts can't collectively exceed max_uses (bugs.md #16). Exceeding it is
+        # logged, not raised — money is already captured at this point.
+        claimed = Coupon.objects.filter(
+            Q(max_uses__isnull=True) | Q(used_count__lt=F("max_uses")),
+            code=order.coupon_code,
+        ).update(used_count=F("used_count") + 1)
+        if not claimed:
+            import logging
+
+            logging.getLogger("orders").warning(
+                "Coupon %s exceeded max_uses on paid order %s",
+                order.coupon_code,
+                order.order_number,
+            )
 
     if cart is not None:
-        cart.items.all().delete()
+        # Delete only the lines this order snapshotted — anything the customer added
+        # after checkout stays in the cart (bugs.md #15).
+        ordered_variant_ids = [i.variant_id for i in order.items.all() if i.variant_id]
+        cart.items.filter(variant_id__in=ordered_variant_ids).delete()
         cart.coupon = None
         cart.save(update_fields=["coupon", "updated_at"])
 

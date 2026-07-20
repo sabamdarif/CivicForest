@@ -25,7 +25,8 @@ env_file = BASE_DIR.parent / ".env"
 if env_file.exists():
     env.read_env(str(env_file))
 
-SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-dev-key-override-me")
+# No default — every environment (dev included) must set it in .env (bugs.md #13).
+SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env("DJANGO_DEBUG")
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 
@@ -155,8 +156,16 @@ AUTH_PASSWORD_VALIDATORS = [
 # ─── allauth ─────────────────────────────────────────────────────────────────
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
-ACCOUNT_EMAIL_VERIFICATION = "optional"
+# "mandatory" — allauth's email-enumeration prevention only fully works in this mode;
+# "optional" makes duplicate-email signups distinguishable (bugs.md #5).
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_UNIQUE_EMAIL = True
+# Tighter than allauth's 30/min default on the credential-guessing surface (bugs.md #6).
+ACCOUNT_RATE_LIMITS = {
+    "login_failed": "10/5m/ip,5/5m/key",
+    "reset_password": "5/5m/ip,3/5m/key",
+    "signup": "10/5m/ip",
+}
 ACCOUNT_SESSION_REMEMBER = None  # honor the "remember me" checkbox from the client
 
 # Headless mode powers the Next.js frontend. The frontend URLs let allauth build
@@ -206,7 +215,8 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "120/min",
         "user": "600/min",
-        "auth": "20/min",  # login / signup / password reset
+        # Auth endpoints are allauth headless (not DRF) — rate-limited via
+        # ACCOUNT_RATE_LIMITS below, not here (bugs.md #6).
         "search": "60/min",  # autocomplete suggestion endpoint
     },
     "EXCEPTION_HANDLER": "apps.common.exceptions.standard_exception_handler",
@@ -282,7 +292,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ─── Admin ───────────────────────────────────────────────────────────────────
 # Non-guessable admin path from env; never the default /admin/ (plan.md §11).
-ADMIN_URL = env("DJANGO_ADMIN_URL", default="admin/")
+# Django reads the SAME env var Caddy uses (DJANGO_ADMIN_PATH) so the two can't
+# drift (bugs.md #10); the shared default matches Caddy's, so leaving both unset
+# serves the admin only on a path Caddy IP-blocks. DJANGO_ADMIN_URL kept as a
+# legacy fallback for existing .env files.
+ADMIN_URL = env(
+    "DJANGO_ADMIN_PATH",
+    default=env("DJANGO_ADMIN_URL", default="/__admin_disabled__/"),
+).strip("/") + "/"
 # Staff sessions expire faster than customer sessions; enforced in StaffAdminMiddleware.
 STAFF_SESSION_AGE = env.int("STAFF_SESSION_AGE", default=60 * 60)
 
@@ -340,6 +357,13 @@ DESIGN_UPLOAD_MAX_DIMENSION = env.int("DESIGN_UPLOAD_MAX_DIMENSION", default=800
 # uploads (customer artwork) are only reachable by the print partner, not by guessing
 # a URL (plan.md §8, §12). No bucket set ⇒ local disk (dev only).
 if S3_BUCKET_NAME:
+    if not (S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY):
+        from django.core.exceptions import ImproperlyConfigured
+
+        raise ImproperlyConfigured(
+            "S3_BUCKET_NAME is set but S3_ACCESS_KEY_ID/S3_SECRET_ACCESS_KEY are not — "
+            "either set the keys or unset the bucket to use local disk storage."
+        )
     STORAGES["default"] = {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {

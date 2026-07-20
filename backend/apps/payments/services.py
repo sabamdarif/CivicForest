@@ -61,14 +61,24 @@ def process_webhook(raw_body: bytes, signature: str, event: dict) -> str:
     Caller must have already verified the signature against ``raw_body``. This function
     owns dedup and fulfilment."""
     event_id = event.get("id") or event.get("event_id") or ""
+    if not event_id:
+        # No id from the gateway — dedup on the body hash so distinct id-less events
+        # don't all collapse into one "" bucket (bugs.md #7).
+        import hashlib
+
+        event_id = "sha256:" + hashlib.sha256(raw_body).hexdigest()
     event_type = event.get("event", "")
 
-    ledger, created = WebhookEvent.objects.get_or_create(
+    ledger, _ = WebhookEvent.objects.get_or_create(
         gateway="razorpay",
         event_id=event_id,
         defaults={"event_type": event_type, "payload": _scrub(event)},
     )
-    if not created and ledger.processed:
+    # Atomic claim: of any concurrent deliveries (including two racing on a fresh row),
+    # exactly one flips processed False→True and runs the handler; the rest see 0 rows
+    # updated and bail as duplicates (bugs.md #9).
+    claimed = WebhookEvent.objects.filter(pk=ledger.pk, processed=False).update(processed=True)
+    if not claimed:
         return "duplicate"
 
     if event_type == "payment.captured":
@@ -76,9 +86,14 @@ def process_webhook(raw_body: bytes, signature: str, event: dict) -> str:
     else:
         result = "ignored"
 
-    ledger.processed = True
+    if result == "unknown_order":
+        # Payment row not committed yet (checkout/webhook race). Release the claim and
+        # have the view return 5xx so Razorpay redelivers (bugs.md #14).
+        WebhookEvent.objects.filter(pk=ledger.pk).update(processed=False)
+        return result
+
     ledger.event_type = event_type
-    ledger.save(update_fields=["processed", "event_type", "updated_at"])
+    ledger.save(update_fields=["event_type", "updated_at"])
     return result
 
 
@@ -97,6 +112,21 @@ def _handle_capture(event: dict) -> str:
     if payment is None:
         logger.warning("Webhook capture for unknown gateway order %s", gateway_order_id)
         return "unknown_order"
+
+    # A partial capture or currency mismatch must never fulfil the full order —
+    # flag it for manual review instead (bugs.md #1).
+    if entity.get("amount") != gateway.to_paise(payment.amount) or entity.get(
+        "currency", payment.currency
+    ) != payment.currency:
+        logger.error(
+            "Amount/currency mismatch on %s: got %s %s, expected %s %s — needs review",
+            gateway_order_id,
+            entity.get("amount"),
+            entity.get("currency"),
+            gateway.to_paise(payment.amount),
+            payment.currency,
+        )
+        return "amount_mismatch"
 
     payment.gateway_payment_id = gateway_payment_id
     payment.status = Payment.Status.CAPTURED
