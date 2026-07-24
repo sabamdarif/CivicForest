@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@sentry/nextjs": "^10.66.0",
-    "next": "16.2.10",
+    "next": "16.2.11",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   },
@@ -25,15 +25,18 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "autoprefixer": "10.5.2",
-    "eslint": "9.21.0",
-    "eslint-config-next": "16.2.10",
-    "postcss": "8.5.16",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.11",
+    "postcss": "8.5.18",
     "puppeteer": "^25.3.0",
     "tailwindcss": "4.3.2",
     "typescript": "7.0.2",
     "typescript-standard": "npm:typescript@5.7.2"
   },
   "overrides": {
-    "postcss": "$postcss"
+    "postcss": "$postcss",
+    "typescript": "$typescript",
+    "fast-uri": "^3.1.4",
+    "sharp": "^0.35.0"
   }
 }
