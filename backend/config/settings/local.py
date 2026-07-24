@@ -14,7 +14,18 @@ DEBUG = env("DJANGO_DEBUG", default=True)
 # the offline test run, and quick local work when USE_SQLITE=1.
 OFFLINE = env.bool("USE_SQLITE", default=False)
 
+# Ensure local origins (http://localhost:3000, http://127.0.0.1:3000) are allowed in local dev
+_dev_origins = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000", "http://127.0.0.1:8000"]
+for origin in _dev_origins:
+    if origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(origin)
+    if origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
+
 if OFFLINE:
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_DOMAIN = None
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -40,3 +51,4 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=OFFLINE)
 
 INTERNAL_IPS = ["127.0.0.1"]
+
