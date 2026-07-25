@@ -45,6 +45,25 @@ def test_empty_cart_cannot_checkout(user):
     assert exc.value.code == "empty_cart"
 
 
+def test_checkout_links_pending_custom_designs(user, variant, settings, tmp_path):
+    """A pending custom design for a variant in the cart attaches to the new order, so
+    the payment webhook can submit it to Qikink for direct dropship delivery."""
+    from django.core.files.base import ContentFile
+
+    from apps.custom_orders.models import CustomDesignOrder
+
+    settings.MEDIA_ROOT = str(tmp_path)
+    custom = CustomDesignOrder(user=user, variant=variant)
+    custom.design_file.save("art.png", ContentFile(b"fake-png"), save=True)
+
+    order = services.create_order_from_cart(user, _cart_with(user, variant, 1), SHIPPING)
+
+    custom.refresh_from_db()
+    assert custom.order_id == order.id
+    assert order.has_custom_items is True
+    assert order.items.get().is_custom is True
+
+
 # ─── State machine ───────────────────────────────────────────────────────────
 def test_legal_transition_advances_status(user, variant):
     order = services.create_order_from_cart(user, _cart_with(user, variant, 1), SHIPPING)

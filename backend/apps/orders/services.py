@@ -116,7 +116,31 @@ def create_order_from_cart(user, cart, shipping) -> Order:
             for line in priced.lines
         ]
     )
+    _attach_custom_designs(user, order, [line.variant.id for line in priced.lines])
     return order
+
+
+def _attach_custom_designs(user, order: Order, variant_ids: list) -> None:
+    """Link the user's pending custom designs for these variants to the new order. This
+    is what lets the payment webhook submit them to Qikink, which dropships straight to
+    the order's shipping address (qikink_shipping=1)."""
+    try:
+        from apps.custom_orders.models import CustomDesignOrder
+    except ImportError:  # custom_orders app optional
+        return
+
+    linked = CustomDesignOrder.objects.filter(
+        user=user,
+        order__isnull=True,
+        submit_status=CustomDesignOrder.SubmitStatus.PENDING_PAYMENT,
+        variant_id__in=variant_ids,
+    ).update(order=order)
+    if linked:
+        order.items.filter(
+            variant_id__in=order.custom_designs.values("variant_id")
+        ).update(is_custom=True)
+        order.has_custom_items = True
+        order.save(update_fields=["has_custom_items", "updated_at"])
 
 
 @transaction.atomic
