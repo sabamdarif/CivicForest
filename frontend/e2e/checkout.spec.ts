@@ -24,7 +24,7 @@ test("search → add to cart → checkout → webhook marks order paid", async (
   await expect(page.getByLabel(/Cart \(1 items?\)/)).toBeVisible();
 
   await page.goto("/cart");
-  await page.getByRole("link", { name: /Proceed to Checkout/i }).click();
+  await page.getByRole("button", { name: /Proceed to Checkout/i }).click();
   await page.waitForURL("**/checkout");
 
   // Stub Razorpay's hosted checkout before paying.
@@ -51,7 +51,15 @@ test("search → add to cart → checkout → webhook marks order paid", async (
     id: `evt_e2e_${Date.now()}`,
     event: "payment.captured",
     payload: {
-      payment: { entity: { order_id: session.razorpay_order_id, id: "pay_e2e_1" } },
+      payment: {
+        entity: {
+          order_id: session.razorpay_order_id,
+          id: "pay_e2e_1",
+          // The fulfilment path refuses partial captures — echo the real amount.
+          amount: session.amount_paise,
+          currency: session.currency,
+        },
+      },
     },
   });
   const signature = crypto.createHmac("sha256", WEBHOOK_SECRET).update(body).digest("hex");

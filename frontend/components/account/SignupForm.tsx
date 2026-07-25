@@ -4,8 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { EmailOtpForm } from "@/components/account/EmailOtpForm";
 import { ArrowRight } from "@/components/ui/icons";
-import { AuthError, signup, socialLoginUrl } from "@/lib/auth/allauth";
+import {
+  AuthError,
+  hasPendingEmailVerification,
+  resendSignupCode,
+  signup,
+  socialLoginUrl,
+} from "@/lib/auth/allauth";
 
 export function SignupForm() {
   const router = useRouter();
@@ -14,6 +21,7 @@ export function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,6 +32,12 @@ export function SignupForm() {
       router.push("/account");
       router.refresh();
     } catch (err) {
+      // Mandatory email verification: the account was created and a code emailed —
+      // allauth answers 401 with a pending verify_email flow.
+      if (hasPendingEmailVerification(err)) {
+        setVerifying(true);
+        return;
+      }
       // allauth returns field-level messages (e.g. password too common, email in use).
       setError(
         err instanceof AuthError
@@ -33,6 +47,24 @@ export function SignupForm() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (verifying) {
+    return (
+      <div className="w-full max-w-md rounded-md bg-cream p-8 shadow-card">
+        <h1 className="font-serif text-3xl text-ink">Verify your email</h1>
+        <div className="mt-6">
+          <EmailOtpForm
+            email={email}
+            onResend={resendSignupCode}
+            onVerified={() => {
+              router.push("/account");
+              router.refresh();
+            }}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (

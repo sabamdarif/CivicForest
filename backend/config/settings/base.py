@@ -156,6 +156,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # ─── allauth ─────────────────────────────────────────────────────────────────
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+# The custom User model has no username field — without this, allauth's signup
+# form crashes looking it up (FieldDoesNotExist → 500 on /auth/signup).
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+# One email per account; changing it stages the new address until verified.
+ACCOUNT_CHANGE_EMAIL = True
+# Verify email with a short code (OTP) typed into the SPA instead of a link —
+# powers both signup verification and the change-email flow on /account/profile.
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = True
 # "mandatory" — allauth's email-enumeration prevention only fully works in this mode;
 # "optional" makes duplicate-email signups distinguishable (bugs.md #5).
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"

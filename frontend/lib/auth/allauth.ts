@@ -30,7 +30,7 @@ async function request<T>(path: string, method: string, body?: unknown): Promise
   };
   if (!res.ok) {
     const message = data?.errors?.[0]?.message ?? `Request failed (${res.status})`;
-    throw new AuthError(res.status, message);
+    throw new AuthError(res.status, message, data);
   }
   return data as T;
 }
@@ -39,6 +39,8 @@ export class AuthError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** Raw allauth response body — carries pending-flow info on 401s. */
+    public data?: unknown,
   ) {
     super(message);
     this.name = "AuthError";
@@ -51,10 +53,23 @@ export interface SessionUser {
   display?: string;
 }
 
+export interface AuthFlow {
+  id: string;
+  is_pending?: boolean;
+}
+
 export interface SessionResponse {
   status: number;
-  data?: { user?: SessionUser };
+  data?: { user?: SessionUser; flows?: AuthFlow[] };
   meta?: { is_authenticated: boolean };
+}
+
+/** True when an allauth 401 means "account exists, email verification pending" —
+ * i.e. the user must enter the emailed code before the session authenticates. */
+export function hasPendingEmailVerification(err: unknown): boolean {
+  if (!(err instanceof AuthError) || err.status !== 401) return false;
+  const flows = (err.data as SessionResponse | undefined)?.data?.flows;
+  return flows?.some((f) => f.id === "verify_email" && f.is_pending) ?? false;
 }
 
 /** Prime the CSRF cookie and read current auth state. Call before any mutation. */
@@ -90,6 +105,34 @@ export async function requestPasswordReset(email: string): Promise<void> {
 
 export async function logout(): Promise<void> {
   await request("/auth/session", "DELETE");
+}
+
+/** Start an email change: allauth stages the new address and emails it a
+ * verification code (ACCOUNT_CHANGE_EMAIL — the old email stays active until
+ * the code is confirmed via verifyEmailCode). */
+export async function changeEmail(email: string): Promise<void> {
+  await request("/account/email", "POST", { email });
+}
+
+/** Confirm an emailed verification code (signup or email change). */
+export async function verifyEmailCode(code: string): Promise<void> {
+  await request("/auth/email/verify", "POST", { key: code });
+}
+
+/** Re-send the verification code for a staged (unverified) email address. */
+export async function resendEmailVerification(email: string): Promise<void> {
+  await request("/account/email", "PUT", { email });
+}
+
+/** Re-send the signup verification code for the pending (unauthenticated) session. */
+export async function resendSignupCode(): Promise<void> {
+  await request("/auth/email/verify/resend", "POST", {});
+}
+
+/** Confirm the password mid-session — unlocks sensitive operations (e.g. editing
+ * a saved address) that the API guards with 403 reauthentication_required. */
+export async function reauthenticate(password: string): Promise<void> {
+  await request("/auth/reauthenticate", "POST", { password });
 }
 
 /** Redirect the browser into allauth's provider flow (Google/Apple).

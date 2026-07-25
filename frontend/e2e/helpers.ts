@@ -11,7 +11,8 @@ export function uniqueEmail(tag: string): string {
 /** Sign up a fresh account through the real UI; lands on /account. */
 export async function signup(page: Page, email: string): Promise<void> {
   await page.goto("/signup");
-  await page.getByLabel("Email").fill(email);
+  // exact — the footer newsletter input is also labelled "Email address"
+  await page.getByLabel("Email Address", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Sign Up" }).click();
   await page.waitForURL("**/account");

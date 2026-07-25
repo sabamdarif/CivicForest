@@ -30,7 +30,8 @@ export default defineConfig({
       },
     },
     {
-      command: "npx next dev -p 3001 --no-turbo",
+      // --webpack is Next 16's replacement for the removed --no-turbo flag.
+      command: "npx next dev -p 3001 --webpack",
       url: WEB,
       reuseExistingServer: true,
       timeout: 180_000,

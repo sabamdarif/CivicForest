@@ -11,6 +11,12 @@ from .local import BASE_DIR
 
 DEBUG = True
 
+# Playwright can't read verification codes out of the console email backend, so
+# signup logs straight in here; the OTP flow is covered by manual/local testing.
+# (by-code must be off too — allauth requires it be paired with "mandatory".)
+ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = False
+
 DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "e2e.sqlite3"}}
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
@@ -25,6 +31,9 @@ MEDIA_ROOT = BASE_DIR / "e2e_media"  # ./mediafiles may be root-owned from Docke
 # http://localhost has no TLS; Chrome still treats it as trustworthy.
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
+# .env sets Domain=.civicforest.local for the Docker/Caddy stack — a localhost
+# browser rejects such a cookie outright, so no session would ever persist here.
+SESSION_COOKIE_DOMAIN = None
 
 FRONTEND_ORIGIN = "http://localhost:3001"
 CORS_ALLOWED_ORIGINS = ["http://localhost:3001"]

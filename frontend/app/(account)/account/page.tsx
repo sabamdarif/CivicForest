@@ -47,6 +47,8 @@ export default function AccountPage() {
         {[
           ["Orders", "Track and review your orders", "/account/orders"],
           ["Wishlist", "Items you've saved for later", "/account/wishlist"],
+          ["Edit profile", "Update your name, phone and email", "/account/profile"],
+          ["Saved addresses", "Manage your delivery addresses", "/account/addresses"],
         ].map(([title, body, href]) => (
           <Link
             key={title}
