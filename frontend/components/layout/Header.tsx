@@ -25,7 +25,7 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { itemCount } = useCart();
 
-  async function onCartClick() {
+  async function goAuthed(dest: string) {
     let authed = false;
     try {
       const session = await getSession();
@@ -33,7 +33,7 @@ export function Header() {
     } catch {
       // Session check failed (API down etc.) — treat as logged out.
     }
-    router.push(authed ? "/cart" : "/login");
+    router.push(authed ? dest : "/login");
   }
 
   const isActive = (href: string) =>
@@ -72,16 +72,17 @@ export function Header() {
           >
             <SearchIcon />
           </button>
-          <Link
-            href="/login"
+          <button
+            type="button"
             aria-label="Account"
+            onClick={() => goAuthed("/account")}
             className="text-cream/85 transition hover:text-gold"
           >
             <UserIcon />
-          </Link>
+          </button>
           <button
             type="button"
-            onClick={onCartClick}
+            onClick={() => goAuthed("/cart")}
             aria-label={`Cart (${itemCount} items)`}
             className="relative text-cream/85 transition hover:text-gold"
           >
