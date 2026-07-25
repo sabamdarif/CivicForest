@@ -1,0 +1,198 @@
+{# Rendered by the {% admin_dashboard %} tag (apps/common/templatetags/admin_dashboard.py). #}
+<div class="cf-dash">
+<style>
+  .cf-dash {
+    --cf-surface: #fcfcfb; --cf-ink: #0b0b0b; --cf-ink2: #52514e;
+    --cf-muted: #898781; --cf-grid: #e1e0d9; --cf-axis: #c3c2b7;
+    --cf-series: #2a78d6; --cf-border: rgba(11, 11, 11, 0.10);
+    margin-bottom: 24px; font-size: 13px; color: var(--cf-ink);
+  }
+  html[data-theme="dark"] .cf-dash {
+    --cf-surface: #1a1a19; --cf-ink: #ffffff; --cf-ink2: #c3c2b7;
+    --cf-muted: #898781; --cf-grid: #2c2c2a; --cf-axis: #383835;
+    --cf-series: #3987e5; --cf-border: rgba(255, 255, 255, 0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    html[data-theme="auto"] .cf-dash {
+      --cf-surface: #1a1a19; --cf-ink: #ffffff; --cf-ink2: #c3c2b7;
+      --cf-muted: #898781; --cf-grid: #2c2c2a; --cf-axis: #383835;
+      --cf-series: #3987e5; --cf-border: rgba(255, 255, 255, 0.10);
+    }
+  }
+  .cf-dash .cf-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 12px; }
+  .cf-dash .cf-card { background: var(--cf-surface); border: 1px solid var(--cf-border); border-radius: 8px; padding: 12px 14px; box-sizing: border-box; }
+  .cf-dash .cf-tile-label { color: var(--cf-ink2); margin: 0 0 4px; }
+  .cf-dash .cf-tile-value { font-size: 22px; font-weight: 600; }
+  .cf-dash h2 { margin: 0 0 10px; padding: 0; font-size: 13px; font-weight: 600; color: var(--cf-ink); background: none; }
+  .cf-dash .cf-cols { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-top: 12px; align-items: start; }
+  @media (max-width: 900px) { .cf-dash .cf-cols { grid-template-columns: 1fr; } }
+  .cf-dash .cf-chart-wrap { position: relative; }
+  .cf-dash .cf-tick { fill: var(--cf-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .cf-dash .cf-tip { position: absolute; background: var(--cf-ink); color: var(--cf-surface); padding: 4px 8px; border-radius: 4px; pointer-events: none; white-space: nowrap; }
+  .cf-dash .cf-empty { color: var(--cf-muted); text-align: center; padding: 40px 0; margin: 0; }
+  .cf-dash table { width: 100%; border-collapse: collapse; background: none; }
+  .cf-dash th { text-align: left; color: var(--cf-ink2); font-weight: 600; padding: 4px 8px; }
+  .cf-dash td { padding: 6px 8px; border-top: 1px solid var(--cf-grid); color: var(--cf-ink); }
+  .cf-dash .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .cf-dash ul { list-style: none; margin: 0; padding: 0; }
+  .cf-dash li { padding: 5px 0; border-top: 1px solid var(--cf-grid); display: flex; justify-content: space-between; gap: 8px; }
+  .cf-dash li:first-child { border-top: 0; }
+  .cf-dash .cf-count { font-variant-numeric: tabular-nums; color: var(--cf-ink2); }
+  .cf-dash details { margin-top: 8px; color: var(--cf-ink2); }
+  .cf-dash .cf-more { display: block; margin-top: 8px; }
+</style>
+
+<div class="cf-tiles">
+  {% for label, value in tiles %}
+  <div class="cf-card">
+    <p class="cf-tile-label">{{ label }}</p>
+    <div class="cf-tile-value">{{ value }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="cf-card">
+  <h2>Revenue — last 30 days</h2>
+  <div class="cf-chart-wrap">
+    <div id="cf-dash-chart"></div>
+    <div id="cf-dash-tip" class="cf-tip" hidden></div>
+  </div>
+  <details>
+    <summary>View as table</summary>
+    <table>
+      <thead><tr><th>Day</th><th class="num">Revenue</th><th class="num">Orders</th></tr></thead>
+      <tbody>
+        {% for d in series %}
+        <tr><td>{{ d.label }}</td><td class="num">₹{{ d.revenue|floatformat:0 }}</td><td class="num">{{ d.orders }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </details>
+</div>
+
+<div class="cf-cols">
+  <div class="cf-card">
+    <h2>Recent orders</h2>
+    {% if recent_orders %}
+    <table>
+      <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th class="num">Total</th><th>Placed</th></tr></thead>
+      <tbody>
+        {% for o in recent_orders %}
+        <tr>
+          <td><a href="{% url 'admin:orders_order_change' o.pk %}">{{ o.order_number }}</a></td>
+          <td>{{ o.user.email }}</td>
+          <td>{{ o.get_status_display }}</td>
+          <td class="num">₹{{ o.total|floatformat:0 }}</td>
+          <td>{{ o.created_at|date:"j M, H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <a class="cf-more" href="{% url 'admin:orders_order_changelist' %}">All orders →</a>
+    {% else %}
+    <p class="cf-empty">No orders yet.</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="cf-card">
+      <h2>Order pipeline</h2>
+      <ul>
+        {% for p in pipeline %}
+        <li>
+          <a href="{% url 'admin:orders_order_changelist' %}?status__exact={{ p.value }}">{{ p.label }}</a>
+          <span class="cf-count">{{ p.count }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="cf-card" style="margin-top: 12px;">
+      <h2>Low stock (≤ 5 left)</h2>
+      {% if low_stock %}
+      <ul>
+        {% for v in low_stock %}
+        <li>
+          <a href="{% url 'admin:catalog_productvariant_change' v.pk %}">{{ v.sku }} — {{ v.product.name }}</a>
+          <span class="cf-count">{{ v.stock_quantity }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="cf-empty">All variants stocked.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{{ series|json_script:"cf-dash-data" }}
+<script>
+(function () {
+  const data = JSON.parse(document.getElementById("cf-dash-data").textContent);
+  const host = document.getElementById("cf-dash-chart");
+  const tip = document.getElementById("cf-dash-tip");
+  const inr = v => "₹" + v.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+  const compact = v => v >= 1e6 ? "₹" + +(v / 1e6).toFixed(1) + "M"
+    : v >= 1e3 ? "₹" + +(v / 1e3).toFixed(1) + "K" : "₹" + v;
+
+  function niceMax(v) {
+    if (v <= 0) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(v)));
+    for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p;
+    return 10 * p;
+  }
+
+  function render() {
+    const W = host.clientWidth || 600, H = 220;
+    const m = { top: 8, right: 8, bottom: 22, left: 52 };
+    const pw = W - m.left - m.right, ph = H - m.top - m.bottom;
+    const max = niceMax(Math.max(...data.map(d => d.revenue)));
+    const band = pw / data.length;
+    const barW = Math.max(2, Math.min(24, band - 2));
+    const y = v => m.top + ph * (1 - v / max);
+    let g = "";
+    for (let t = 0; t <= 4; t++) {
+      const yy = y(max * t / 4);
+      g += `<line x1="${m.left}" x2="${W - m.right}" y1="${yy}" y2="${yy}" stroke="var(${t === 0 ? "--cf-axis" : "--cf-grid"})" stroke-width="1"/>`
+        + `<text x="${m.left - 8}" y="${yy + 3}" text-anchor="end" class="cf-tick">${compact(max * t / 4)}</text>`;
+    }
+    data.forEach((d, i) => {
+      const cx = m.left + band * i + band / 2;
+      if (d.revenue > 0) {
+        const top = y(d.revenue), h = m.top + ph - top;
+        const r = Math.min(4, h, barW / 2), x0 = cx - barW / 2;
+        g += `<path fill="var(--cf-series)" d="M${x0},${m.top + ph} V${top + r} Q${x0},${top} ${x0 + r},${top} H${x0 + barW - r} Q${x0 + barW},${top} ${x0 + barW},${top + r} V${m.top + ph} Z"/>`;
+      }
+      if (i % 5 === 0 || i === data.length - 1)
+        g += `<text x="${cx}" y="${H - 6}" text-anchor="middle" class="cf-tick">${d.label}</text>`;
+      g += `<rect class="cf-hit" data-i="${i}" x="${m.left + band * i}" y="${m.top}" width="${band}" height="${ph}" fill="transparent"/>`;
+    });
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", W); svg.setAttribute("height", H);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Daily revenue, last 30 days");
+    svg.innerHTML = g;
+    host.replaceChildren(svg);
+
+    svg.addEventListener("mousemove", e => {
+      const hit = e.target.closest(".cf-hit");
+      if (!hit) { tip.hidden = true; return; }
+      const d = data[+hit.dataset.i];
+      tip.textContent = `${d.label} · ${inr(d.revenue)} · ${d.orders} order${d.orders === 1 ? "" : "s"}`;
+      tip.hidden = false;
+      const r = host.getBoundingClientRect();
+      tip.style.left = Math.min(e.clientX - r.left + 12, r.width - tip.offsetWidth - 4) + "px";
+      tip.style.top = (e.clientY - r.top - 30) + "px";
+    });
+    svg.addEventListener("mouseleave", () => { tip.hidden = true; });
+  }
+
+  if (data.some(d => d.revenue > 0)) {
+    render();
+    let t;
+    addEventListener("resize", () => { clearTimeout(t); t = setTimeout(render, 150); });
+  } else {
+    host.innerHTML = '<p class="cf-empty">No paid orders in the last 30 days yet.</p>';
+  }
+})();
+</script>
+</div>

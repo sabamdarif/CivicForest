@@ -26,6 +26,14 @@ if OFFLINE:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_DOMAIN = None
+    # Bare runserver + `next dev` — no Caddy, so the frontend is plain localhost.
+    FRONTEND_ORIGIN = "http://localhost:3000"
+    HEADLESS_FRONTEND_URLS = {
+        "account_confirm_email": FRONTEND_ORIGIN + "/account/verify-email/{key}",
+        "account_reset_password": FRONTEND_ORIGIN + "/account/password/reset",
+        "account_reset_password_from_key": FRONTEND_ORIGIN + "/account/password/reset/key/{key}",
+        "account_signup": FRONTEND_ORIGIN + "/signup",
+    }
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
