@@ -8,7 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const AUTH_PAGES = new Set(["/login", "/signup"]);
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Password reset lives under /account but must stay reachable anonymously

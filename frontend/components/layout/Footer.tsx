@@ -85,6 +85,9 @@ export function Footer() {
               placeholder="Enter your email"
               aria-label="Email address"
               className="w-full bg-transparent px-3 py-2.5 text-sm text-cream placeholder:text-cream/40 focus:outline-none"
+              // Autofill/temp-mail browser extensions inject style + data-* attrs here
+              // before React hydrates, which React reports as a mismatch.
+              suppressHydrationWarning
             />
             <button
               type="submit"
