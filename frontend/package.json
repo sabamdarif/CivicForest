@@ -15,7 +15,7 @@
     "@sentry/nextjs": "^10.66.0",
     "next": "16.2.11",
     "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@axe-core/puppeteer": "^4.12.1",
