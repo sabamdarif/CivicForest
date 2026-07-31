@@ -116,7 +116,7 @@ export function ProductPurchasePanel({ product }: { product: ProductDetail }) {
         </div>
       )}
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
         <div className="flex items-center rounded-sm border border-black/15">
           <button
             type="button"
@@ -126,7 +126,7 @@ export function ProductPurchasePanel({ product }: { product: ProductDetail }) {
           >
             −
           </button>
-          <span className="w-8 text-center text-sm">{qty}</span>
+          <span className="w-8 text-center text-sm font-medium">{qty}</span>
           <button
             type="button"
             aria-label="Increase quantity"
@@ -141,7 +141,7 @@ export function ProductPurchasePanel({ product }: { product: ProductDetail }) {
           type="button"
           disabled={!canAdd || adding}
           onClick={onAddToCart}
-          className="btn-dark flex-1 justify-center disabled:opacity-40"
+          className="btn-dark min-w-[140px] flex-1 justify-center disabled:opacity-40"
         >
           {adding
             ? "Adding…"

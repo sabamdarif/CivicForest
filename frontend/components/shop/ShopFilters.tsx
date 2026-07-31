@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 import type { Category } from "@/lib/api/types";
 
@@ -16,8 +16,25 @@ const COLORS = [
 ];
 const MATERIALS = ["Organic Cotton", "Cotton", "Fleece", "Cotton Blend", "French Terry"];
 
-/** Filter sidebar. All state lives in the URL so filters are shareable, SSR-friendly,
- * and the back button works. Selecting a filter resets to page 1. */
+/** Helper hook to return total count of active filters from URL searchParams */
+export function useActiveFilterCount(): number {
+  const params = useSearchParams();
+  const filterKeys = ["category", "size", "color", "material", "min_price", "max_price"];
+  let count = 0;
+  for (const k of filterKeys) {
+    const val = params.get(k);
+    if (val) {
+      if (k === "size" || k === "color") {
+        count += val.split(",").filter(Boolean).length;
+      } else {
+        count += 1;
+      }
+    }
+  }
+  return count;
+}
+
+/** Filter sidebar component used in desktop layout & mobile drawer */
 export function ShopFilters({ categories }: { categories: Category[] }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -68,7 +85,7 @@ export function ShopFilters({ categories }: { categories: Category[] }) {
           <button
             type="button"
             onClick={() => router.push("/shop")}
-            className="text-xs uppercase tracking-brand text-gold hover:underline"
+            className="text-xs font-medium uppercase tracking-brand text-gold hover:underline"
           >
             Clear all
           </button>
@@ -103,9 +120,9 @@ export function ShopFilters({ categories }: { categories: Category[] }) {
               key={size}
               type="button"
               onClick={() => toggleCsv("size", size)}
-              className={`h-9 w-9 rounded-sm border text-sm transition ${
+              className={`h-9 min-w-9 rounded-sm border px-2.5 text-sm transition ${
                 activeSizes.includes(size)
-                  ? "border-charcoal bg-charcoal text-cream"
+                  ? "border-charcoal bg-charcoal text-cream font-medium"
                   : "border-black/15 text-ink hover:border-charcoal"
               }`}
             >
@@ -124,8 +141,8 @@ export function ShopFilters({ categories }: { categories: Category[] }) {
               title={name}
               aria-label={name}
               onClick={() => toggleCsv("color", name)}
-              className={`h-7 w-7 rounded-full border-2 transition ${
-                activeColors.includes(name) ? "border-gold" : "border-black/10"
+              className={`h-8 w-8 rounded-full border-2 transition ${
+                activeColors.includes(name) ? "border-gold scale-110" : "border-black/10"
               }`}
               style={{ backgroundColor: hex }}
             />
@@ -154,6 +171,72 @@ export function ShopFilters({ categories }: { categories: Category[] }) {
         </ul>
       </FilterGroup>
     </aside>
+  );
+}
+
+/** Mobile Filter Slide-Over Drawer */
+export function MobileFilterDrawer({
+  categories,
+  open,
+  onClose,
+}: {
+  categories: Category[];
+  open: boolean;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 lg:hidden">
+      <div
+        className="fixed inset-0 bg-charcoal/60 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Filter products"
+        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xs flex-col bg-cream shadow-2xl transition-transform"
+      >
+        <header className="flex items-center justify-between border-b border-black/10 px-6 py-5">
+          <h2 className="font-serif text-xl text-ink">Filters</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close filters"
+            className="flex h-8 w-8 items-center justify-center text-ink/60 hover:text-ink"
+          >
+            ✕
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-6 py-6 scroll-thin">
+          <ShopFilters categories={categories} />
+        </div>
+
+        <footer className="border-t border-black/10 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-dark w-full justify-center"
+          >
+            Show Results
+          </button>
+        </footer>
+      </aside>
+    </div>
   );
 }
 

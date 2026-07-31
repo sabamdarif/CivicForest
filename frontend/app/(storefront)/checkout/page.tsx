@@ -184,11 +184,11 @@ export default function CheckoutPage() {
             required={false}
             autoComplete="address-line2"
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="City" value={form.city} onChange={(v) => set("city", v)} autoComplete="address-level2" />
             <Field label="State" value={form.state} onChange={(v) => set("state", v)} autoComplete="address-level1" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field
               label="Postal code"
               value={form.postal_code}

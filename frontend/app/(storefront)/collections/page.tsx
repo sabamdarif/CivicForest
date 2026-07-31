@@ -56,31 +56,31 @@ export default async function CollectionsPage() {
       </section>
 
       {/* Collection cards */}
-      <section className="container-page py-14">
+      <section className="container-page py-10 sm:py-14">
         <div className="grid gap-6 md:grid-cols-2">
           {featured.map((cat) => {
             const [eyebrow, blurb] = BLURBS[cat.slug] ?? ["Collection", cat.description];
             return (
               <div key={cat.id} className="relative overflow-hidden rounded-sm bg-charcoal-800">
-                <div className="grid grid-cols-2">
-                  <div className="p-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2">
+                  <div className="p-6 sm:p-8">
                     <p className="eyebrow">{eyebrow}</p>
-                    <h2 className="mt-3 font-serif text-2xl uppercase leading-tight text-cream">
+                    <h2 className="mt-3 font-serif text-xl sm:text-2xl uppercase leading-tight text-cream">
                       {cat.name}
                       <br />Collection
                     </h2>
-                    <span className="my-4 block h-px w-16 bg-gold" />
-                    <p className="text-sm text-cream/60">{blurb}</p>
-                    <Link href={`/shop?category=${cat.slug}`} className="btn-gold mt-6 text-xs">
+                    <span className="my-3 sm:my-4 block h-px w-16 bg-gold" />
+                    <p className="text-xs sm:text-sm text-cream/60">{blurb}</p>
+                    <Link href={`/shop?category=${cat.slug}`} className="btn-gold mt-5 sm:mt-6 text-xs">
                       Shop {cat.name} <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>
-                  <div className="relative min-h-[280px]">
+                  <div className="relative min-h-[220px] sm:min-h-[280px]">
                     <Image
                       src={categoryImage(cat.slug)}
                       alt={cat.name}
                       fill
-                      sizes="(max-width: 768px) 50vw, 25vw"
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
                       className="object-cover"
                     />
                   </div>
@@ -93,7 +93,7 @@ export default async function CollectionsPage() {
         {/* New arrivals banner */}
         <Link
           href="/shop?is_new=true"
-          className="group relative mt-6 flex min-h-[220px] items-center overflow-hidden rounded-sm bg-charcoal"
+          className="group relative mt-6 flex min-h-[200px] sm:min-h-[220px] items-center overflow-hidden rounded-sm bg-charcoal"
         >
           <Image
             src="/brand/rack-new-arrivals.png"
@@ -102,13 +102,13 @@ export default async function CollectionsPage() {
             sizes="100vw"
             className="object-cover opacity-60 transition duration-500 group-hover:scale-105"
           />
-          <div className="relative z-10 p-10 text-cream">
+          <div className="relative z-10 p-6 sm:p-10 text-cream">
             <p className="eyebrow">New In</p>
-            <h2 className="mt-2 font-serif text-3xl uppercase">New Arrivals</h2>
-            <p className="mt-2 max-w-sm text-sm text-cream/70">
+            <h2 className="mt-2 font-serif text-2xl sm:text-3xl uppercase">New Arrivals</h2>
+            <p className="mt-2 max-w-sm text-xs sm:text-sm text-cream/70">
               Discover the latest styles just added.
             </p>
-            <span className="btn-gold mt-5 text-xs">
+            <span className="btn-gold mt-4 sm:mt-5 text-xs">
               Explore Now <ArrowRight className="h-3.5 w-3.5" />
             </span>
           </div>

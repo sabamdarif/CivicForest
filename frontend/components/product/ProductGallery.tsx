@@ -18,13 +18,13 @@ export function ProductGallery({
   return (
     <div className="flex flex-col-reverse gap-4 md:flex-row">
       {images.length > 1 && (
-        <div className="flex gap-3 md:flex-col">
+        <div className="flex max-w-full gap-3 overflow-x-auto pb-2 scroll-thin md:max-w-none md:flex-col md:overflow-visible md:pb-0">
           {images.map((img, i) => (
             <button
               key={img.id}
               type="button"
               onClick={() => setActive(i)}
-              className={`relative h-20 w-16 overflow-hidden rounded-sm border transition ${
+              className={`relative h-16 w-14 shrink-0 overflow-hidden rounded-sm border transition sm:h-20 sm:w-16 ${
                 i === active ? "border-gold" : "border-black/10 hover:border-black/30"
               }`}
             >

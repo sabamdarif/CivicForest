@@ -69,3 +69,12 @@ export function LeafIcon({ className = "h-4 w-4" }: IconProps) {
     </svg>
   );
 }
+
+export function FilterIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg className={`${base} ${className}`} viewBox="0 0 24 24" fill="none" strokeWidth="1.6">
+      <path d="M3 6h18M6 12h12M10 18h4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+

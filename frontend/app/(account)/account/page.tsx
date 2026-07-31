@@ -36,14 +36,14 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="container-page py-16">
+    <div className="container-page py-8 sm:py-16">
       <p className="eyebrow">My Account</p>
-      <h1 className="mt-2 font-serif text-4xl text-ink">
+      <h1 className="mt-2 font-serif text-3xl sm:text-4xl text-ink">
         Welcome{user?.display ? `, ${user.display}` : " back"}.
       </h1>
-      <p className="mt-2 text-ink/60">{user?.email}</p>
+      <p className="mt-2 text-sm sm:text-base text-ink/60">{user?.email}</p>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-3">
+      <div className="mt-8 sm:mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Orders", "Track and review your orders", "/account/orders"],
           ["Wishlist", "Items you've saved for later", "/account/wishlist"],
@@ -53,7 +53,7 @@ export default function AccountPage() {
           <Link
             key={title}
             href={href}
-            className="rounded-sm border border-black/10 bg-cream p-6 transition hover:border-charcoal"
+            className="rounded-sm border border-black/10 bg-cream p-5 sm:p-6 transition hover:border-charcoal"
           >
             <h2 className="font-serif text-lg text-ink">{title}</h2>
             <p className="mt-1 text-sm text-ink/60">{body}</p>
