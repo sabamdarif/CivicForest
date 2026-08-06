@@ -33,7 +33,13 @@ def test_no_bucket_uses_local_disk(monkeypatch):
 
 
 def test_bucket_switches_to_private_signed_s3(monkeypatch):
-    cfg = _load_base(monkeypatch, S3_BUCKET_NAME="test-bucket", S3_SIGNED_URL_TTL="600")
+    cfg = _load_base(
+        monkeypatch,
+        S3_BUCKET_NAME="test-bucket",
+        S3_ACCESS_KEY_ID="test-access-key",
+        S3_SECRET_ACCESS_KEY="test-secret-key",
+        S3_SIGNED_URL_TTL="600",
+    )
     default = cfg.STORAGES["default"]
     assert default["BACKEND"] == "storages.backends.s3.S3Storage"
     opts = default["OPTIONS"]

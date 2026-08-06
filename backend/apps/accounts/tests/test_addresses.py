@@ -38,7 +38,7 @@ def test_oauth_only_user_cannot_update_without_recent_auth(monkeypatch):
     )
 
     assert response.status_code == 403
-    assert response.data["detail"].code == "oauth_reauthentication_required"
+    assert response.data["error"]["code"] == "oauth_reauthentication_required"
     address.refresh_from_db()
     assert address.city == "Bengaluru"
 
@@ -52,7 +52,7 @@ def test_address_create_requires_recent_auth(monkeypatch):
     response = _client(user).post("/api/v1/account/addresses", ADDRESS, format="json")
 
     assert response.status_code == 403
-    assert response.data["detail"].code == "reauthentication_required"
+    assert response.data["error"]["code"] == "reauthentication_required"
     assert Address.objects.filter(user=user).count() == 0
 
 
