@@ -17,3 +17,5 @@ def merge_cart_on_login(sender, request, user, **kwargs):
     session_key = getattr(getattr(request, "session", None), "session_key", None)
     if session_key:
         services.merge_guest_cart_into_user(session_key, user)
+    if getattr(request, "session", None) is not None:
+        request.session.cycle_key()

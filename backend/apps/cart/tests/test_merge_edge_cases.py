@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import pytest
+from django.contrib.sessions.middleware import SessionMiddleware
+from django.test import RequestFactory
 
 from apps.cart import services
+from apps.cart.signals import merge_cart_on_login
 from apps.cart.models import Cart, CartItem
 from apps.common.factories import (
     CartFactory,
@@ -16,6 +19,18 @@ from apps.common.factories import (
 )
 
 pytestmark = pytest.mark.django_db
+
+
+def test_login_rotates_guest_session_key():
+    request = RequestFactory().get("/")
+    SessionMiddleware(lambda req: None).process_request(request)
+    request.session.save()
+    old_key = request.session.session_key
+    user = UserFactory()
+
+    merge_cart_on_login(sender=None, request=request, user=user)
+
+    assert request.session.session_key != old_key
 
 
 def test_merge_no_guest_cart_is_a_noop():
