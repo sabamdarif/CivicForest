@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 from django.core.cache import cache
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
@@ -68,11 +70,12 @@ def search(request):
 
     # Fire-and-forget analytics; never let logging failure break the response.
     try:
+        session_key = request.session.session_key or ""
         SearchQueryLog.objects.create(
             query=query,
             result_count=result["total"],
             engine=result["engine"],
-            session_key=request.session.session_key or "",
+            session_key=(hashlib.sha256(session_key.encode()).hexdigest() if session_key else ""),
         )
     except Exception:  # noqa: BLE001
         pass
