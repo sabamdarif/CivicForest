@@ -5,6 +5,8 @@ The versioned API and allauth's headless endpoints are mounted under stable pref
 that Caddy forwards to Django.
 """
 
+import secrets
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -12,16 +14,27 @@ from django.http import JsonResponse
 from django.urls import include, path
 
 
-def healthz(_request):
-    """Liveness probe — excluded from auth and throttling."""
+def _health_authorized(request) -> bool:
+    expected = settings.HEALTH_CHECK_TOKEN
+    supplied = request.headers.get("X-Health-Token", "")
+    return bool(expected) and secrets.compare_digest(supplied, expected)
+
+
+def healthz(request):
+    """Authenticated liveness probe for internal orchestrators only."""
+    if not _health_authorized(request):
+        return JsonResponse({"detail": "Not found."}, status=404)
     return JsonResponse({"status": "ok"})
 
 
-def readyz(_request):
+def readyz(request):
     """Readiness probe — checks the backing services this process needs (plan.md §16).
 
     Returns 503 if the database or cache is unreachable so an orchestrator/load
     balancer routes traffic away until dependencies recover."""
+    if not _health_authorized(request):
+        return JsonResponse({"detail": "Not found."}, status=404)
+
     from django.core.cache import cache
     from django.db import connection
 

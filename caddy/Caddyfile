@@ -36,6 +36,10 @@ api.civicforest.local {
 	}
 	respond @admin_blocked 404
 
+	# Health probes are internal-only. Public requests never reach Django.
+	@public_health path /healthz /readyz
+	respond @public_health 404
+
 	reverse_proxy backend:8000 {
 		header_up X-Forwarded-Proto https
 		header_up Host {host}

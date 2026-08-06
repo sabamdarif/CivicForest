@@ -29,6 +29,7 @@ if env_file.exists():
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env("DJANGO_DEBUG")
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
+HEALTH_CHECK_TOKEN = env("HEALTH_CHECK_TOKEN", default="")
 
 # ─── Applications ────────────────────────────────────────────────────────────
 DJANGO_APPS = [
