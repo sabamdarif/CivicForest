@@ -42,7 +42,11 @@ export async function proxy(req: NextRequest) {
       | null;
     authed = data?.meta?.is_authenticated === true;
   } catch {
-    return NextResponse.next(); // API unreachable — fail open to the client-side gates
+    // Auth pages are safe anonymously. Protected account pages fail closed while the
+    // API is unavailable so stale sessions never expose account UI.
+    return onAuthPage
+      ? NextResponse.next()
+      : NextResponse.rewrite(new URL("/maintenance", req.url));
   }
 
   if (onAuthPage && authed) {
