@@ -26,7 +26,7 @@ def test_payment_signature_invalid():
 def test_webhook_signature_checks_raw_body():
     from .conftest import capture_event, sign_body
 
-    raw = capture_event("order_x")
+    raw = capture_event("order_x", amount_paise=100)
     assert gateway.verify_webhook_signature(raw, sign_body(raw)) is True
     # A single flipped byte breaks it.
     assert gateway.verify_webhook_signature(raw + b" ", sign_body(raw)) is False

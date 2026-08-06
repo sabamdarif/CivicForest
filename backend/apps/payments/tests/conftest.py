@@ -37,12 +37,26 @@ def sign_body(raw: bytes, secret: str = WEBHOOK_SECRET) -> str:
 
 
 def capture_event(
-    gateway_order_id: str, payment_id: str = "pay_TEST", event_id: str = "evt_1"
+    gateway_order_id: str,
+    payment_id: str = "pay_TEST",
+    event_id: str = "evt_1",
+    *,
+    amount_paise: int,
+    currency: str = "INR",
 ) -> bytes:
     return json.dumps(
         {
             "id": event_id,
             "event": "payment.captured",
-            "payload": {"payment": {"entity": {"id": payment_id, "order_id": gateway_order_id}}},
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": payment_id,
+                        "order_id": gateway_order_id,
+                        "amount": amount_paise,
+                        "currency": currency,
+                    }
+                }
+            },
         }
     ).encode()

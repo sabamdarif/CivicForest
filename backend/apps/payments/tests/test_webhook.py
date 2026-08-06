@@ -7,6 +7,7 @@ from rest_framework.test import APIClient
 from apps.cart.models import Cart, CartItem, Coupon
 from apps.orders import services as order_services
 from apps.orders.models import Order
+from apps.payments import gateway
 from apps.payments.models import Payment, WebhookEvent
 
 from .conftest import capture_event, sign_body
@@ -51,7 +52,9 @@ def test_webhook_fulfils_order_and_decrements_stock(user, variant):
     order, _, cart = _order_with_payment(user, variant, qty=2)
     assert variant.stock_quantity == 3
 
-    raw = capture_event("order_PAY1")
+    raw = capture_event(
+        "order_PAY1", amount_paise=gateway.to_paise(order.total), currency=order.currency
+    )
     resp = _post_webhook(raw, sign_body(raw))
     assert resp.status_code == 200
     assert resp.data["status"] == "fulfilled"
@@ -66,7 +69,12 @@ def test_webhook_fulfils_order_and_decrements_stock(user, variant):
 @override_settings(RAZORPAY_WEBHOOK_SECRET="whsec_test_secret")
 def test_webhook_is_idempotent_on_replay(user, variant):
     order, _, _ = _order_with_payment(user, variant, qty=2)
-    raw = capture_event("order_PAY1", event_id="evt_dup")
+    raw = capture_event(
+        "order_PAY1",
+        event_id="evt_dup",
+        amount_paise=gateway.to_paise(order.total),
+        currency=order.currency,
+    )
 
     first = _post_webhook(raw, sign_body(raw))
     second = _post_webhook(raw, sign_body(raw))
@@ -82,7 +90,9 @@ def test_webhook_is_idempotent_on_replay(user, variant):
 @override_settings(RAZORPAY_WEBHOOK_SECRET="whsec_test_secret")
 def test_webhook_rejects_bad_signature(user, variant):
     order, _, _ = _order_with_payment(user, variant, qty=1)
-    raw = capture_event("order_PAY1")
+    raw = capture_event(
+        "order_PAY1", amount_paise=gateway.to_paise(order.total), currency=order.currency
+    )
     resp = _post_webhook(raw, "not-a-real-signature")
     assert resp.status_code == 400
     order.refresh_from_db()
@@ -95,8 +105,29 @@ def test_webhook_increments_coupon_usage(user, variant):
         code="SAVE10", discount_type="percent", value=Decimal("10"), max_uses=5
     )
     order, _, _ = _order_with_payment(user, variant, qty=1, coupon=coupon)
-    raw = capture_event("order_PAY1", event_id="evt_coupon")
+    raw = capture_event(
+        "order_PAY1",
+        event_id="evt_coupon",
+        amount_paise=gateway.to_paise(order.total),
+        currency=order.currency,
+    )
     _post_webhook(raw, sign_body(raw))
 
     coupon.refresh_from_db()
     assert coupon.used_count == 1
+
+
+@override_settings(RAZORPAY_WEBHOOK_SECRET="whsec_test_secret")
+def test_webhook_rejects_amount_mismatch_without_touching_order(user, variant):
+    order, _, cart = _order_with_payment(user, variant, qty=1)
+    raw = capture_event("order_PAY1", event_id="evt_bad_amount", amount_paise=1)
+
+    resp = _post_webhook(raw, sign_body(raw))
+
+    assert resp.status_code == 200
+    assert resp.data["status"] == "amount_mismatch"
+    order.refresh_from_db()
+    variant.refresh_from_db()
+    assert order.status == Order.Status.PAYMENT_PENDING
+    assert variant.stock_quantity == 3
+    assert cart.items.count() == 1
