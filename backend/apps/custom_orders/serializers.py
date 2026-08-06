@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
 from rest_framework import serializers
 
 from apps.catalog.models import ProductVariant
@@ -30,6 +32,7 @@ class CustomDesignOrderSerializer(serializers.ModelSerializer):
     exposed directly; it's served via signed URLs to the print partner only."""
 
     design_url = serializers.SerializerMethodField()
+    tracking_link = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomDesignOrder
@@ -50,6 +53,10 @@ class CustomDesignOrderSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = fields
+
+    def get_tracking_link(self, obj) -> str:
+        link = obj.tracking_link or ""
+        return link if urlsplit(link).scheme.lower() in {"http", "https"} else ""
 
     def get_design_url(self, obj) -> str | None:
         if not obj.design_file:

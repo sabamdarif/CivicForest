@@ -130,3 +130,21 @@ def test_delivered_marks_custom_terminal(user, variant, paid_order):
     services.apply_status(custom, "Delivered")
     custom.refresh_from_db()
     assert custom.submit_status == CustomDesignOrder.SubmitStatus.TERMINAL
+
+
+def test_apply_status_rejects_non_http_tracking_link(user, variant, paid_order):
+    custom = _custom(user, variant, paid_order)
+
+    services.apply_status(custom, "Printed", link="javascript:alert(1)")
+
+    custom.refresh_from_db()
+    assert custom.tracking_link == ""
+
+
+def test_apply_status_accepts_https_tracking_link(user, variant, paid_order):
+    custom = _custom(user, variant, paid_order)
+
+    services.apply_status(custom, "Printed", link="https://carrier.example/track/1")
+
+    custom.refresh_from_db()
+    assert custom.tracking_link == "https://carrier.example/track/1"

@@ -116,7 +116,7 @@ export default function OrderDetailPage() {
                         <span className="text-ink/60">AWB: {d.tracking_awb}</span>
                       )}
                     </div>
-                    {d.tracking_link && (
+                    {d.tracking_link && /^https?:\/\//i.test(d.tracking_link) && (
                       <a
                         href={d.tracking_link}
                         target="_blank"

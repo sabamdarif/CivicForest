@@ -7,6 +7,7 @@ retried Celery task can't create a duplicate print job (plan.md §8)."""
 from __future__ import annotations
 
 import logging
+from urllib.parse import urlsplit
 
 from django.utils import timezone
 
@@ -143,7 +144,7 @@ def apply_status(
     if awb:
         custom.tracking_awb = awb
     if link:
-        custom.tracking_link = link
+        custom.tracking_link = link if urlsplit(link).scheme.lower() in {"http", "https"} else ""
     if qikink_status in _TERMINAL_QIKINK:
         custom.submit_status = CustomDesignOrder.SubmitStatus.TERMINAL
     custom.save(
