@@ -174,6 +174,9 @@ ACCOUNT_RATE_LIMITS = {
     "login_failed": "10/5m/ip,5/5m/key",
     "reset_password": "5/5m/ip,3/5m/key",
     "signup": "10/5m/ip",
+    "manage_email": "5/5m/key",
+    "change_password": "5/5m/key",
+    "reauthenticate": "5/5m/user",
 }
 ACCOUNT_SESSION_REMEMBER = None  # honor the "remember me" checkbox from the client
 
