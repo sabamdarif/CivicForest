@@ -38,9 +38,18 @@ class AddressViewSet(viewsets.ModelViewSet):
 
     def _require_recent_login(self):
         if not did_recently_authenticate(self.request):
+            oauth_only = not self.request.user.has_usable_password()
             raise PermissionDenied(
-                detail="Please confirm your password to change a saved address.",
-                code="reauthentication_required",
+                detail=(
+                    "Please sign in with your identity provider again to change a saved address."
+                    if oauth_only
+                    else "Please confirm your password to change a saved address."
+                ),
+                code=(
+                    "oauth_reauthentication_required"
+                    if oauth_only
+                    else "reauthentication_required"
+                ),
             )
 
     def _sync_default(self, address):
@@ -51,6 +60,7 @@ class AddressViewSet(viewsets.ModelViewSet):
             ).update(is_default=False)
 
     def perform_create(self, serializer):
+        self._require_recent_login()
         self._sync_default(serializer.save(user=self.request.user))
 
     def perform_update(self, serializer):

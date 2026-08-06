@@ -140,7 +140,10 @@ export async function reauthenticate(password: string): Promise<void> {
  * origin is filled in on the client after hydration. */
 /** Browser-only: call from a click handler. Uses the public API base and the real
  * window origin — rendering this into an SSR href causes a hydration mismatch. */
-export function socialLoginUrl(provider: "google" | "apple"): string {
-  const callback = encodeURIComponent(`${window.location.origin}/account`);
+export function socialLoginUrl(
+  provider: "google" | "apple",
+  callbackPath = "/account",
+): string {
+  const callback = encodeURIComponent(`${window.location.origin}${callbackPath}`);
   return `${publicApiBase()}/_allauth/browser/v1/auth/provider/redirect?provider=${provider}&callback_url=${callback}&process=login`;
 }

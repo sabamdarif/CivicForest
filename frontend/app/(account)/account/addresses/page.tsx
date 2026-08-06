@@ -12,7 +12,7 @@ import {
 } from "@/lib/api/account";
 import { ApiError } from "@/lib/api/client";
 import type { Address } from "@/lib/api/types";
-import { AuthError, getSession, reauthenticate } from "@/lib/auth/allauth";
+import { AuthError, getSession, reauthenticate, socialLoginUrl } from "@/lib/auth/allauth";
 
 const EMPTY: AddressInput = {
   full_name: "",
@@ -63,6 +63,11 @@ export default function AddressesPage() {
     } catch (err) {
       if (err instanceof ApiError && err.code === "reauthentication_required") {
         setReauthRetry(() => action);
+      } else if (
+        err instanceof ApiError &&
+        err.code === "oauth_reauthentication_required"
+      ) {
+        window.location.assign(socialLoginUrl("google", "/account/addresses"));
       } else {
         setError(err instanceof ApiError ? err.message : "Something went wrong.");
       }
