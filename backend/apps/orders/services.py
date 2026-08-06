@@ -39,9 +39,12 @@ class InsufficientStock(OrderError):
         super().__init__(message, code="insufficient_stock")
 
 
+@transaction.atomic
 def transition(order: Order, to_status: str) -> Order:
     """Move an order to ``to_status`` if the jump is legal, else raise. Idempotent when
-    already in the target state."""
+    already in the target state. The row is re-read under lock so concurrent callers
+    validate against the current database state rather than a stale model instance."""
+    order = Order.objects.select_for_update().get(pk=order.pk)
     if order.status == to_status:
         return order
     allowed = _ALLOWED_TRANSITIONS.get(order.status, set())

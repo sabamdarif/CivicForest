@@ -67,9 +67,9 @@ def test_checkout_links_pending_custom_designs(user, variant, settings, tmp_path
 # ─── State machine ───────────────────────────────────────────────────────────
 def test_legal_transition_advances_status(user, variant):
     order = services.create_order_from_cart(user, _cart_with(user, variant, 1), SHIPPING)
-    services.transition(order, Order.Status.PAID)
-    services.transition(order, Order.Status.PROCESSING)
-    services.transition(order, Order.Status.SHIPPED)
+    order = services.transition(order, Order.Status.PAID)
+    order = services.transition(order, Order.Status.PROCESSING)
+    order = services.transition(order, Order.Status.SHIPPED)
     assert order.status == Order.Status.SHIPPED
 
 
