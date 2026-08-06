@@ -31,8 +31,9 @@ class PaymentVerifyView(APIView):
         payment_id = request.data.get("razorpay_payment_id", "")
         signature = request.data.get("razorpay_signature", "")
         ok = services.verify_callback(order_id, payment_id, signature)
-        code = status.HTTP_200_OK if ok else status.HTTP_400_BAD_REQUEST
-        return Response({"verified": ok}, status=code)
+        if not ok:
+            return Response({"verified": False}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"verified": True}, status=status.HTTP_200_OK)
 
 
 class RazorpayWebhookView(APIView):

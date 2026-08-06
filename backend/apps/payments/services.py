@@ -46,13 +46,13 @@ def verify_callback(order_id: str, payment_id: str, signature: str) -> bool:
     captured for UI feedback, but it does **not** fulfil the order — the webhook does."""
     if not gateway.verify_payment_signature(order_id, payment_id, signature):
         return False
-    Payment.objects.filter(gateway_order_id=order_id).update(
+    updated = Payment.objects.filter(gateway_order_id=order_id).update(
         gateway_payment_id=payment_id,
         signature=signature,
         status=Payment.Status.CAPTURED,
         verified_at=timezone.now(),
     )
-    return True
+    return updated > 0
 
 
 def process_webhook(raw_body: bytes, signature: str, event: dict) -> str:

@@ -2,7 +2,6 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
-from django.core.files.base import ContentFile
 from django.test import override_settings
 from rest_framework.test import APIClient
 
@@ -10,7 +9,7 @@ from apps.cart.models import Cart, CartItem, Coupon
 from apps.custom_orders.models import CustomDesignOrder
 from apps.orders import services as order_services
 from apps.orders.models import Order
-from apps.payments import gateway
+from apps.payments import gateway, services
 from apps.payments.models import Payment, WebhookEvent
 
 from .conftest import capture_event, sign_body
@@ -138,9 +137,9 @@ def test_webhook_rejects_amount_mismatch_without_touching_order(user, variant):
 
 @override_settings(RAZORPAY_WEBHOOK_SECRET="whsec_test_secret")
 def test_distinct_capture_events_enqueue_custom_order_once(user, variant):
-    custom = CustomDesignOrder(user=user, variant=variant)
-    custom.design_file.save("design.png", ContentFile(b"test-design"), save=False)
-    custom.save()
+    custom = CustomDesignOrder.objects.create(
+        user=user, variant=variant, design_file="designs/test-design.png"
+    )
     order, _, _ = _order_with_payment(user, variant)
     custom.refresh_from_db()
     assert custom.order_id == order.id
@@ -164,3 +163,9 @@ def test_distinct_capture_events_enqueue_custom_order_once(user, variant):
         assert _post_webhook(second, sign_body(second)).data["status"] == "fulfilled"
 
     enqueue.assert_called_once_with(str(custom.id))
+
+
+def test_verify_callback_returns_false_when_payment_row_is_missing(monkeypatch):
+    monkeypatch.setattr(gateway, "verify_payment_signature", lambda *args: True)
+
+    assert services.verify_callback("order_missing", "pay_missing", "valid") is False
