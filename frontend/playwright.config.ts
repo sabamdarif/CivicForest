@@ -21,12 +21,13 @@ export default defineConfig({
     {
       command:
         'bash -c "cd ../backend && uv run python manage.py migrate && uv run python manage.py seed_catalog && uv run python manage.py runserver 127.0.0.1:8001 --noreload"',
-      url: `${API}/healthz`,
+      url: `${API}/api/v1/categories`,
       reuseExistingServer: true,
       timeout: 180_000,
       env: {
         DJANGO_SETTINGS_MODULE: "config.settings.e2e",
         DJANGO_SECRET_KEY: "e2e-secret-key",
+        HEALTH_CHECK_TOKEN: "e2e-health-token",
       },
     },
     {

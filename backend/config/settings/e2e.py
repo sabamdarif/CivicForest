@@ -6,8 +6,13 @@ fake-moded (no network); the webhook secret is a known constant so the E2E suite
 sign genuine webhooks and exercise the real fulfilment path.
 """
 
-from .local import *  # noqa: F401,F403
-from .local import BASE_DIR
+import os
+
+if os.environ.get("DJANGO_SETTINGS_MODULE") != "config.settings.e2e":
+    raise RuntimeError("E2E settings require DJANGO_SETTINGS_MODULE=config.settings.e2e")
+
+from .local import *  # noqa: E402,F401,F403
+from .local import BASE_DIR  # noqa: E402
 
 DEBUG = True
 
