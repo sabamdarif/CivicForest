@@ -1,6 +1,8 @@
 from decimal import Decimal
 
 import pytest
+from django.core.cache import cache
+from django.test import override_settings
 
 from apps.cart.models import Cart, CartItem
 from apps.orders import services as order_services
@@ -94,3 +96,30 @@ def test_checkout_rejects_invalid_idempotency_key(auth_client, key):
     assert response.status_code == 400
     assert response.data["error"]["code"] == "invalid_idempotency_key"
     assert Order.objects.count() == 0
+
+
+@override_settings(
+    REST_FRAMEWORK={
+        "DEFAULT_THROTTLE_RATES": {
+            "checkout": "10/min",
+            "checkout_day": "60/day",
+        }
+    }
+)
+def test_checkout_throttles_eleventh_request(auth_client):
+    cache.clear()
+    try:
+        for _ in range(10):
+            response = auth_client.post(
+                "/api/v1/checkout",
+                {"shipping_address": SHIPPING},
+                format="json",
+            )
+            assert response.status_code == 400  # empty cart, but request still consumed quota
+
+        response = auth_client.post(
+            "/api/v1/checkout", {"shipping_address": SHIPPING}, format="json"
+        )
+        assert response.status_code == 429
+    finally:
+        cache.clear()

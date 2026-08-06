@@ -227,6 +227,9 @@ REST_FRAMEWORK = {
         # Auth endpoints are allauth headless (not DRF) — rate-limited via
         # ACCOUNT_RATE_LIMITS below, not here (bugs.md #6).
         "search": "60/min",  # autocomplete suggestion endpoint
+        "checkout": "10/min",
+        "checkout_day": "60/day",
+        "custom_order_create": "20/hour",
     },
     "EXCEPTION_HANDLER": "apps.common.exceptions.standard_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

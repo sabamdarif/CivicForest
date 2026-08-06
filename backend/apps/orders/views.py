@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.cart import services as cart_services
+from apps.common.throttles import CheckoutDayThrottle, CheckoutMinuteThrottle
 from apps.payments import gateway as payment_gateway
 from apps.payments import services as payment_services
 
@@ -46,6 +47,7 @@ class CheckoutView(APIView):
     """Create an order from the current cart and open a Razorpay order for it."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [CheckoutMinuteThrottle, CheckoutDayThrottle]
 
     def post(self, request):
         checkout_key = request.headers.get("X-Idempotency-Key")

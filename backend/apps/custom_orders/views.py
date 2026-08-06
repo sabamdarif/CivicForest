@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.catalog.models import ProductVariant
+from apps.common.throttles import CustomOrderCreateThrottle
 
 from .models import CustomDesignOrder
 from .serializers import CustomDesignCreateSerializer, CustomDesignOrderSerializer
@@ -33,6 +34,11 @@ class CustomDesignViewSet(
 
     def get_queryset(self):
         return CustomDesignOrder.objects.filter(user=self.request.user).select_related("variant")
+
+    def get_throttles(self):
+        if self.action == "create":
+            return [CustomOrderCreateThrottle()]
+        return super().get_throttles()
 
     def create(self, request, *args, **kwargs):
         form = CustomDesignCreateSerializer(data=request.data)
