@@ -23,9 +23,11 @@ export async function getOrder(orderNumber: string): Promise<Order> {
 export async function checkout(
   shippingAddress: ShippingAddressInput,
   saveAddress = false,
+  idempotencyKey?: string,
 ): Promise<CheckoutResponse> {
   return apiFetch<CheckoutResponse>("/checkout", {
     method: "POST",
+    headers: idempotencyKey ? { "X-Idempotency-Key": idempotencyKey } : undefined,
     body: JSON.stringify({
       shipping_address: shippingAddress,
       save_address: saveAddress,

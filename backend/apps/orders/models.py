@@ -45,6 +45,9 @@ class Order(UUIDTimestampedModel):
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.PAYMENT_PENDING, db_index=True
     )
+    checkout_key = models.CharField(
+        max_length=64, blank=True, null=True, unique=True, db_index=True
+    )
 
     # Contact + shipping snapshot (immutable copy taken at checkout).
     email = models.EmailField()

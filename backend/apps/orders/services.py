@@ -64,7 +64,7 @@ def transition(order: Order, to_status: str) -> Order:
 
 
 @transaction.atomic
-def create_order_from_cart(user, cart, shipping) -> Order:
+def create_order_from_cart(user, cart, shipping, *, checkout_key: str | None = None) -> Order:
     """Snapshot a priced cart into a new ``payment_pending`` order.
 
     ``shipping`` is a validated dict of address fields. The cart is left intact until
@@ -84,6 +84,7 @@ def create_order_from_cart(user, cart, shipping) -> Order:
     order = Order.objects.create(
         user=user,
         status=Order.Status.PAYMENT_PENDING,
+        checkout_key=checkout_key,
         email=user.email,
         phone=shipping.get("phone", ""),
         ship_full_name=shipping["full_name"],

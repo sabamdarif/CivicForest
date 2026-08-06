@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+import re
+
 from django.conf import settings
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
@@ -21,6 +23,8 @@ from apps.payments import services as payment_services
 from . import services
 from .models import Order
 from .serializers import CheckoutSerializer, OrderSerializer
+
+_CHECKOUT_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 
 
 class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -44,13 +48,53 @@ class CheckoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        checkout_key = request.headers.get("X-Idempotency-Key")
+        if checkout_key and not _CHECKOUT_KEY_RE.fullmatch(checkout_key):
+            return Response(
+                {
+                    "error": {
+                        "code": "invalid_idempotency_key",
+                        "message": "X-Idempotency-Key must be 8-64 letters, digits, _ or -.",
+                        "details": {},
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if checkout_key:
+            existing = (
+                Order.objects.filter(
+                    user=request.user,
+                    checkout_key=checkout_key,
+                    status=Order.Status.PAYMENT_PENDING,
+                )
+                .prefetch_related("payments")
+                .first()
+            )
+            if existing:
+                payment = existing.payments.first()
+                if payment:
+                    return Response(self._payment_payload(existing, payment), status=status.HTTP_200_OK)
+                try:
+                    payment = payment_services.create_gateway_order(existing)
+                except payment_gateway.PaymentError as exc:
+                    return Response(
+                        {"error": {"code": exc.code, "message": exc.message, "details": {}}},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
+                return Response(
+                    self._payment_payload(existing, payment), status=status.HTTP_200_OK
+                )
+
         serializer = CheckoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         shipping = serializer.validated_data["shipping_address"]
 
         cart = cart_services.get_or_create_cart(request)
         try:
-            order = services.create_order_from_cart(request.user, cart, shipping)
+            order = services.create_order_from_cart(
+                request.user, cart, shipping, checkout_key=checkout_key
+            )
         except services.OrderError as exc:
             return Response(
                 {"error": {"code": exc.code, "message": exc.message, "details": {}}},
@@ -71,16 +115,20 @@ class CheckoutView(APIView):
             )
 
         return Response(
-            {
-                "order_number": order.order_number,
-                "razorpay_order_id": payment.gateway_order_id,
-                "razorpay_key_id": settings.RAZORPAY_KEY_ID,
-                "amount": str(order.total),
-                "amount_paise": payment_gateway.to_paise(order.total),
-                "currency": order.currency,
-            },
+            self._payment_payload(order, payment),
             status=status.HTTP_201_CREATED,
         )
+
+    @staticmethod
+    def _payment_payload(order, payment):
+        return {
+            "order_number": order.order_number,
+            "razorpay_order_id": payment.gateway_order_id,
+            "razorpay_key_id": settings.RAZORPAY_KEY_ID,
+            "amount": str(order.total),
+            "amount_paise": payment_gateway.to_paise(order.total),
+            "currency": order.currency,
+        }
 
     @staticmethod
     def _save_address(user, shipping):

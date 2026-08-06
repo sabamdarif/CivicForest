@@ -52,3 +52,45 @@ def test_checkout_creates_order_and_gateway_order(auth_client, user, variant, mo
     assert order.user == user
     assert order.status == Order.Status.PAYMENT_PENDING
     assert order.payments.filter(gateway_order_id="order_TEST123").exists()
+
+
+def test_checkout_replays_existing_payment_for_same_key(auth_client, variant, monkeypatch):
+    auth_client.post("/api/v1/cart/items", {"variant_id": str(variant.id), "quantity": 1})
+    calls = []
+
+    def create_gateway_order(amount, **kwargs):
+        calls.append((amount, kwargs))
+        return {"id": "order_IDEMPOTENT"}
+
+    monkeypatch.setattr("apps.payments.gateway.create_order", create_gateway_order)
+    monkeypatch.setattr("django.conf.settings.RAZORPAY_KEY_ID", "rzp_test_key", raising=False)
+    headers = {"HTTP_X_IDEMPOTENCY_KEY": "checkout_key_123"}
+
+    first = auth_client.post(
+        "/api/v1/checkout", {"shipping_address": SHIPPING}, format="json", **headers
+    )
+    second = auth_client.post(
+        "/api/v1/checkout", {"shipping_address": SHIPPING}, format="json", **headers
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 200
+    assert second.data == first.data
+    assert len(calls) == 1
+    assert Order.objects.filter(checkout_key="checkout_key_123").count() == 1
+    order = Order.objects.get(checkout_key="checkout_key_123")
+    assert order.payments.count() == 1
+
+
+@pytest.mark.parametrize("key", ["short", "contains spaces", "x" * 65])
+def test_checkout_rejects_invalid_idempotency_key(auth_client, key):
+    response = auth_client.post(
+        "/api/v1/checkout",
+        {"shipping_address": SHIPPING},
+        format="json",
+        HTTP_X_IDEMPOTENCY_KEY=key,
+    )
+
+    assert response.status_code == 400
+    assert response.data["error"]["code"] == "invalid_idempotency_key"
+    assert Order.objects.count() == 0

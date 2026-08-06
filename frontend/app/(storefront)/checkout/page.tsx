@@ -7,7 +7,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getAddresses } from "@/lib/api/account";
 import { ApiError } from "@/lib/api/client";
@@ -39,6 +39,15 @@ export default function CheckoutPage() {
   const [phase, setPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const checkoutKey = useRef<string | null>(null);
+  const cartSignature = cart?.lines
+    .map((line) => `${line.variant_id}:${line.quantity}`)
+    .sort()
+    .join("|");
+
+  useEffect(() => {
+    checkoutKey.current = null;
+  }, [cartSignature]);
 
   // Gate on auth (checkout requires it), then prefill from a saved address.
   useEffect(() => {
@@ -91,7 +100,8 @@ export default function CheckoutPage() {
     setError(null);
     setPhase("paying");
     try {
-      const session = await checkout(form, saveAddress);
+      checkoutKey.current ??= crypto.randomUUID();
+      const session = await checkout(form, saveAddress, checkoutKey.current);
       setOrderNumber(session.order_number);
 
       await openRazorpayCheckout({
