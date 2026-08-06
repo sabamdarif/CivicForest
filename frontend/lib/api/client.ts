@@ -61,7 +61,16 @@ export async function apiFetch<T>(
   options: FetchOptions = {},
 ): Promise<T> {
   const { revalidate, ...init } = options;
-  const url = path.startsWith("http") ? path : `${apiBase()}/api/v1${path}`;
+  const url = path.startsWith("http")
+    ? (() => {
+        const allowed = new URL(path);
+        const allowedOrigins = [new URL(PUBLIC_BASE).origin, new URL(INTERNAL_BASE).origin];
+        if (!allowedOrigins.includes(allowed.origin)) {
+          throw new Error(`apiFetch: refusing credentials to ${allowed.origin}`);
+        }
+        return path;
+      })()
+    : `${apiBase()}/api/v1${path}`;
 
   const method = (init.method ?? "GET").toUpperCase();
   const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
