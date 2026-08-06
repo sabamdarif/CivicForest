@@ -108,6 +108,7 @@ def create_order_from_cart(user, cart, shipping, *, checkout_key: str | None = N
         [
             OrderItem(
                 order=order,
+                cart_item_id=line.cart_item_id,
                 variant=line.variant,
                 product_name=line.variant.product.name,
                 variant_sku=line.variant.sku,
@@ -214,8 +215,8 @@ def fulfil_paid_order(order: Order, cart=None) -> Order | None:
     if cart is not None:
         # Delete only the lines this order snapshotted — anything the customer added
         # after checkout stays in the cart (bugs.md #15).
-        ordered_variant_ids = [i.variant_id for i in order.items.all() if i.variant_id]
-        cart.items.filter(variant_id__in=ordered_variant_ids).delete()
+        ordered_cart_item_ids = [i.cart_item_id for i in order.items.all() if i.cart_item_id]
+        cart.items.filter(id__in=ordered_cart_item_ids).delete()
         cart.coupon = None
         cart.save(update_fields=["coupon", "updated_at"])
 

@@ -136,6 +136,7 @@ def remove_coupon(cart: Cart) -> None:
 # ─── Pricing (single source of truth) ────────────────────────────────────────
 @dataclass
 class PricedLine:
+    cart_item_id: object
     variant: ProductVariant
     quantity: int
     unit_price: Decimal
@@ -177,6 +178,7 @@ def price_cart(cart: Cart) -> PricedCart:
         item_count += item.quantity
         lines.append(
             PricedLine(
+                cart_item_id=item.id,
                 variant=item.variant,
                 quantity=item.quantity,
                 unit_price=unit.quantize(TWO_PLACES),

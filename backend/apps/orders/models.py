@@ -91,6 +91,7 @@ class OrderItem(UUIDTimestampedModel):
     edited or deleted afterwards."""
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
+    cart_item_id = models.UUIDField(null=True, blank=True, editable=False)
     variant = models.ForeignKey(
         ProductVariant, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )

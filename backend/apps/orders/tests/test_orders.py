@@ -111,3 +111,15 @@ def test_reserve_stock_is_all_or_nothing(user, variant):
     services.reserve_stock(order)
     variant.refresh_from_db()
     assert variant.stock_quantity == 3
+
+
+def test_fulfilment_keeps_same_variant_readded_after_checkout(user, variant):
+    cart = _cart_with(user, variant, 1)
+    original = cart.items.get()
+    order = services.create_order_from_cart(user, cart, SHIPPING)
+    original.delete()
+    replacement = CartItem.objects.create(cart=cart, variant=variant, quantity=1)
+
+    services.fulfil_paid_order(order, cart=cart)
+
+    assert cart.items.filter(id=replacement.id).exists()
