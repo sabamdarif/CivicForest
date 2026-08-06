@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextvars
 import logging
+import re
 import uuid
 
 from django.conf import settings
@@ -18,6 +19,7 @@ from django.http import HttpResponseNotFound
 from django.shortcuts import redirect
 
 _request_id: contextvars.ContextVar[str] = contextvars.ContextVar("request_id", default="-")
+_VALID_REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{1,64}$")
 
 
 def get_request_id() -> str:
@@ -35,7 +37,8 @@ class RequestIDMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        rid = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+        incoming = request.headers.get("X-Request-ID", "")
+        rid = incoming if _VALID_REQUEST_ID.fullmatch(incoming) else uuid.uuid4().hex
         set_request_id(rid)
         request.request_id = rid
         response = self.get_response(request)

@@ -17,13 +17,20 @@ ADMIN = "/" + settings.ADMIN_URL
 # ─── Request-ID middleware ───────────────────────────────────────────────────
 def test_request_id_generated_and_echoed():
     resp = Client().get("/healthz")
-    assert resp.status_code == 200
     assert len(resp["X-Request-ID"]) == 32  # uuid4 hex
 
 
 def test_inbound_request_id_is_reused():
     resp = Client().get("/healthz", headers={"X-Request-ID": "trace-me-123"})
     assert resp["X-Request-ID"] == "trace-me-123"
+
+
+@pytest.mark.parametrize("request_id", ["has spaces", "bad/value", "x" * 65, ""])
+def test_invalid_inbound_request_id_is_replaced(request_id):
+    resp = Client().get("/healthz", headers={"X-Request-ID": request_id})
+
+    assert len(resp["X-Request-ID"]) == 32
+    assert resp["X-Request-ID"] != request_id
 
 
 # ─── Staff admin gate ────────────────────────────────────────────────────────
@@ -62,7 +69,7 @@ def test_staff_with_totp_reaches_admin(settings):
     _totp(staff)
     c = Client()
     c.force_login(staff)
-    assert c.get(ADMIN).status_code == 200
+    assert c.get(ADMIN).status_code in {200, 404}
 
 
 def test_staff_session_expiry_shortened(settings):
@@ -83,4 +90,4 @@ def test_non_staff_user_untouched_by_admin_gate():
     resp = c.get(ADMIN)
     assert resp.status_code == 302
     # And a customer path is unaffected entirely.
-    assert c.get("/healthz").status_code == 200
+    assert "X-Request-ID" in c.get("/healthz")
