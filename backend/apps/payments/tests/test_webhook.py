@@ -1,10 +1,13 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
+from django.core.files.base import ContentFile
 from django.test import override_settings
 from rest_framework.test import APIClient
 
 from apps.cart.models import Cart, CartItem, Coupon
+from apps.custom_orders.models import CustomDesignOrder
 from apps.orders import services as order_services
 from apps.orders.models import Order
 from apps.payments import gateway
@@ -131,3 +134,33 @@ def test_webhook_rejects_amount_mismatch_without_touching_order(user, variant):
     assert order.status == Order.Status.PAYMENT_PENDING
     assert variant.stock_quantity == 3
     assert cart.items.count() == 1
+
+
+@override_settings(RAZORPAY_WEBHOOK_SECRET="whsec_test_secret")
+def test_distinct_capture_events_enqueue_custom_order_once(user, variant):
+    custom = CustomDesignOrder(user=user, variant=variant)
+    custom.design_file.save("design.png", ContentFile(b"test-design"), save=False)
+    custom.save()
+    order, _, _ = _order_with_payment(user, variant)
+    custom.refresh_from_db()
+    assert custom.order_id == order.id
+
+    first = capture_event(
+        "order_PAY1",
+        event_id="evt_first_capture",
+        amount_paise=gateway.to_paise(order.total),
+        currency=order.currency,
+    )
+    second = capture_event(
+        "order_PAY1",
+        payment_id="pay_SECOND",
+        event_id="evt_second_capture",
+        amount_paise=gateway.to_paise(order.total),
+        currency=order.currency,
+    )
+
+    with patch("apps.custom_orders.tasks.submit_custom_order_to_qikink.delay") as enqueue:
+        assert _post_webhook(first, sign_body(first)).data["status"] == "fulfilled"
+        assert _post_webhook(second, sign_body(second)).data["status"] == "fulfilled"
+
+    enqueue.assert_called_once_with(str(custom.id))

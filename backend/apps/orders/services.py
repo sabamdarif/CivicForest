@@ -172,14 +172,15 @@ def reserve_stock(order: Order) -> None:
 
 
 @transaction.atomic
-def fulfil_paid_order(order: Order, cart=None) -> Order:
+def fulfil_paid_order(order: Order, cart=None) -> Order | None:
     """Called once, from the verified payment webhook. Reserves stock under row locks,
     marks the order paid, records the coupon use, and clears the customer's cart.
 
-    Idempotent: a replayed webhook that finds the order already paid is a no-op."""
+    Returns the paid order only when this call performed the transition. A replayed
+    webhook that finds the order already paid returns ``None`` without side effects."""
     order = Order.objects.select_for_update().get(pk=order.pk)
     if order.is_paid:
-        return order
+        return None
 
     reserve_stock(order)
     order.status = Order.Status.PAID

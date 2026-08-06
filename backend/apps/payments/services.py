@@ -136,14 +136,15 @@ def _handle_capture(event: dict) -> str:
     order = payment.order
     cart = _cart_for(order.user)
     try:
-        order_services.fulfil_paid_order(order, cart=cart)
+        fulfilled_order = order_services.fulfil_paid_order(order, cart=cart)
     except order_services.InsufficientStock:
         # Money captured but stock gone (rare race). Leave the order for manual
         # refund/review and alert — don't silently drop it (plan.md §16).
         logger.error("Oversold on paid order %s — needs refund/review", order.order_number)
         return "oversold"
 
-    _enqueue_post_payment(order)
+    if fulfilled_order is not None:
+        _enqueue_post_payment(fulfilled_order)
     return "fulfilled"
 
 
