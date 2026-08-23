@@ -239,7 +239,7 @@ export default function CheckoutPage() {
             {cart.lines.map((line) => (
               <li key={line.variant_id} className="flex justify-between gap-3">
                 <span className="text-ink/70">
-                  {line.product_name} · {line.size}/{line.color} × {line.quantity}
+                  {line.product_name} · {line.size} × {line.quantity}
                 </span>
                 <span className="text-ink">{formatPrice(line.line_total)}</span>
               </li>

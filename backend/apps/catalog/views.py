@@ -1,6 +1,8 @@
 from django.db.models import Count, Q
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from . import services
 from .filters import ProductFilter
@@ -24,6 +26,15 @@ class CategoryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         )
 
 
+class FacetsView(APIView):
+    """Public filter options for the shop panel, built from live catalog data."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response(services.catalog_facets())
+
+
 class ProductViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """Public, read-only catalog. List is filterable/sortable and paginated with a
     hard max page size; detail is looked up by slug."""
@@ -31,11 +42,13 @@ class ProductViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
     permission_classes = [AllowAny]
     filterset_class = ProductFilter
     lookup_field = "slug"
-    ordering_fields = ["created_at", "base_price", "name"]
+    # "price" is the annotation from services.with_price — the price shown on the card.
+    ordering_fields = ["created_at", "price", "name"]
     ordering = ["-created_at"]
 
     def get_queryset(self):
-        return services.active_products()
+        products = services.active_products()
+        return services.with_price(products) if self.action == "list" else products
 
     def get_serializer_class(self):
         if self.action == "retrieve":

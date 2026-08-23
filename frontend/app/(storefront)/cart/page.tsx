@@ -191,7 +191,7 @@ function CartRow({
           <p className="text-sm font-semibold text-ink">{formatPrice(line.line_total)}</p>
         </div>
         <p className="mt-1 text-xs text-ink/50">
-          {line.color} · {line.size}
+          {line.size}
         </p>
         <p className="text-xs text-ink/50">{formatPrice(line.unit_price)} each</p>
 

@@ -94,7 +94,7 @@ export default function OrderDetailPage() {
                     )}
                   </p>
                   <p className="mt-0.5 text-xs text-ink/50">
-                    {[item.size, item.color].filter(Boolean).join(" · ")} · Qty {item.quantity}
+                    {item.size} · Qty {item.quantity}
                   </p>
                 </div>
                 <p className="text-sm font-semibold text-ink">{formatPrice(item.line_total)}</p>

@@ -28,14 +28,9 @@ class UploadError(Exception):
         self.code = code
 
 
-def validate_and_reencode(uploaded_file) -> ContentFile:
-    """Return a sanitised PNG ``ContentFile`` or raise ``UploadError``.
-
-    The returned file is safe to store: it is a freshly-encoded raster with no original
-    container metadata carried over."""
-    max_bytes = getattr(settings, "DESIGN_UPLOAD_MAX_BYTES", 15 * 1024 * 1024)
-    max_dim = getattr(settings, "DESIGN_UPLOAD_MAX_DIMENSION", 8000)
-
+def _inspect(uploaded_file, max_bytes: int, max_dim: int) -> tuple[bytes, Image.Image]:
+    """Shared gate for every image that enters the system: size cap, content-sniff,
+    Pillow verify, dimension cap. Returns the raw bytes and an opened image."""
     raw = uploaded_file.read()
     if len(raw) == 0:
         raise UploadError("The uploaded file is empty.", code="empty_file")
@@ -61,9 +56,34 @@ def validate_and_reencode(uploaded_file) -> ContentFile:
             f"Image is too large ({image.width}×{image.height}); max {max_dim}px per side.",
             code="dimensions_too_large",
         )
+    return raw, image
+
+
+def validate_and_reencode(uploaded_file) -> ContentFile:
+    """Return a sanitised PNG ``ContentFile`` or raise ``UploadError``.
+
+    The returned file is safe to store: it is a freshly-encoded raster with no original
+    container metadata carried over."""
+    _, image = _inspect(
+        uploaded_file,
+        getattr(settings, "DESIGN_UPLOAD_MAX_BYTES", 15 * 1024 * 1024),
+        getattr(settings, "DESIGN_UPLOAD_MAX_DIMENSION", 8000),
+    )
 
     # Re-encode to a clean PNG — this is the sanitisation step (drops EXIF/ICC/payloads).
     out = io.BytesIO()
     image.convert("RGBA").save(out, format="PNG")
     out.seek(0)
     return ContentFile(out.read(), name="design.png")
+
+
+def validate_product_image(uploaded_file) -> None:
+    """Run the same checks on an admin-uploaded product photo, but keep the original
+    encoding — re-encoding studio JPEGs to PNG would multiply their served size."""
+    _inspect(
+        uploaded_file,
+        getattr(settings, "PRODUCT_IMAGE_MAX_BYTES", 15 * 1024 * 1024),
+        getattr(settings, "DESIGN_UPLOAD_MAX_DIMENSION", 8000),
+    )
+    uploaded_file.seek(0)
+

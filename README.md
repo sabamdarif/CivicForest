@@ -415,3 +415,20 @@ Full checklist: `plan.md` §12.
 | Admin URL returns **404** | Expected for non-allow-listed IPs. Confirm your IP is in `ADMIN_IP_ALLOWLIST`, and that `DJANGO_ADMIN_URL`/`DJANGO_ADMIN_PATH` match (see §9). |
 | Redirected away from admin after login | Staff MFA isn't set up — bootstrap a TOTP authenticator (§9). |
 | E2E fails with a `.next/dev` permission error | Root-owned dir from a past Docker run → `sudo rm -rf frontend/.next/dev`. |
+
+ Dev users command: new backend/apps/accounts/management/commands/seed_dev_users.py + make seed-users. Refuses when DEBUG=False. Already ran:
+  - admin: admin@civicforest.local / admin12345 (superuser)
+  - test: test@civicforest.local / test12345
+  Emails pre-verified, login works without mail server.
+
+  Admin panel access — two blockers removed:
+  1. Caddy IP allowlist was empty, 404'd everyone. Set ADMIN_IP_ALLOWLIST=127.0.0.1/32 172.16.0.0/12 in .env (dev only — tighten for prod).
+  2. Middleware demands TOTP MFA for staff. Added DEBUG-only bypass in StaffAdminMiddleware — prod gate untouched. Verified end-to-end: login as seeded admin, admin page returns 200.
+
+  Admin workflow (your questions):
+  1. Login at https://civicforest.local/login as admin.
+  2. Open https://api.civicforest.local/admin-4f2a9c/ (path from DJANGO_ADMIN_PATH in .env).
+  3. Delete dummy data: Catalog section → Products → select all → action "Delete selected" → confirm. Same for Categories, Materials, Tags. Deleting a Product cascades its variants + images.
+  Collections page on storefront just renders categories — no separate model.
+  4. Add your items: create Category and Material first, then Add Product — variants (size/color/stock) and images edit inline on the product form.
+  5. After bulk changes run make reindex so Meilisearch matches Postgres.

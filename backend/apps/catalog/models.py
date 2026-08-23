@@ -25,6 +25,39 @@ class Material(UUIDTimestampedModel):
         super().save(*args, **kwargs)
 
 
+class Size(UUIDTimestampedModel):
+    """Admin-configurable size option (S, M, 32, …).
+
+    Variants keep storing the label itself, so orders/cart/search are untouched; this
+    table is the controlled vocabulary the admin form offers and the shop facets sort
+    by, which is what stops "M" and "m" becoming two filter entries.
+    """
+
+    name = models.CharField(max_length=16, unique=True)
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["display_order", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Color(UUIDTimestampedModel):
+    """Admin-configurable color option with its swatch. Same vocabulary role as
+    :class:`Size`; ``hex`` pre-fills ``ProductVariant.color_hex``."""
+
+    name = models.CharField(max_length=40, unique=True)
+    hex = models.CharField(max_length=7, blank=True, help_text="#RRGGBB swatch")
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["display_order", "name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Category(UUIDTimestampedModel):
     """Product category. ``parent`` is nullable so subcategories can be added later
     without a schema change."""
@@ -116,7 +149,9 @@ class ProductVariant(UUIDTimestampedModel):
     size = models.CharField(max_length=16)
     color = models.CharField(max_length=40)
     color_hex = models.CharField(max_length=7, blank=True, help_text="#RRGGBB swatch")
-    sku = models.CharField(max_length=64, unique=True)
+    sku = models.CharField(
+        max_length=64, unique=True, blank=True, help_text="Auto-generated when left blank."
+    )
     price_override = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stock_quantity = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -131,6 +166,24 @@ class ProductVariant(UUIDTimestampedModel):
 
     def __str__(self):
         return f"{self.product.name} — {self.size}/{self.color}"
+
+    def save(self, *args, **kwargs):
+        if not self.sku:
+            self.sku = self._generate_sku()
+        super().save(*args, **kwargs)
+
+    def _generate_sku(self) -> str:
+        """``CLASSIC-BLACK-TEE-M-BLACK``, de-duplicated with a numeric suffix.
+
+        Staff adding a product shouldn't have to invent unique codes by hand; a typed
+        SKU still wins because this only runs when the field is blank."""
+        stem = slugify(f"{self.product.slug} {self.size} {self.color}").upper()[:58] or "SKU"
+        candidate, suffix = stem, 2
+        taken = ProductVariant.objects.exclude(pk=self.pk)
+        while taken.filter(sku=candidate).exists():
+            candidate = f"{stem[:58]}-{suffix}"
+            suffix += 1
+        return candidate
 
     @property
     def effective_price(self) -> Decimal:

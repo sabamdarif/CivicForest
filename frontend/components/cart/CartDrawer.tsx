@@ -90,7 +90,7 @@ export function CartDrawer() {
                       {line.product_name}
                     </Link>
                     <p className="mt-0.5 text-xs text-ink/50">
-                      {line.color} · {line.size}
+                      {line.size}
                     </p>
                     <div className="mt-auto flex items-center justify-between">
                       <div className="flex items-center rounded-sm border border-black/15">

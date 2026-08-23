@@ -1,1 +1,3 @@
-claude --resume ff80e7d1-b6b8-4d74-8bc4-8718ec06461c --permission-mode bypassPermissions;
+claude --resume b9845db0-87a5-4002-a16a-70b729c7dfd8 --permission-mode bypassPermissions;
+
+NEXT:-  also the account redirect should be server sided like if i am login and try to go to the login page or signup page it should force redirect me to the account page curreently that not the case and it's big issue fix it

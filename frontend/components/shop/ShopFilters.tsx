@@ -6,25 +6,17 @@ import { useCallback, useEffect } from "react";
 import type { Category } from "@/lib/api/types";
 
 const SIZES = ["S", "M", "L", "XL"];
-const COLORS = [
-  ["Black", "#111111"],
-  ["Forest Green", "#1F3D2B"],
-  ["Navy", "#1B2A4A"],
-  ["Beige", "#D8C6A8"],
-  ["Heather Grey", "#B8B8B8"],
-  ["White", "#F4F1EA"],
-];
 const MATERIALS = ["Organic Cotton", "Cotton", "Fleece", "Cotton Blend", "French Terry"];
 
 /** Helper hook to return total count of active filters from URL searchParams */
 export function useActiveFilterCount(): number {
   const params = useSearchParams();
-  const filterKeys = ["category", "size", "color", "material", "min_price", "max_price"];
+  const filterKeys = ["category", "size", "material", "min_price", "max_price"];
   let count = 0;
   for (const k of filterKeys) {
     const val = params.get(k);
     if (val) {
-      if (k === "size" || k === "color") {
+      if (k === "size") {
         count += val.split(",").filter(Boolean).length;
       } else {
         count += 1;
@@ -70,10 +62,9 @@ export function ShopFilters({ categories }: { categories: Category[] }) {
 
   const activeCategory = params.get("category");
   const activeSizes = (params.get("size") ?? "").split(",").filter(Boolean);
-  const activeColors = (params.get("color") ?? "").split(",").filter(Boolean);
   const activeMaterial = params.get("material");
 
-  const hasFilters = ["category", "size", "color", "material", "min_price", "max_price"].some(
+  const hasFilters = ["category", "size", "material", "min_price", "max_price"].some(
     (k) => params.get(k),
   );
 
@@ -128,24 +119,6 @@ export function ShopFilters({ categories }: { categories: Category[] }) {
             >
               {size}
             </button>
-          ))}
-        </div>
-      </FilterGroup>
-
-      <FilterGroup title="Color">
-        <div className="flex flex-wrap gap-2.5">
-          {COLORS.map(([name, hex]) => (
-            <button
-              key={name}
-              type="button"
-              title={name}
-              aria-label={name}
-              onClick={() => toggleCsv("color", name)}
-              className={`h-8 w-8 rounded-full border-2 transition ${
-                activeColors.includes(name) ? "border-gold scale-110" : "border-black/10"
-              }`}
-              style={{ backgroundColor: hex }}
-            />
           ))}
         </div>
       </FilterGroup>

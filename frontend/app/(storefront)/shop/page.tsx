@@ -38,7 +38,6 @@ export default async function ShopPage({
         category: sp.category,
         material: sp.material,
         size: sp.size,
-        color: sp.color,
         min_price: sp.min_price ? Number(sp.min_price) : undefined,
         max_price: sp.max_price ? Number(sp.max_price) : undefined,
         is_new: sp.is_new === "true",

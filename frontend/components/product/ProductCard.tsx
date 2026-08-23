@@ -49,18 +49,6 @@ export function ProductCard({ product }: { product: ProductListItem }) {
         <p className="text-sm font-semibold text-ink">
           {formatPrice(product.price_from)}
         </p>
-        {product.colors.length > 0 && (
-          <div className="flex items-center gap-1.5 pt-1">
-            {product.colors.slice(0, 5).map((c) => (
-              <span
-                key={c.name}
-                title={c.name}
-                className="h-3.5 w-3.5 rounded-full border border-black/10"
-                style={{ backgroundColor: c.hex || "#ccc" }}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </article>
   );

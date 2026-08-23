@@ -22,7 +22,6 @@ export interface ProductQuery {
   category?: string;
   material?: string;
   size?: string;
-  color?: string;
   min_price?: number;
   max_price?: number;
   is_new?: boolean;
