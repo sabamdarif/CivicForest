@@ -12,24 +12,24 @@
     "postinstall": "node patch-ts.js"
   },
   "dependencies": {
-    "@sentry/nextjs": "^10.66.0",
-    "next": "16.2.11",
-    "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "@sentry/nextjs": "^10.68.0",
+    "next": "16.2.12",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@axe-core/puppeteer": "^4.12.1",
     "@playwright/test": "^1.61.1",
-    "@tailwindcss/postcss": "4.3.2",
+    "@tailwindcss/postcss": "4.3.3",
     "@types/node": "26.1.1",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "autoprefixer": "10.5.2",
-    "eslint": "9.39.5",
-    "eslint-config-next": "16.2.11",
-    "postcss": "8.5.18",
+    "autoprefixer": "10.5.4",
+    "eslint": "10.8.0",
+    "eslint-config-next": "16.2.12",
+    "postcss": "8.5.23",
     "puppeteer": "^25.3.0",
-    "tailwindcss": "4.3.2",
+    "tailwindcss": "4.3.3",
     "typescript": "7.0.2",
     "typescript-standard": "npm:typescript@5.7.2"
   },

@@ -386,7 +386,7 @@ requires-dist = [
     { name = "argon2-cffi", specifier = ">=23.1" },
     { name = "boto3", specifier = ">=1.35" },
     { name = "celery", specifier = ">=5.4" },
-    { name = "django", specifier = ">=5.2,<6.1" },
+    { name = "django", specifier = ">=5.2,<6.2" },
     { name = "django-allauth", extras = ["socialaccount", "mfa"], specifier = ">=65.0" },
     { name = "django-auditlog", specifier = ">=3.0" },
     { name = "django-celery-beat", specifier = ">=2.7" },
