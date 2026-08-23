@@ -13,6 +13,10 @@ EMPTY_THUMB = mark_safe(  # noqa: S308 — constant markup, no user input
     'background:rgba(0,0,0,.06)"></span>'
 )
 NO_VARIANTS = mark_safe('<span style="color:#b3261e">none — not buyable</span>')
+EMPTY_SWATCH = mark_safe(  # noqa: S308 — constant markup, no user input
+    '<span style="display:inline-block;height:20px;width:20px;border-radius:4px;'
+    'background:rgba(0,0,0,.06)"></span>'
+)
 
 
 def _vocab_choices(model, current: str = "") -> list[tuple[str, str]]:
@@ -96,14 +100,30 @@ class ProductImageInline(admin.TabularInline):
 class ProductAdminForm(forms.ModelForm):
     gallery = forms.Field(
         required=False,
-        widget=MultiFileInput(attrs={"multiple": True, "accept": "image/png,image/jpeg,image/webp"}),
+        widget=MultiFileInput(
+            attrs={"multiple": True, "accept": "image/png,image/jpeg,image/webp"}
+        ),
         label="Upload photos",
         help_text="Pick one or many at once — they are appended to the gallery below.",
     )
 
     class Meta:
         model = Product
-        fields = "__all__"
+        # Every editable field; ``fieldsets`` below decides what staff actually see.
+        fields = [
+            "name",
+            "slug",
+            "category",
+            "base_price",
+            "description",
+            "material",
+            "tags",
+            "is_active",
+            "is_new",
+            "is_bestseller",
+            "meta_title",
+            "meta_description",
+        ]
 
     def clean_gallery(self):
         # Same content-sniff/verify gate the customer design upload uses; the field
@@ -134,6 +154,16 @@ class ColorAdmin(admin.ModelAdmin):
     list_editable = ["display_order"]
     search_fields = ["name"]
     ordering = ["display_order", "name"]
+
+    @admin.display(description="")
+    def swatch(self, obj):
+        if not obj.hex:
+            return EMPTY_SWATCH
+        return format_html(
+            '<span style="display:inline-block;height:20px;width:20px;border-radius:4px;'
+            'background:{};border:1px solid rgba(0,0,0,.2)"></span>',
+            obj.hex,
+        )
 
     @admin.display(description="used by")
     def variant_count(self, obj):
