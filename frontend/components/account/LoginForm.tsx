@@ -124,13 +124,6 @@ export function LoginForm() {
         >
           <span className="font-bold text-[#4285F4]">G</span> Continue with Google
         </button>
-        <button
-          type="button"
-          onClick={() => window.location.assign(socialLoginUrl("apple"))}
-          className="btn-outline w-full justify-center gap-3"
-        >
-           Continue with Apple
-        </button>
       </div>
 
       <p className="mt-6 text-center text-sm text-ink/60">

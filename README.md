@@ -138,7 +138,7 @@ documented template. `.env` is git-ignored; **never commit real secrets.** Key g
 | Object storage | `S3_*` | for uploads/media (deferred) |
 | Payments | `RAZORPAY_*` | deferred; see below |
 | Print | `QIKINK_CLIENT_ID`, `QIKINK_CLIENT_SECRET`, `QIKINK_BASE_URL` | Qikink Open API |
-| Social login | `GOOGLE_OAUTH_*`, `APPLE_OAUTH_*` | UI built, keys optional |
+| Social login | `GOOGLE_OAUTH_*` | UI built, keys optional |
 
 For local dev the committed defaults are sufficient — **no external API keys are
 required to run the current foundation.**
@@ -164,7 +164,6 @@ store each as an environment variable.
 | Provider | Env vars | Where to get it |
 |----------|----------|-----------------|
 | **Google** | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google Cloud Console → **APIs & Services → Credentials → Create OAuth client ID** (Web application). Add `https://api.civicforest.local` to authorized origins and the allauth callback to redirect URIs. <https://console.cloud.google.com/apis/credentials> |
-| **Apple** | `APPLE_OAUTH_CLIENT_ID`, `APPLE_OAUTH_SECRET` | Apple Developer → **Certificates, Identifiers & Profiles → Identifiers** (Services ID) + a Sign in with Apple key. <https://developer.apple.com/account/resources/> |
 
 ### Nice to have (production)
 

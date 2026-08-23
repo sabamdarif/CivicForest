@@ -135,13 +135,13 @@ export async function reauthenticate(password: string): Promise<void> {
   await request("/auth/reauthenticate", "POST", { password });
 }
 
-/** Redirect the browser into allauth's provider flow (Google/Apple).
+/** Redirect the browser into allauth's provider flow (Google).
  * Guarded for SSR/prerender where `window` is undefined — the correct callback
  * origin is filled in on the client after hydration. */
 /** Browser-only: call from a click handler. Uses the public API base and the real
  * window origin — rendering this into an SSR href causes a hydration mismatch. */
 export function socialLoginUrl(
-  provider: "google" | "apple",
+  provider: "google",
   callbackPath = "/account",
 ): string {
   const callback = encodeURIComponent(`${window.location.origin}${callbackPath}`);
