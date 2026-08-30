@@ -58,12 +58,12 @@ Two deployable app units (`backend`, `frontend`) plus supporting services, all i
 
 ## 2. Prerequisites
 
-| Tool | Why | Install |
-|------|-----|---------|
-| **Docker + Docker Compose** | runs the whole stack | <https://docs.docker.com/get-docker/> |
-| **mkcert** | browser-trusted local HTTPS certs | <https://github.com/FiloSottile/mkcert#installation> |
-| *(optional)* **uv** | run/lint backend without Docker | <https://docs.astral.sh/uv/> |
-| *(optional)* **Node 22+** | run frontend without Docker | <https://nodejs.org/> |
+| Tool                        | Why                               | Install                                              |
+| --------------------------- | --------------------------------- | ---------------------------------------------------- |
+| **Docker + Docker Compose** | runs the whole stack              | <https://docs.docker.com/get-docker/>                |
+| **mkcert**                  | browser-trusted local HTTPS certs | <https://github.com/FiloSottile/mkcert#installation> |
+| _(optional)_ **uv**         | run/lint backend without Docker   | <https://docs.astral.sh/uv/>                         |
+| _(optional)_ **Node 22+**   | run frontend without Docker       | <https://nodejs.org/>                                |
 
 You do **not** need Python/Node installed to run via Docker — only Docker + mkcert.
 
@@ -93,11 +93,11 @@ make createsuperuser            # optional, for the admin
 
 Open:
 
-| URL | What |
-|-----|------|
-| <https://civicforest.local> | Storefront |
-| <https://api.civicforest.local/api/v1/> | API root |
-| <https://api.civicforest.local/api/docs/> | Swagger docs (dev only) |
+| URL                                                | What                                                                                            |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| <https://civicforest.local>                        | Storefront                                                                                      |
+| <https://api.civicforest.local/api/v1/>            | API root                                                                                        |
+| <https://api.civicforest.local/api/docs/>          | Swagger docs (dev only)                                                                         |
 | `https://api.civicforest.local/<DJANGO_ADMIN_URL>` | Admin — path from `.env`, **not** `/admin/`; needs MFA (see [§9](#9-accessing-the-admin-panel)) |
 
 Stop with `make down`. Tail logs with `make logs`.
@@ -127,18 +127,18 @@ from step 3 exists.
 All config is read from the environment — see [`.env.example`](./.env.example) for the
 documented template. `.env` is git-ignored; **never commit real secrets.** Key groups:
 
-| Group | Keys | Notes |
-|-------|------|-------|
-| Core | `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_ADMIN_URL` | `ADMIN_URL` is a random path, never `/admin/` |
-| Frontend/CORS | `FRONTEND_ORIGIN`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, `SESSION_COOKIE_DOMAIN` | explicit allow-lists (cookies are involved) |
-| API URLs | `NEXT_PUBLIC_API_BASE_URL`, `INTERNAL_API_BASE_URL` | public vs in-network SSR base |
-| Postgres | `POSTGRES_*`, `DATABASE_URL` | |
-| Redis | `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` | |
-| Meilisearch | `MEILISEARCH_URL`, `MEILISEARCH_MASTER_KEY` | |
-| Object storage | `S3_*` | for uploads/media (deferred) |
-| Payments | `RAZORPAY_*` | deferred; see below |
-| Print | `QIKINK_CLIENT_ID`, `QIKINK_CLIENT_SECRET`, `QIKINK_BASE_URL` | Qikink Open API |
-| Social login | `GOOGLE_OAUTH_*` | UI built, keys optional |
+| Group          | Keys                                                                                       | Notes                                         |
+| -------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| Core           | `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_ADMIN_URL`            | `ADMIN_URL` is a random path, never `/admin/` |
+| Frontend/CORS  | `FRONTEND_ORIGIN`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, `SESSION_COOKIE_DOMAIN` | explicit allow-lists (cookies are involved)   |
+| API URLs       | `NEXT_PUBLIC_API_BASE_URL`, `INTERNAL_API_BASE_URL`                                        | public vs in-network SSR base                 |
+| Postgres       | `POSTGRES_*`, `DATABASE_URL`                                                               |                                               |
+| Redis          | `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`                                  |                                               |
+| Meilisearch    | `MEILISEARCH_URL`, `MEILISEARCH_MASTER_KEY`                                                |                                               |
+| Object storage | `S3_*`                                                                                     | for uploads/media (deferred)                  |
+| Payments       | `RAZORPAY_*`                                                                               | deferred; see below                           |
+| Print          | `QIKINK_CLIENT_ID`, `QIKINK_CLIENT_SECRET`, `QIKINK_BASE_URL`                              | Qikink Open API                               |
+| Social login   | `GOOGLE_OAUTH_*`                                                                           | UI built, keys optional                       |
 
 For local dev the committed defaults are sufficient — **no external API keys are
 required to run the current foundation.**
@@ -153,22 +153,22 @@ store each as an environment variable.
 
 ### Required for their feature
 
-| Service | Env vars | Where to get it | Notes |
-|---------|----------|-----------------|-------|
-| **Razorpay** (payments) | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Razorpay Dashboard → **Settings → API Keys** (generate key/secret). Webhook secret: **Settings → Webhooks → Add webhook** (you set the secret there). <https://dashboard.razorpay.com/> | Use **Test mode** keys for dev. The webhook secret is separate from the API secret and is what verifies incoming webhooks. |
-| **Qikink** (custom-print fulfilment) | `QIKINK_CLIENT_ID`, `QIKINK_CLIENT_SECRET` (base URL/paths overridable via `QIKINK_BASE_URL`, `QIKINK_TOKEN_PATH`, `QIKINK_ORDER_CREATE_PATH`, `QIKINK_ORDER_STATUS_PATH`) | Qikink Dashboard → **Settings → API / Open API** for the ClientId + client secret. Reference: Qikink Open API Postman docs. <https://qikink.com/> | Server-side only — the backend exchanges these for a short-lived token (cached ~1h) and calls Qikink; never expose to the browser. Defaults point at the sandbox host; set `QIKINK_BASE_URL` to production when going live. |
-| **Cloudflare R2** *(or AWS S3)* (media/uploads) | `S3_ENDPOINT_URL`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `S3_REGION` | R2: Cloudflare Dashboard → **R2 → Manage R2 API Tokens** (<https://dash.cloudflare.com/>). S3: AWS IAM → **Users → Security credentials → Access keys**, plus an S3 bucket. | R2 is S3-compatible; set `S3_ENDPOINT_URL` to your R2 endpoint. |
+| Service                                         | Env vars                                                                                                                                                                   | Where to get it                                                                                                                                                                         | Notes                                                                                                                                                                                                                       |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Razorpay** (payments)                         | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`                                                                                                        | Razorpay Dashboard → **Settings → API Keys** (generate key/secret). Webhook secret: **Settings → Webhooks → Add webhook** (you set the secret there). <https://dashboard.razorpay.com/> | Use **Test mode** keys for dev. The webhook secret is separate from the API secret and is what verifies incoming webhooks.                                                                                                  |
+| **Qikink** (custom-print fulfilment)            | `QIKINK_CLIENT_ID`, `QIKINK_CLIENT_SECRET` (base URL/paths overridable via `QIKINK_BASE_URL`, `QIKINK_TOKEN_PATH`, `QIKINK_ORDER_CREATE_PATH`, `QIKINK_ORDER_STATUS_PATH`) | Qikink Dashboard → **Settings → API / Open API** for the ClientId + client secret. Reference: Qikink Open API Postman docs. <https://qikink.com/>                                       | Server-side only — the backend exchanges these for a short-lived token (cached ~1h) and calls Qikink; never expose to the browser. Defaults point at the sandbox host; set `QIKINK_BASE_URL` to production when going live. |
+| **Cloudflare R2** _(or AWS S3)_ (media/uploads) | `S3_ENDPOINT_URL`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `S3_REGION`                                                                               | R2: Cloudflare Dashboard → **R2 → Manage R2 API Tokens** (<https://dash.cloudflare.com/>). S3: AWS IAM → **Users → Security credentials → Access keys**, plus an S3 bucket.             | R2 is S3-compatible; set `S3_ENDPOINT_URL` to your R2 endpoint.                                                                                                                                                             |
 
 ### Optional (social login — the UI exists, keys just enable it)
 
-| Provider | Env vars | Where to get it |
-|----------|----------|-----------------|
+| Provider   | Env vars                                               | Where to get it                                                                                                                                                                                                                                               |
+| ---------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Google** | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google Cloud Console → **APIs & Services → Credentials → Create OAuth client ID** (Web application). Add `https://api.civicforest.local` to authorized origins and the allauth callback to redirect URIs. <https://console.cloud.google.com/apis/credentials> |
 
 ### Nice to have (production)
 
-| Service | Env var(s) | Where |
-|---------|-----------|-------|
+| Service                     | Env var(s)   | Where                                                                     |
+| --------------------------- | ------------ | ------------------------------------------------------------------------- |
 | **Sentry** (error tracking) | `SENTRY_DSN` | Sentry → **Project → Settings → Client Keys (DSN)**. <https://sentry.io/> |
 
 > **Handling secrets:** in production, inject these from a secrets manager
@@ -181,21 +181,21 @@ store each as an environment variable.
 
 Run `make help` to list them. Highlights:
 
-| Command | Does |
-|---------|------|
-| `make certs` | Trust local CA + issue mkcert certs for the `.local` hosts |
-| `make up` | Build & start the full stack (detached) |
-| `make down` | Stop the stack |
-| `make logs` | Tail all container logs |
-| `make migrate` | Apply database migrations |
-| `make makemigrations` | Create new migrations |
-| `make seed` | Seed categories + demo catalog (idempotent) |
-| `make reindex` | Rebuild the Meilisearch index from Postgres |
-| `make createsuperuser` | Create a Django admin superuser |
-| `make shell` | Django shell |
-| `make test` | Run backend tests (pytest) |
-| `make lint` | Lint backend (ruff) + frontend (eslint) |
-| `make fmt` | Auto-format the backend (ruff) |
+| Command                | Does                                                       |
+| ---------------------- | ---------------------------------------------------------- |
+| `make certs`           | Trust local CA + issue mkcert certs for the `.local` hosts |
+| `make up`              | Build & start the full stack (detached)                    |
+| `make down`            | Stop the stack                                             |
+| `make logs`            | Tail all container logs                                    |
+| `make migrate`         | Apply database migrations                                  |
+| `make makemigrations`  | Create new migrations                                      |
+| `make seed`            | Seed categories + demo catalog (idempotent)                |
+| `make reindex`         | Rebuild the Meilisearch index from Postgres                |
+| `make createsuperuser` | Create a Django admin superuser                            |
+| `make shell`           | Django shell                                               |
+| `make test`            | Run backend tests (pytest)                                 |
+| `make lint`            | Lint backend (ruff) + frontend (eslint)                    |
+| `make fmt`             | Auto-format the backend (ruff)                             |
 
 ---
 
@@ -288,14 +288,14 @@ password, and the rolling 6-digit code.
 
 ## 10. Testing
 
-| Layer | Command | Notes |
-|-------|---------|-------|
-| **Backend unit** | `make test` — or offline: `cd backend && USE_SQLITE=1 DJANGO_SECRET_KEY=dev-key uv run pytest` | 72 tests across accounts/catalog/cart/orders/payments/custom_orders |
-| **Backend lint/format** | `make lint` · `cd backend && uv run ruff check . && uv run ruff format --check .` | |
-| **Frontend typecheck/lint** | `cd frontend && npm run typecheck && npm run lint` | `tsc --noEmit` + eslint |
-| **E2E (Playwright)** | `cd frontend && npm run e2e` | boots both servers itself |
-| **Load (k6)** | `k6 run k6-search-suggest.js` | needs the API running + [k6](https://k6.io/docs/get-started/installation/) |
-| **A11y (axe)** | `node frontend/axe-audit.js` | needs the storefront running + system Chrome |
+| Layer                       | Command                                                                                        | Notes                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Backend unit**            | `make test` — or offline: `cd backend && USE_SQLITE=1 DJANGO_SECRET_KEY=dev-key uv run pytest` | 72 tests across accounts/catalog/cart/orders/payments/custom_orders        |
+| **Backend lint/format**     | `make lint` · `cd backend && uv run ruff check . && uv run ruff format --check .`              |                                                                            |
+| **Frontend typecheck/lint** | `cd frontend && npm run typecheck && npm run lint`                                             | `tsc --noEmit` + eslint                                                    |
+| **E2E (Playwright)**        | `cd frontend && npm run e2e`                                                                   | boots both servers itself                                                  |
+| **Load (k6)**               | `k6 run k6-search-suggest.js`                                                                  | needs the API running + [k6](https://k6.io/docs/get-started/installation/) |
+| **A11y (axe)**              | `node frontend/axe-audit.js`                                                                   | needs the storefront running + system Chrome                               |
 
 ### E2E details
 
@@ -366,7 +366,7 @@ environment-driven.
 
 1. **Settings:** set `DJANGO_SETTINGS_MODULE=config.settings.production`. This forces
    `DEBUG=False`, requires a real `DJANGO_SECRET_KEY`, and enables `SECURE_SSL_REDIRECT`
-   + HSTS.
+   - HSTS.
 2. **Managed data services:** use a managed **PostgreSQL 17** (automated backups + PITR)
    and managed **Redis**; run **Meilisearch** as a service. Point `DATABASE_URL`,
    `REDIS_URL`, and `MEILISEARCH_URL` at them.
@@ -403,31 +403,34 @@ Full checklist: `plan.md` §12.
 
 ## 14. Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Browser TLS warning on `*.local` | Re-run `make certs`, restart the browser, verify `/etc/hosts` entry. |
-| `civicforest.local` won't resolve | Add `127.0.0.1 civicforest.local api.civicforest.local` to `/etc/hosts`. |
-| Storefront shows no products | Run `make migrate && make seed` (and `make reindex` for search). |
-| Search returns nothing | Meili not indexed → `make reindex`. Search still works via the Postgres fallback. |
-| API returns 403 on writes | CSRF — the frontend must send `X-CSRFToken`; hit any GET first to receive the cookie. |
-| Backend won't boot without Postgres | Use `USE_SQLITE=1` for offline runs (see §8). |
-| Admin URL returns **404** | Expected for non-allow-listed IPs. Confirm your IP is in `ADMIN_IP_ALLOWLIST`, and that `DJANGO_ADMIN_URL`/`DJANGO_ADMIN_PATH` match (see §9). |
-| Redirected away from admin after login | Staff MFA isn't set up — bootstrap a TOTP authenticator (§9). |
-| E2E fails with a `.next/dev` permission error | Root-owned dir from a past Docker run → `sudo rm -rf frontend/.next/dev`. |
+| Symptom                                       | Fix                                                                                                                                            |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser TLS warning on `*.local`              | Re-run `make certs`, restart the browser, verify `/etc/hosts` entry.                                                                           |
+| `civicforest.local` won't resolve             | Add `127.0.0.1 civicforest.local api.civicforest.local` to `/etc/hosts`.                                                                       |
+| Storefront shows no products                  | Run `make migrate && make seed` (and `make reindex` for search).                                                                               |
+| Search returns nothing                        | Meili not indexed → `make reindex`. Search still works via the Postgres fallback.                                                              |
+| API returns 403 on writes                     | CSRF — the frontend must send `X-CSRFToken`; hit any GET first to receive the cookie.                                                          |
+| Backend won't boot without Postgres           | Use `USE_SQLITE=1` for offline runs (see §8).                                                                                                  |
+| Admin URL returns **404**                     | Expected for non-allow-listed IPs. Confirm your IP is in `ADMIN_IP_ALLOWLIST`, and that `DJANGO_ADMIN_URL`/`DJANGO_ADMIN_PATH` match (see §9). |
+| Redirected away from admin after login        | Staff MFA isn't set up — bootstrap a TOTP authenticator (§9).                                                                                  |
+| E2E fails with a `.next/dev` permission error | Root-owned dir from a past Docker run → `sudo rm -rf frontend/.next/dev`.                                                                      |
 
- Dev users command: new backend/apps/accounts/management/commands/seed_dev_users.py + make seed-users. Refuses when DEBUG=False. Already ran:
-  - admin: admin@civicforest.local / admin12345 (superuser)
-  - test: test@civicforest.local / test12345
+Dev users command: new backend/apps/accounts/management/commands/seed_dev_users.py + make seed-users. Refuses when DEBUG=False. Already ran:
+
+- admin: admin@civicforest.local / admin12345 (superuser)
+- test: test@civicforest.local / test12345
   Emails pre-verified, login works without mail server.
 
-  Admin panel access — two blockers removed:
-  1. Caddy IP allowlist was empty, 404'd everyone. Set ADMIN_IP_ALLOWLIST=127.0.0.1/32 172.16.0.0/12 in .env (dev only — tighten for prod).
-  2. Middleware demands TOTP MFA for staff. Added DEBUG-only bypass in StaffAdminMiddleware — prod gate untouched. Verified end-to-end: login as seeded admin, admin page returns 200.
+Admin panel access — two blockers removed:
 
-  Admin workflow (your questions):
-  1. Login at https://civicforest.local/login as admin.
-  2. Open https://api.civicforest.local/admin-4f2a9c/ (path from DJANGO_ADMIN_PATH in .env).
-  3. Delete dummy data: Catalog section → Products → select all → action "Delete selected" → confirm. Same for Categories, Materials, Tags. Deleting a Product cascades its variants + images.
-  Collections page on storefront just renders categories — no separate model.
-  4. Add your items: create Category and Material first, then Add Product — variants (size/color/stock) and images edit inline on the product form.
-  5. After bulk changes run make reindex so Meilisearch matches Postgres.
+1. Caddy IP allowlist was empty, 404'd everyone. Set ADMIN_IP_ALLOWLIST=127.0.0.1/32 172.16.0.0/12 in .env (dev only — tighten for prod).
+2. Middleware demands TOTP MFA for staff. Added DEBUG-only bypass in StaffAdminMiddleware — prod gate untouched. Verified end-to-end: login as seeded admin, admin page returns 200.
+
+Admin workflow (your questions):
+
+1. Login at https://civicforest.local/login as admin.
+2. Open https://api.civicforest.local/admin-4f2a9c/ (path from DJANGO_ADMIN_PATH in .env).
+3. Delete dummy data: Catalog section → Products → select all → action "Delete selected" → confirm. Same for Categories, Materials, Tags. Deleting a Product cascades its variants + images.
+   Collections page on storefront just renders categories — no separate model.
+4. Add your items: create Category and Material first, then Add Product — variants (size/color/stock) and images edit inline on the product form.
+5. After bulk changes run make reindex so Meilisearch matches Postgres.
