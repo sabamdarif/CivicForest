@@ -119,7 +119,10 @@ DATABASES["default"]["ATOMIC_REQUESTS"] = False
 DATABASES["default"]["CONN_MAX_AGE"] = 60
 
 REDIS_URL = env("REDIS_URL", default="")
-if REDIS_URL and (REDIS_URL.startswith("redis://") or REDIS_URL.startswith("rediss://")):
+if "redis:6379" in REDIS_URL or not (REDIS_URL.startswith("redis://") or REDIS_URL.startswith("rediss://")):
+    REDIS_URL = ""
+
+if REDIS_URL:
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
@@ -326,7 +329,11 @@ STAFF_SESSION_AGE = env.int("STAFF_SESSION_AGE", default=60 * 60)
 
 # ─── Celery ──────────────────────────────────────────────────────────────────
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="")
+if "redis:6379" in CELERY_BROKER_URL:
+    CELERY_BROKER_URL = ""
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="")
+if "redis:6379" in CELERY_RESULT_BACKEND:
+    CELERY_RESULT_BACKEND = ""
 _has_redis_broker = bool(CELERY_BROKER_URL and (CELERY_BROKER_URL.startswith("redis://") or CELERY_BROKER_URL.startswith("rediss://")))
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=not _has_redis_broker)
 CELERY_TASK_ACKS_LATE = True
@@ -335,6 +342,8 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # ─── Meilisearch ─────────────────────────────────────────────────────────────
 MEILISEARCH_URL = env("MEILISEARCH_URL", default="")
+if "meilisearch:7700" in MEILISEARCH_URL:
+    MEILISEARCH_URL = ""
 MEILISEARCH_MASTER_KEY = env("MEILISEARCH_MASTER_KEY", default="")
 MEILISEARCH_INDEX_PREFIX = env("MEILISEARCH_INDEX_PREFIX", default="civicforest")
 
