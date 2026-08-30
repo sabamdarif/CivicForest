@@ -18,7 +18,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@axe-core/puppeteer": "^4.12.1",
+    "@axe-core/puppeteer": "^4.13.0",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "26.1.1",
