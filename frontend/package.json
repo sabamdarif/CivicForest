@@ -28,7 +28,7 @@
     "eslint": "10.8.0",
     "eslint-config-next": "16.2.12",
     "postcss": "8.5.23",
-    "puppeteer": "^25.3.0",
+    "puppeteer": "^25.9.0",
     "tailwindcss": "4.3.3",
     "typescript": "7.0.2",
     "typescript-standard": "npm:typescript@5.7.2"
