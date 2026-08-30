@@ -325,15 +325,16 @@ ADMIN_URL = env(
 STAFF_SESSION_AGE = env.int("STAFF_SESSION_AGE", default=60 * 60)
 
 # ─── Celery ──────────────────────────────────────────────────────────────────
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/1")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://redis:6379/2")
-CELERY_TASK_ALWAYS_EAGER = False
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="")
+_has_redis_broker = bool(CELERY_BROKER_URL and (CELERY_BROKER_URL.startswith("redis://") or CELERY_BROKER_URL.startswith("rediss://")))
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=not _has_redis_broker)
 CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # ─── Meilisearch ─────────────────────────────────────────────────────────────
-MEILISEARCH_URL = env("MEILISEARCH_URL", default="http://meilisearch:7700")
+MEILISEARCH_URL = env("MEILISEARCH_URL", default="")
 MEILISEARCH_MASTER_KEY = env("MEILISEARCH_MASTER_KEY", default="")
 MEILISEARCH_INDEX_PREFIX = env("MEILISEARCH_INDEX_PREFIX", default="civicforest")
 
