@@ -24,7 +24,7 @@ COPY . .
 EXPOSE 8000
 
 # Default command is overridden per-service in docker-compose (web vs worker vs beat).
-CMD ["gunicorn", "config.wsgi:application", \
+CMD ["gunicorn", "config.asgi:application", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "3", \
      "--worker-class", "uvicorn.workers.UvicornWorker"]
