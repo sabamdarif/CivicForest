@@ -14,10 +14,17 @@ vanilla JS, deployed as a single Vercel project.** Written 2026-09-01.
 
 ## What this supersedes
 
-`plan.md`, `implementation_plan.md`, `tasks.md`, `remaining_plan.md` and `bug_fix_plan.md` at the
-repo root describe the **previous** architecture: Next.js App Router frontend, Docker Compose,
-Caddy, Redis, Celery, Meilisearch, split frontend/backend hosting. They are kept for history.
-Where they disagree with these four documents, **these win.**
+`legacy/` holds `plan.md`, `implementation_plan.md`, `tasks.md`, `remaining_plan.md` and
+`bug_fix_plan.md`, which described the **previous** architecture: Next.js App Router frontend,
+Docker Compose, Caddy, Redis, Celery, Meilisearch, split frontend/backend hosting. They are kept
+for history, and the `plan.md §N` citations still scattered through the code point at
+`rebuild/legacy/plan.md`. Where they disagree with the four documents above, **these win.**
+
+## Status
+
+M0 is under way on `rebuild/foundation`. One Django project renders a styled page from the repo
+root, both template engines are wired, and the old stack is gone. Neon, R2 and Vercel are not
+provisioned yet, so M0 tasks 9 to 12 are outstanding.
 
 ## One-paragraph summary
 
@@ -30,10 +37,6 @@ both kinds of item: one payment through Razorpay, two fulfilments, two tracking 
 the store from purpose-built Jinja2 back-office pages, with a hardened Django admin underneath for
 long-tail CRUD. Postgres lives on Neon, files on Cloudflare R2, deferred work runs as
 database-backed job rows swept by cron-triggered endpoints.
-
-## Status
-
-Planning complete. No implementation has started. No existing application code has been modified.
 
 ## How to change a decision
 

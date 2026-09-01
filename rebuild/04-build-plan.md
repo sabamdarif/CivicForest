@@ -68,7 +68,7 @@ Tasks:
 12. [ ] Add `vercel.json` with `functions.maxDuration`, security headers and an empty `crons` array.
 13. [x] Rewrite `.github/workflows/ci.yml`: ruff → pytest against Postgres → `pip-audit`. Keep
     `codeql.yml` and `dependabot.yml`.
-14. [ ] Rewrite `README.md` for the new stack. Move the old plan documents into `rebuild/legacy/`.
+14. [x] Rewrite `README.md` for the new stack. Move the old plan documents into `rebuild/legacy/`.
 
 **Done when:** a pushed commit auto-deploys, `/` renders a styled page, `/healthz` returns 200,
 migrations are applied on Neon, static files come from the CDN, and CI is green.

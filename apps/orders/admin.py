@@ -41,7 +41,7 @@ class OrderAdmin(admin.ModelAdmin):
     ]
     # Totals and the address snapshot are immutable history — never editable in admin.
     # ``status`` is read-only too: changes go through the actions below so the state
-    # machine (and its emails) can't be bypassed with the raw dropdown (bugs.md #3).
+    # machine (and its emails) can't be bypassed with the raw dropdown.
     readonly_fields = [
         "status",
         "order_number",

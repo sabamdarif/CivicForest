@@ -1,11 +1,11 @@
 # CivicForest Clothing
 
 Premium menswear storefront for the Indian market: INR pricing, GST invoicing, prepaid
-only. The committed code today is a Django 5.2 + DRF API with a separate Next.js
-frontend, run locally through Docker Compose and Caddy. It is being rebuilt into a
-single Django project that renders every page with Jinja2 and vanilla CSS/JS, deployed
-as one Vercel function. The rebuild plan is `rebuild/`, and `rebuild/01-decisions.md`
-is the decision register for it.
+only. One Django 5.2 project at the repo root renders every page with Jinja2 and vanilla
+CSS/JS, deployed as one Vercel function. The models, services and tests of the money path
+carry over from the previous Next.js stack; every view, template, stylesheet and script is
+being rewritten. The plan is `rebuild/`, and `rebuild/01-decisions.md` is the decision
+register for it.
 
 ### Hard requirements
 
@@ -86,9 +86,10 @@ Resuming: `git log --oneline -15` names the last milestone and task. If `progres
 exists a milestone is mid-flight, so read it and take the first unchecked task. If it does
 not exist, the last milestone in the log is finished and the next one starts at step 2.
 
-`plan.md`, `implementation_plan.md`, `tasks.md`, `remaining_plan.md` and `bug_fix_plan.md`
-at the repo root describe the previous architecture and are superseded by `rebuild/`. M0
-moves them to `rebuild/legacy/`. Do not treat them as current.
+`rebuild/legacy/` holds `plan.md`, `implementation_plan.md`, `tasks.md`,
+`remaining_plan.md` and `bug_fix_plan.md`. They describe the previous architecture and are
+superseded by the rest of `rebuild/`. Code comments citing `plan.md §N` mean
+`rebuild/legacy/plan.md`. Do not treat any of it as current.
 
 ### YAGNI
 
@@ -257,8 +258,7 @@ migration check, pytest against Postgres, pip-audit and CodeQL.
 
 `README.md` is the user-facing reference: setup, environment variables, which API keys are
 needed and where to get them, admin access, testing, deployment. Read it there instead of
-re-deriving it, and update it in the same change when behaviour moves. It currently
-documents the Docker and Next.js stack, so M0 rewrites it.
+re-deriving it, and update it in the same change when behaviour moves.
 
 `rebuild/` holds what the README does not: `01-decisions.md` (every settled decision, with
 IDs to cite), `02-research.md` (verified Vercel limits, allauth behaviour, the Qikink API and
@@ -282,25 +282,20 @@ Not in the README on purpose:
 ## Architecture
 
 ```
-browser -> Caddy -> Next.js (frontend) and Django (backend)
-Django: urls -> views/serializers -> services -> models -> Postgres
-                              \-> Redis (cache, Celery broker), Meilisearch, S3/R2
-```
-
-Target after the rebuild, replacing the above:
-
-```
 browser -> Vercel (one Django function)
 Django: urls -> views -> services -> models -> Neon Postgres
                     \-> Jinja2 templates, R2 (media), cron endpoints -> JobRun rows
 ```
+
+The `JobRun` system and the cron endpoints are designed in `rebuild/03-architecture.md` §7
+and not built yet. Deferred work runs inline until then.
 
 Dependency direction is one way: views call services, services call models. A view that
 contains business logic, or a model that calls another app's service, is the thing to fix.
 
 ### Apps
 
-`backend/apps/`, each with `models.py`, `services.py`, `serializers.py`, `views.py`,
+`apps/`, each with `models.py`, `services.py`, `serializers.py`, `views.py`,
 `urls.py`, `admin.py`, `tests/` where relevant. Open the file's docstring for detail; this
 is only the index.
 

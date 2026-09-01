@@ -1,274 +1,147 @@
 # CivicForest
 
-Premium clothing storefront — **Django 5.2 + DRF** API and a **Next.js (App Router)**
-frontend, behind a **Caddy** reverse proxy with local HTTPS. Data is **PostgreSQL 17**,
-**Redis**, and **Meilisearch**; async work runs on **Celery**.
+Premium menswear storefront for the Indian market: INR pricing, GST invoicing, prepaid
+only. **One Django project**, server-rendered with Jinja2, hand-written CSS and vanilla
+ES modules, deployed as a single Vercel function. Postgres on Neon, files on Cloudflare
+R2, deferred work as database job rows swept by cron endpoints.
 
-- Full architecture & rationale → [`plan.md`](./plan.md)
-- Execution plan → [`implementation_plan.md`](./implementation_plan.md)
-- Progress / what's done vs left → [`tasks.md`](./tasks.md)
+No frontend framework, no bundler, no second host, no Redis, no Celery, no Docker in the
+production path. Those are constraints, not omissions: see `CLAUDE.md`.
 
-> **Status:** the whole purchase path is built and verified end-to-end — accounts/auth,
-> catalog, storefront, search (with a Postgres fallback), **cart/wishlist/coupons,
-> orders, Razorpay payments, and Qikink print fulfilment**, plus admin hardening,
-> CI (tests/audits/Trivy), and observability. Test breadth (Playwright E2E, k6 load,
-> axe a11y) is in place. What's left is non-code: live credentials and repo/monitoring
-> settings (see `tasks.md`).
+- Every settled decision, with IDs to cite: [`rebuild/01-decisions.md`](./rebuild/01-decisions.md)
+- Verified platform, vendor and legal facts: [`rebuild/02-research.md`](./rebuild/02-research.md)
+- Target architecture: [`rebuild/03-architecture.md`](./rebuild/03-architecture.md)
+- Milestones and acceptance criteria: [`rebuild/04-build-plan.md`](./rebuild/04-build-plan.md)
 
----
-
-## Table of contents
-
-1. [Architecture at a glance](#1-architecture-at-a-glance)
-2. [Prerequisites](#2-prerequisites)
-3. [Quick start (Docker)](#3-quick-start-docker)
-4. [Local HTTPS setup (mkcert)](#4-local-https-setup-mkcert)
-5. [Environment variables](#5-environment-variables)
-6. [API keys — what you need and where to get them](#6-api-keys--what-you-need-and-where-to-get-them)
-7. [Make commands](#7-make-commands)
-8. [Running pieces without Docker](#8-running-pieces-without-docker)
-9. [Accessing the admin panel](#9-accessing-the-admin-panel)
-10. [Testing](#10-testing)
-11. [Project layout](#11-project-layout)
-12. [Deployment](#12-deployment)
-13. [Security notes](#13-security-notes)
-14. [Troubleshooting](#14-troubleshooting)
+> **Status:** mid-rebuild. The proven money-path code carries over (server-side
+> re-pricing, webhook idempotency, cart merge, upload sanitisation, the Qikink client)
+> and 103 tests pass. Every page, template, stylesheet and script is being written from
+> M1 onward, so `/` is a placeholder today. The previous Next.js stack is recoverable
+> from the `v1-nextjs` tag.
 
 ---
 
-## 1. Architecture at a glance
+## Contents
 
-```
-Browser ──► Caddy (TLS terminate)
-              ├─ civicforest.local       ──► Next.js  (frontend:3000)
-              └─ api.civicforest.local   ──► Django   (backend:8000)
-                                                │
-                        ┌───────────────────────┼───────────────────────┐
-                     Postgres                  Redis                 Meilisearch
-                  (catalog/users)     (cache · Celery broker ·        (search index;
-                                        throttle store)             Postgres fallback)
-                                                │
-                                     Celery worker + beat  (index sync, print fulfilment, order emails)
-```
-
-Two deployable app units (`backend`, `frontend`) plus supporting services, all in
-`docker-compose.yml`. The same Caddy proxy is used in dev and prod for real parity.
+1. [Requirements](#1-requirements)
+2. [Quick start](#2-quick-start)
+3. [Environment variables](#3-environment-variables)
+4. [API keys, and where to get them](#4-api-keys-and-where-to-get-them)
+5. [Admin access](#5-admin-access)
+6. [Checks and tests](#6-checks-and-tests)
+7. [Project layout](#7-project-layout)
+8. [Deployment](#8-deployment)
+9. [Security notes](#9-security-notes)
+10. [Troubleshooting](#10-troubleshooting)
 
 ---
 
-## 2. Prerequisites
+## 1. Requirements
 
-| Tool                        | Why                               | Install                                              |
-| --------------------------- | --------------------------------- | ---------------------------------------------------- |
-| **Docker + Docker Compose** | runs the whole stack              | <https://docs.docker.com/get-docker/>                |
-| **mkcert**                  | browser-trusted local HTTPS certs | <https://github.com/FiloSottile/mkcert#installation> |
-| _(optional)_ **uv**         | run/lint backend without Docker   | <https://docs.astral.sh/uv/>                         |
-| _(optional)_ **Node 22+**   | run frontend without Docker       | <https://nodejs.org/>                                |
+| Tool | Why |
+|---|---|
+| **Python 3.12** | the runtime, pinned by `requires-python` in `pyproject.toml` |
+| **[uv](https://docs.astral.sh/uv/)** | dependency resolution, the virtualenv, and every command runner |
+| _(for deployment)_ **[Vercel CLI](https://vercel.com/docs/cli) 50.38+** | `vercel dev` and `vercel env pull` |
 
-You do **not** need Python/Node installed to run via Docker — only Docker + mkcert.
+Nothing else. No Docker, no Node, no Postgres server needed for local work.
 
----
-
-## 3. Quick start (Docker)
+## 2. Quick start
 
 ```bash
-# 1. Configure environment
-cp .env.example .env            # dev defaults work out of the box
+cp .env.example .env          # the shipped defaults run offline, with no API keys
+uv sync --dev                 # creates .venv and installs everything
 
-# 2. Trust a local CA and issue certs for the .local hostnames
-make certs
-
-# 3. Map the hostnames to localhost (one-time)
-echo "127.0.0.1 civicforest.local api.civicforest.local" | sudo tee -a /etc/hosts
-
-# 4. Build & start everything
-make up
-
-# 5. Set up the database + demo data
-make migrate
-make seed                       # 5 categories + 13 demo products (brand photos)
-make reindex                    # push catalog into Meilisearch
-make createsuperuser            # optional, for the admin
-```
-
-Open:
-
-| URL                                                | What                                                                                            |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| <https://civicforest.local>                        | Storefront                                                                                      |
-| <https://api.civicforest.local/api/v1/>            | API root                                                                                        |
-| <https://api.civicforest.local/api/docs/>          | Swagger docs (dev only)                                                                         |
-| `https://api.civicforest.local/<DJANGO_ADMIN_URL>` | Admin — path from `.env`, **not** `/admin/`; needs MFA (see [§9](#9-accessing-the-admin-panel)) |
-
-Stop with `make down`. Tail logs with `make logs`.
-
----
-
-## 4. Local HTTPS setup (mkcert)
-
-HTTPS is on in **dev and prod alike**, so cookie `Secure`/HSTS/CSP behave identically
-everywhere (no `if DEBUG` branching around security). `make certs` runs:
-
-```bash
-mkcert -install                 # trust a local CA in your OS/browser (one-time)
-cd caddy/certs
-mkcert civicforest.local
-mkcert api.civicforest.local
-```
-
-This produces `caddy/certs/*.pem` (git-ignored), which Caddy mounts. If browsers still
-warn, restart the browser after `mkcert -install`, and confirm the `/etc/hosts` entry
-from step 3 exists.
-
----
-
-## 5. Environment variables
-
-All config is read from the environment — see [`.env.example`](./.env.example) for the
-documented template. `.env` is git-ignored; **never commit real secrets.** Key groups:
-
-| Group          | Keys                                                                                       | Notes                                         |
-| -------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| Core           | `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_ADMIN_URL`            | `ADMIN_URL` is a random path, never `/admin/` |
-| Frontend/CORS  | `FRONTEND_ORIGIN`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, `SESSION_COOKIE_DOMAIN` | explicit allow-lists (cookies are involved)   |
-| API URLs       | `NEXT_PUBLIC_API_BASE_URL`, `INTERNAL_API_BASE_URL`                                        | public vs in-network SSR base                 |
-| Postgres       | `POSTGRES_*`, `DATABASE_URL`                                                               |                                               |
-| Redis          | `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`                                  |                                               |
-| Meilisearch    | `MEILISEARCH_URL`, `MEILISEARCH_MASTER_KEY`                                                |                                               |
-| Object storage | `S3_*`                                                                                     | for uploads/media (deferred)                  |
-| Payments       | `RAZORPAY_*`                                                                               | deferred; see below                           |
-| Print          | `QIKINK_CLIENT_ID`, `QIKINK_CLIENT_SECRET`, `QIKINK_BASE_URL`                              | Qikink Open API                               |
-| Social login   | `GOOGLE_OAUTH_*`                                                                           | UI built, keys optional                       |
-
-For local dev the committed defaults are sufficient — **no external API keys are
-required to run the current foundation.**
-
----
-
-## 6. API keys — what you need and where to get them
-
-None are needed to run and test the stack offline (checkout uses fake/test modes). You
-need these to exercise the real payment/fulfilment/upload paths and to go live. Get and
-store each as an environment variable.
-
-### Required for their feature
-
-| Service                                         | Env vars                                                                                                                                                                   | Where to get it                                                                                                                                                                         | Notes                                                                                                                                                                                                                       |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Razorpay** (payments)                         | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`                                                                                                        | Razorpay Dashboard → **Settings → API Keys** (generate key/secret). Webhook secret: **Settings → Webhooks → Add webhook** (you set the secret there). <https://dashboard.razorpay.com/> | Use **Test mode** keys for dev. The webhook secret is separate from the API secret and is what verifies incoming webhooks.                                                                                                  |
-| **Qikink** (custom-print fulfilment)            | `QIKINK_CLIENT_ID`, `QIKINK_CLIENT_SECRET` (base URL/paths overridable via `QIKINK_BASE_URL`, `QIKINK_TOKEN_PATH`, `QIKINK_ORDER_CREATE_PATH`, `QIKINK_ORDER_STATUS_PATH`) | Qikink Dashboard → **Settings → API / Open API** for the ClientId + client secret. Reference: Qikink Open API Postman docs. <https://qikink.com/>                                       | Server-side only — the backend exchanges these for a short-lived token (cached ~1h) and calls Qikink; never expose to the browser. Defaults point at the sandbox host; set `QIKINK_BASE_URL` to production when going live. |
-| **Cloudflare R2** _(or AWS S3)_ (media/uploads) | `S3_ENDPOINT_URL`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `S3_REGION`                                                                               | R2: Cloudflare Dashboard → **R2 → Manage R2 API Tokens** (<https://dash.cloudflare.com/>). S3: AWS IAM → **Users → Security credentials → Access keys**, plus an S3 bucket.             | R2 is S3-compatible; set `S3_ENDPOINT_URL` to your R2 endpoint.                                                                                                                                                             |
-
-### Optional (social login — the UI exists, keys just enable it)
-
-| Provider   | Env vars                                               | Where to get it                                                                                                                                                                                                                                               |
-| ---------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Google** | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google Cloud Console → **APIs & Services → Credentials → Create OAuth client ID** (Web application). Add `https://api.civicforest.local` to authorized origins and the allauth callback to redirect URIs. <https://console.cloud.google.com/apis/credentials> |
-
-### Nice to have (production)
-
-| Service                     | Env var(s)   | Where                                                                     |
-| --------------------------- | ------------ | ------------------------------------------------------------------------- |
-| **Sentry** (error tracking) | `SENTRY_DSN` | Sentry → **Project → Settings → Client Keys (DSN)**. <https://sentry.io/> |
-
-> **Handling secrets:** in production, inject these from a secrets manager
-> (Doppler / Vault / your cloud provider's secret store), not a checked-in file.
-> Rotate periodically. See `plan.md` §12.
-
----
-
-## 7. Make commands
-
-Run `make help` to list them. Highlights:
-
-| Command                | Does                                                       |
-| ---------------------- | ---------------------------------------------------------- |
-| `make certs`           | Trust local CA + issue mkcert certs for the `.local` hosts |
-| `make up`              | Build & start the full stack (detached)                    |
-| `make down`            | Stop the stack                                             |
-| `make logs`            | Tail all container logs                                    |
-| `make migrate`         | Apply database migrations                                  |
-| `make makemigrations`  | Create new migrations                                      |
-| `make seed`            | Seed categories + demo catalog (idempotent)                |
-| `make reindex`         | Rebuild the Meilisearch index from Postgres                |
-| `make createsuperuser` | Create a Django admin superuser                            |
-| `make shell`           | Django shell                                               |
-| `make test`            | Run backend tests (pytest)                                 |
-| `make lint`            | Lint backend (ruff) + frontend (eslint)                    |
-| `make fmt`             | Auto-format the backend (ruff)                             |
-
----
-
-## 8. Running pieces without Docker
-
-Useful for fast iteration or CI.
-
-**Backend** (SQLite, no Postgres/Redis/Meili needed — search uses the Postgres/SQLite
-fallback and Celery runs eagerly):
-
-```bash
-cd backend
-uv sync --dev
-export USE_SQLITE=1 DJANGO_SECRET_KEY=dev-key
 uv run python manage.py migrate
-uv run python manage.py seed_catalog
-uv run python manage.py runserver      # http://127.0.0.1:8000
-uv run pytest                          # tests
-uv run ruff check . && uv run ruff format --check .
+uv run python manage.py seed_catalog        # demo categories and products
+uv run python manage.py createsuperuser     # optional, for the admin
+uv run python manage.py runserver           # http://127.0.0.1:8000
 ```
 
-**Frontend:**
+`.env.example` sets `USE_SQLITE=1`, so this runs against `db.sqlite3` with no Postgres
+and no credentials. Email prints to the console. Payments and Qikink are unconfigured and
+their endpoints report that plainly rather than failing obscurely.
+
+To run the app the way Vercel will, once the project exists:
 
 ```bash
-cd frontend
-npm install
-npm run dev            # http://localhost:3000
-npm run build          # production build
-npm run typecheck      # tsc --noEmit
-npm run lint
+vercel env pull               # writes .env.local from the project settings
+vercel dev
 ```
-
-> When running the frontend standalone against a non-Docker backend, point
-> `NEXT_PUBLIC_API_BASE_URL` / `INTERNAL_API_BASE_URL` at `http://127.0.0.1:8000`.
 
 ---
 
-## 9. Accessing the admin panel
+## 3. Environment variables
 
-The Django admin is deliberately hard to reach — it lives at a **non-guessable path**
-(never `/admin/`) and sits behind **two independent gates**:
+Everything is read from the environment through `django-environ`, in
+`config/settings/base.py` and nowhere else. [`.env.example`](./.env.example) is the
+documented template and lists every variable with a comment. `.env` is git-ignored.
 
-1. **Caddy IP allow-list** — requests to the admin path from an IP not in
-   `ADMIN_IP_ALLOWLIST` (default `127.0.0.1/32`) get a generic **404** before the
-   request ever touches Django, so the panel's existence isn't leaked.
-2. **Staff TOTP MFA** (`StaffAdminMiddleware`) — an authenticated staff user without a
-   confirmed TOTP authenticator can't view the admin. Staff sessions also expire faster
-   (`STAFF_SESSION_AGE`, default 1h).
+| Group | Variables |
+|---|---|
+| Core | `DJANGO_SETTINGS_MODULE` `DJANGO_SECRET_KEY` `DJANGO_DEBUG` `DJANGO_ALLOWED_HOSTS` `CSRF_TRUSTED_ORIGINS` |
+| Admin | `DJANGO_ADMIN_URL` `STAFF_SESSION_AGE` |
+| Database | `DATABASE_URL` (Neon, pooled), `USE_SQLITE` |
+| Object storage | `S3_ENDPOINT_URL` `S3_ACCESS_KEY_ID` `S3_SECRET_ACCESS_KEY` `S3_BUCKET_NAME` `S3_PRIVATE_BUCKET_NAME` `S3_REGION` `S3_SIGNED_URL_TTL` `R2_PUBLIC_BASE_URL` |
+| Pricing | `SHIPPING_FLAT_RATE` `FREE_SHIPPING_THRESHOLD` `CURRENCY` |
+| Payments | `RAZORPAY_KEY_ID` `RAZORPAY_KEY_SECRET` `RAZORPAY_WEBHOOK_SECRET` |
+| Print | `QIKINK_CLIENT_ID` `QIKINK_CLIENT_SECRET` `QIKINK_BASE_URL` plus the four path overrides |
+| Email | `RESEND_API_KEY` `DEFAULT_FROM_EMAIL` `SUPPORT_EMAIL`, or any `EMAIL_HOST` SMTP provider |
+| Social login | `GOOGLE_OAUTH_CLIENT_ID` `GOOGLE_OAUTH_CLIENT_SECRET` |
+| Observability | `HEALTH_CHECK_TOKEN` `SENTRY_DSN` `SENTRY_ENVIRONMENT` `SENTRY_TRACES_SAMPLE_RATE` |
 
-**The URL** is `DJANGO_ADMIN_URL` from your `.env` (the shipped default is
-`admin-4f2a9c/`). Full address in the Docker setup:
+Four settings modules, selected by `DJANGO_SETTINGS_MODULE`:
 
-```
-https://api.civicforest.local/admin-4f2a9c/        # ← replace with your DJANGO_ADMIN_URL
-```
+| Module | Used by | Differences |
+|---|---|---|
+| `config.settings.base` | nothing directly | every shared value; no security flag branches on `DEBUG` |
+| `config.settings.local` | development | `DEBUG`, plain-HTTP cookies, console email, `StrictUndefined` templates |
+| `config.settings.production` | Vercel | Neon, R2, Resend, HSTS, SSL redirect, Secure cookies, hashed static files, database cache |
+| `config.settings.test` | pytest | fast hashers, in-memory email, faked Razorpay, `StrictUndefined` |
 
-> `DJANGO_ADMIN_URL` (Django) and `DJANGO_ADMIN_PATH` (the Caddy matcher) must stay in
-> sync — same path, `DJANGO_ADMIN_PATH` just has leading/trailing slashes. Change both
-> to something private before going live.
+---
 
-### First-time access (create a superuser + enable MFA)
+## 4. API keys, and where to get them
 
-```bash
-make createsuperuser          # or: uv run python manage.py createsuperuser (no Docker)
-```
+None are needed to run and test offline. Each one unlocks its own feature.
 
-Because MFA is mandatory, a brand-new superuser is redirected to set up TOTP rather than
-shown the admin. There's no standalone MFA-setup page yet, so **bootstrap the first
-authenticator from the shell** (`make shell`, or `uv run python manage.py shell`):
+| Service | Variables | Where | Notes |
+|---|---|---|---|
+| **Neon** (Postgres) | `DATABASE_URL` | Neon console, project → Connection Details. Copy the **pooled** string | Branch per preview deployment. Free tier covers development |
+| **Cloudflare R2** (files) | `S3_ENDPOINT_URL` `S3_ACCESS_KEY_ID` `S3_SECRET_ACCESS_KEY` `S3_BUCKET_NAME` `S3_PRIVATE_BUCKET_NAME` `R2_PUBLIC_BASE_URL` | Cloudflare dashboard → R2 → Manage R2 API Tokens. Endpoint is `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` | Two buckets: product imagery public behind a CDN hostname, customer artwork private. Set `S3_REGION=auto` |
+| **Razorpay** (payments) | `RAZORPAY_KEY_ID` `RAZORPAY_KEY_SECRET` `RAZORPAY_WEBHOOK_SECRET` | Dashboard → Settings → API Keys, and Settings → Webhooks for the separate webhook secret | Use Test mode keys in development. The webhook secret is what verifies incoming deliveries and is not the API secret |
+| **Qikink** (custom print) | `QIKINK_CLIENT_ID` `QIKINK_CLIENT_SECRET` | Dashboard → Settings → Open API | Server-side only. The backend exchanges them for a token cached about an hour. `QIKINK_BASE_URL` defaults to the sandbox host, which has a **separate product database** from live |
+| **Resend** (email) | `RESEND_API_KEY` | Resend → API Keys | Production sends over `smtp.resend.com` with `resend` as the username and the key as the password. SPF, DKIM and DMARC on the sending domain before launch |
+| **Google** (social login) | `GOOGLE_OAUTH_CLIENT_ID` `GOOGLE_OAUTH_CLIENT_SECRET` | Google Cloud Console → APIs and Services → Credentials → OAuth client ID (Web application) | Add the site origin to authorised origins and the allauth callback to redirect URIs |
+| **Sentry** (errors) | `SENTRY_DSN` | Sentry → Project → Settings → Client Keys | Optional but close to required in production: Vercel keeps one hour of runtime logs on Hobby |
+
+In production these come from the Vercel project's environment variables, never from a
+file in the repository.
+
+---
+
+## 5. Admin access
+
+The Django admin sits at a non-guessable path from `DJANGO_ADMIN_URL`, never `/admin/`.
+Leave that variable unset and the admin is served where nobody will find it.
+
+Two gates, both in Django, so both apply under `runserver` too:
+
+1. **Staff TOTP.** An authenticated staff user whose *session* did not complete an MFA
+   step cannot view the admin. Enrolment alone is not enough, so a phished password on a
+   non-MFA login path does not get in.
+2. **Short staff sessions.** `STAFF_SESSION_AGE`, one hour by default, applies on every
+   path, not just the admin.
+
+Django's own admin login page is never served, because it authenticates with a password
+alone and skips allauth's MFA step. Staff sign in through the site.
+
+A first superuser therefore needs a TOTP authenticator before the admin opens. M5 adds a
+real enrolment page; until then, from `uv run python manage.py shell`:
 
 ```python
 from django.contrib.auth import get_user_model
-from allauth.mfa.totp.internal.auth import generate_totp_secret, TOTP
+from allauth.mfa.totp.internal.auth import TOTP, generate_totp_secret
 
 user = get_user_model().objects.get(email="you@example.com")
 secret = generate_totp_secret()
@@ -276,161 +149,135 @@ TOTP.activate(user, secret)
 print("Add this secret to your authenticator app:", secret)
 ```
 
-Enter that Base32 secret into an authenticator app (Google Authenticator, Aegis, 1Password,
-etc.) as a manual/"enter a setup key" entry. Then log in at the admin URL with your email,
-password, and the rolling 6-digit code.
+---
 
-> **Running without Docker** (`runserver`, no Caddy): only the TOTP gate applies — the
-> IP allow-list is a Caddy feature, so it isn't enforced. The admin URL is
-> `http://127.0.0.1:8000/<DJANGO_ADMIN_URL>`.
+## 6. Checks and tests
+
+One command runs everything that can run locally, cheapest failure first:
+
+```bash
+./check-before-commit.sh
+```
+
+That is the em dash grep on the staged diff, `ruff check`, `ruff format --check`,
+`makemigrations --check --dry-run`, then `pytest -q`. Install the commit-message hook once
+per clone so a bloated commit body is rejected:
+
+```bash
+ln -sf ../../hooks/commit-msg .git/hooks/commit-msg
+```
+
+Individual pieces:
+
+```bash
+USE_SQLITE=1 DJANGO_SECRET_KEY=dev-key uv run pytest -q
+USE_SQLITE=1 DJANGO_SECRET_KEY=dev-key uv run pytest apps/cart/tests/test_cart.py
+uv run ruff check apps/cart      # one app
+uv run ruff format .             # write, not just check
+uv run pip-audit --strict        # known advisories in the locked dependency set
+```
+
+Tests run on `config.settings.test`, which is SQLite unless `DATABASE_URL` is set. CI sets
+it to a Postgres service so PG-specific behaviour is exercised, and also runs `ruff`,
+`pip-audit` and CodeQL.
 
 ---
 
-## 10. Testing
-
-| Layer                       | Command                                                                                        | Notes                                                                      |
-| --------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Backend unit**            | `make test` — or offline: `cd backend && USE_SQLITE=1 DJANGO_SECRET_KEY=dev-key uv run pytest` | 72 tests across accounts/catalog/cart/orders/payments/custom_orders        |
-| **Backend lint/format**     | `make lint` · `cd backend && uv run ruff check . && uv run ruff format --check .`              |                                                                            |
-| **Frontend typecheck/lint** | `cd frontend && npm run typecheck && npm run lint`                                             | `tsc --noEmit` + eslint                                                    |
-| **E2E (Playwright)**        | `cd frontend && npm run e2e`                                                                   | boots both servers itself                                                  |
-| **Load (k6)**               | `k6 run k6-search-suggest.js`                                                                  | needs the API running + [k6](https://k6.io/docs/get-started/installation/) |
-| **A11y (axe)**              | `node frontend/axe-audit.js`                                                                   | needs the storefront running + system Chrome                               |
-
-### E2E details
-
-`npm run e2e` starts everything on its own — no Docker needed. It runs Django on
-`config.settings.e2e` (SQLite, fake Razorpay, a known webhook secret) at
-`http://localhost:8001` and Next.js at `http://localhost:3001`, then drives system
-Chrome through three critical paths:
-
-- **auth** — signup → login
-- **checkout** — search → cart → checkout, then a genuinely **HMAC-signed webhook** that
-  runs the real fulfilment path (stock decrement, order transition)
-- **custom-design** — upload flow for custom-print orders
-
-```bash
-cd frontend
-npm install                    # first time: installs @playwright/test, puppeteer, axe
-npm run e2e
-```
-
-> The E2E backend uses `RAZORPAY_FAKE_MODE=True`, so no Razorpay account or network call
-> is needed — the webhook is signed locally with the test secret in `config/settings/e2e.py`.
-> The Next.js server runs with `--no-turbo` to avoid a stale Turbopack lockfile; if you
-> hit a `.next/dev` permission error from a past Docker run, clear it with
-> `sudo rm -rf frontend/.next/dev`.
-
-### Load + a11y details
-
-```bash
-# Load: hammer the suggestion endpoint (ramps to 50 VUs; p95<500ms, <5% errors).
-# API_URL defaults to http://localhost:8000.
-k6 run k6-search-suggest.js
-API_URL=http://api.civicforest.local k6 run k6-search-suggest.js   # against Docker
-
-# A11y: axe pass over 6 key pages. WEB_URL defaults to http://localhost:3000.
-node frontend/axe-audit.js
-```
-
----
-
-## 11. Project layout
+## 7. Project layout
 
 ```
 CivicForest/
-├── plan.md · implementation_plan.md · tasks.md
-├── docker-compose.yml · Makefile · .env.example
-├── caddy/Caddyfile
-├── .github/workflows/ci.yml
-├── backend/                     # Django + DRF (uv-managed)
-│   ├── config/settings/{base,local,production,e2e}.py
-│   └── apps/{common,accounts,catalog,search,cart,orders,payments,custom_orders}/
-│       └── models · services · serializers · views · admin · tests
-├── frontend/                    # Next.js App Router + TS + Tailwind
-│   ├── app/(storefront)/        # home, collections, shop, product, search, cart, checkout, about, contact
-│   ├── app/(account)/           # login, signup, account, orders, wishlist
-│   ├── components/{brand,layout,product,search,shop,account,ui}/
-│   ├── lib/{api,auth,search,brand}/
-│   ├── e2e/                     # Playwright specs (auth, checkout, custom-design) + helpers
-│   └── axe-audit.js · playwright.config.ts
-└── k6-search-suggest.js         # load test for the suggestion endpoint
+├── manage.py · pyproject.toml · uv.lock · check-before-commit.sh
+├── config/
+│   ├── settings/{base,local,production,test}.py
+│   ├── urls.py · wsgi.py          # WSGI is the only entrypoint, deliberately
+│   └── jinja2.py                  # the Jinja2 environment: globals and filters
+├── apps/
+│   ├── common/                    # base models, pagination, throttles, email, middleware
+│   ├── accounts/ catalog/ cart/ orders/ payments/ custom_orders/
+│   └── …                          # each: models · services · serializers · views · admin · tests
+├── templates/
+│   ├── jinja2/                    # every page CivicForest owns
+│   └── django/                    # allauth and admin overrides, which must be DTL
+├── static/{css,js,icons,fonts,img}/
+├── designs/                       # reference screenshots
+└── rebuild/                       # the plan, and legacy/ for what it superseded
 ```
 
----
-
-## 12. Deployment
-
-The same Docker images and Caddy config run in production; the differences are all
-environment-driven.
-
-1. **Settings:** set `DJANGO_SETTINGS_MODULE=config.settings.production`. This forces
-   `DEBUG=False`, requires a real `DJANGO_SECRET_KEY`, and enables `SECURE_SSL_REDIRECT`
-   - HSTS.
-2. **Managed data services:** use a managed **PostgreSQL 17** (automated backups + PITR)
-   and managed **Redis**; run **Meilisearch** as a service. Point `DATABASE_URL`,
-   `REDIS_URL`, and `MEILISEARCH_URL` at them.
-3. **Secrets:** inject all keys from §6 via your platform's secret store (not a file).
-4. **TLS:** in production drop the `tls` lines from `caddy/Caddyfile` so Caddy
-   auto-provisions real certificates via ACME for your public domains
-   (`civicforest.com`, `api.civicforest.com`).
-5. **Static files:** `python manage.py collectstatic` (served by WhiteNoise). Product
-   media should live in **object storage** (R2/S3), not the container disk.
-6. **Release step:** run `python manage.py migrate` as an explicit pre-traffic step;
-   keep migrations backward-compatible so rollbacks are safe.
-7. **Processes:** run `backend` (gunicorn + Uvicorn workers), `worker` (Celery), and
-   `beat` (Celery beat) as separate services; `frontend` as the Next.js standalone
-   server.
-8. **CI/CD (planned, `plan.md` §14):** lint → typecheck → test → build images → Trivy
-   scan → push → migrate → deploy, with CodeQL + Dependabot + secret scanning and
-   branch protection on `main`.
+Dependency direction is one way: views call services, services call models. A view holding
+business logic, or a model calling another app's service, is the thing to fix.
 
 ---
 
-## 13. Security notes
+## 8. Deployment
 
-- HTTPS everywhere (dev + prod) → identical cookie `Secure`/HSTS/CSP config.
-- Admin at a **non-guessable env-driven path**, never `/admin/`; MFA-ready via allauth.
-- Argon2id password hashing; email-based custom user with **UUID** primary keys.
-- DRF **session-cookie** auth + CSRF enforced; explicit CORS/CSRF allow-lists.
-- **Explicit serializer fields** (never `__all__`); price/stock are read-only outputs.
-- Per-endpoint **throttles** (tighter on auth + search); hard **max page size**.
-- Ownership-scoped querysets (no IDOR); consistent error envelope.
+Vercel detects the project from `manage.py`, resolves the entrypoint from
+`WSGI_APPLICATION`, and turns the whole of Django into one function. `collectstatic` runs
+automatically during the build and the CDN serves the result, so no build script is
+needed. `[tool.vercel]` in `pyproject.toml` names the entrypoint explicitly anyway.
 
-Full checklist: `plan.md` §12.
+Set every variable from section 3 in the Vercel project, with
+`DJANGO_SETTINGS_MODULE=config.settings.production`.
+
+Release, with the migration step deliberately manual:
+
+1. Push a branch. Vercel builds a preview against that Neon branch.
+2. CI must be green, and the preview must look right.
+3. `vercel env pull`, then `uv run python manage.py migrate` against production from a
+   local shell. Migrations stay backward compatible, so the live function keeps working
+   during the window.
+4. Promote the deployment.
+5. Check `/healthz/`, place a Razorpay test order, read the jobs panel.
+
+Rollback is promoting the previous deployment. Because migrations are additive and
+backward compatible there is no database rollback, which is the whole reason for that
+constraint.
+
+One-off, after the first migrate on a new database:
+
+```bash
+uv run python manage.py createcachetable    # production uses the database cache
+```
+
+Platform limits that shape the code, verified in `rebuild/02-research.md` §1: request and
+response bodies cap at **4.5 MB**, the filesystem is read-only except `/tmp`, and cron
+jobs fire **once a day on Hobby** against once a minute on Pro.
 
 ---
 
-## 14. Troubleshooting
+## 9. Security notes
 
-| Symptom                                       | Fix                                                                                                                                            |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Browser TLS warning on `*.local`              | Re-run `make certs`, restart the browser, verify `/etc/hosts` entry.                                                                           |
-| `civicforest.local` won't resolve             | Add `127.0.0.1 civicforest.local api.civicforest.local` to `/etc/hosts`.                                                                       |
-| Storefront shows no products                  | Run `make migrate && make seed` (and `make reindex` for search).                                                                               |
-| Search returns nothing                        | Meili not indexed → `make reindex`. Search still works via the Postgres fallback.                                                              |
-| API returns 403 on writes                     | CSRF — the frontend must send `X-CSRFToken`; hit any GET first to receive the cookie.                                                          |
-| Backend won't boot without Postgres           | Use `USE_SQLITE=1` for offline runs (see §8).                                                                                                  |
-| Admin URL returns **404**                     | Expected for non-allow-listed IPs. Confirm your IP is in `ADMIN_IP_ALLOWLIST`, and that `DJANGO_ADMIN_URL`/`DJANGO_ADMIN_PATH` match (see §9). |
-| Redirected away from admin after login        | Staff MFA isn't set up — bootstrap a TOTP authenticator (§9).                                                                                  |
-| E2E fails with a `.next/dev` permission error | Root-owned dir from a past Docker run → `sudo rm -rf frontend/.next/dev`.                                                                      |
+- Money is computed server-side, always. The client sends ids, quantities and a coupon
+  code, never a price or a total.
+- Uploads never pass through Django. Artwork goes browser to R2 with a short-lived
+  presigned URL, and only the key is stored.
+- Nothing reaches Qikink without a verified payment and a passed review, and every
+  submission carries an idempotency key so a retry cannot create a second print job.
+- Webhooks are HMAC-verified and deduplicated on a `(gateway, event_id)` ledger. The
+  webhook, not the browser callback, is the authoritative confirmation.
+- Argon2id hashing, email-only login with UUID primary keys, session plus CSRF auth with
+  no CORS, explicit serializer fields, ownership-scoped querysets, per-endpoint throttles.
+- Customer artwork lives in a private bucket under random UUID filenames and is served
+  only through signed URLs.
+- Consent boxes default to unticked and every charge is visible before commitment. India's
+  dark-pattern guidelines carry a first-violation penalty of ten lakh rupees, so this is
+  law rather than taste.
 
-Dev users command: new backend/apps/accounts/management/commands/seed_dev_users.py + make seed-users. Refuses when DEBUG=False. Already ran:
+---
 
-- admin: admin@civicforest.local / admin12345 (superuser)
-- test: test@civicforest.local / test12345
-  Emails pre-verified, login works without mail server.
+## 10. Troubleshooting
 
-Admin panel access — two blockers removed:
+| Symptom | Fix |
+|---|---|
+| `ImproperlyConfigured: Set the DJANGO_SECRET_KEY environment variable` | No `.env` yet, or the variable is missing from it. There is deliberately no default |
+| Admin returns 404 | `DJANGO_ADMIN_URL` is unset, or the staff user's session never completed an MFA step. See section 5 |
+| Redirected away from the admin after logging in | Staff TOTP is not enrolled. Bootstrap it with the shell snippet in section 5 |
+| Storefront shows no products | `uv run python manage.py migrate && uv run python manage.py seed_catalog` |
+| `Missing staticfiles manifest entry` | Production settings hash static filenames. Run `collectstatic`, or use `config.settings.local` |
+| Tests try to reach a real database | `DATABASE_URL` is set in `.env`. Prefix the command with `USE_SQLITE=1` |
+| A template renders nothing where a value should be | Local and test settings use `StrictUndefined`, so it raises instead. Read the traceback for the variable name |
+| `413` from a deployed upload | Vercel caps request bodies at 4.5 MB. Anything larger must go straight to R2 |
 
-1. Caddy IP allowlist was empty, 404'd everyone. Set ADMIN_IP_ALLOWLIST=127.0.0.1/32 172.16.0.0/12 in .env (dev only — tighten for prod).
-2. Middleware demands TOTP MFA for staff. Added DEBUG-only bypass in StaffAdminMiddleware — prod gate untouched. Verified end-to-end: login as seeded admin, admin page returns 200.
 
-Admin workflow (your questions):
 
-1. Login at https://civicforest.local/login as admin.
-2. Open https://api.civicforest.local/admin-4f2a9c/ (path from DJANGO_ADMIN_PATH in .env).
-3. Delete dummy data: Catalog section → Products → select all → action "Delete selected" → confirm. Same for Categories, Materials, Tags. Deleting a Product cascades its variants + images.
-   Collections page on storefront just renders categories — no separate model.
-4. Add your items: create Category and Material first, then Add Product — variants (size/color/stock) and images edit inline on the product form.
-5. After bulk changes run make reindex so Meilisearch matches Postgres.
+

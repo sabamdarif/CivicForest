@@ -63,7 +63,7 @@ def process_webhook(raw_body: bytes, signature: str, event: dict) -> str:
     event_id = event.get("id") or event.get("event_id") or ""
     if not event_id:
         # No id from the gateway — dedup on the body hash so distinct id-less events
-        # don't all collapse into one "" bucket (bugs.md #7).
+        # don't all collapse into one "" bucket.
         import hashlib
 
         event_id = "sha256:" + hashlib.sha256(raw_body).hexdigest()
@@ -76,7 +76,7 @@ def process_webhook(raw_body: bytes, signature: str, event: dict) -> str:
     )
     # Atomic claim: of any concurrent deliveries (including two racing on a fresh row),
     # exactly one flips processed False→True and runs the handler; the rest see 0 rows
-    # updated and bail as duplicates (bugs.md #9).
+    # updated and bail as duplicates.
     claimed = WebhookEvent.objects.filter(pk=ledger.pk, processed=False).update(processed=True)
     if not claimed:
         return "duplicate"
@@ -88,7 +88,7 @@ def process_webhook(raw_body: bytes, signature: str, event: dict) -> str:
 
     if result == "unknown_order":
         # Payment row not committed yet (checkout/webhook race). Release the claim and
-        # have the view return 5xx so Razorpay redelivers (bugs.md #14).
+        # have the view return 5xx so Razorpay redelivers.
         WebhookEvent.objects.filter(pk=ledger.pk).update(processed=False)
         return result
 
@@ -114,7 +114,7 @@ def _handle_capture(event: dict) -> str:
         return "unknown_order"
 
     # A partial capture or currency mismatch must never fulfil the full order —
-    # flag it for manual review instead (bugs.md #1).
+    # flag it for manual review instead.
     if (
         entity.get("amount") != gateway.to_paise(payment.amount)
         or entity.get("currency", payment.currency) != payment.currency

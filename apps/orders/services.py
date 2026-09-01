@@ -197,7 +197,7 @@ def fulfil_paid_order(order: Order, cart=None) -> Order | None:
         from apps.cart.models import Coupon
 
         # Conditional increment closes the check-then-increment race: N concurrent
-        # checkouts can't collectively exceed max_uses (bugs.md #16). Exceeding it is
+        # checkouts can't collectively exceed max_uses. Exceeding it is
         # logged, not raised — money is already captured at this point.
         claimed = Coupon.objects.filter(
             Q(max_uses__isnull=True) | Q(used_count__lt=F("max_uses")),
@@ -214,7 +214,7 @@ def fulfil_paid_order(order: Order, cart=None) -> Order | None:
 
     if cart is not None:
         # Delete only the lines this order snapshotted — anything the customer added
-        # after checkout stays in the cart (bugs.md #15).
+        # after checkout stays in the cart.
         ordered_cart_item_ids = [i.cart_item_id for i in order.items.all() if i.cart_item_id]
         cart.items.filter(id__in=ordered_cart_item_ids).delete()
         cart.coupon = None

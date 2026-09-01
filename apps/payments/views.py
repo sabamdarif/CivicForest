@@ -58,6 +58,6 @@ class RazorpayWebhookView(APIView):
         result = services.process_webhook(raw_body, signature, event)
         logger.info("Razorpay webhook %s → %s", event.get("event"), result)
         if result == "unknown_order":
-            # Payment row not committed yet — 5xx so Razorpay retries (bugs.md #14).
+            # Payment row not committed yet, so 5xx and Razorpay retries.
             return Response({"status": result}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response({"status": result}, status=status.HTTP_200_OK)

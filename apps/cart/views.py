@@ -29,7 +29,7 @@ from .serializers import (
 
 class GuestCSRFSessionAuthentication(SessionAuthentication):
     """SessionAuthentication only CSRF-checks *authenticated* sessions; guest cart
-    writes would otherwise accept cross-site POSTs (bugs.md #11)."""
+    writes would otherwise accept cross-site POSTs."""
 
     def authenticate(self, request):
         result = super().authenticate(request)
