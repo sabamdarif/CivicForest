@@ -1,0 +1,29 @@
+/* Design tokens: the one source of colour, type, spacing and motion values.
+   Deliberately small. M1 task 1 expands this into the full scale, and M1 task 2
+   replaces the system font stacks with self-hosted woff2 subsets. */
+:root {
+  /* Decision P1: near-black, gold, cream. */
+  --ink: #0d0d0d;
+  --gold: #c9a227;
+  --cream: #f7f4ef;
+  --paper: #fff;
+  --muted: #6b6b6b;
+  --line: #e4ded4;
+
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --step--1: 0.875rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-3: clamp(2rem, 5vw, 3rem);
+
+  --space-2: 0.5rem;
+  --space-4: 1rem;
+  --space-6: 2rem;
+  --space-8: 4rem;
+
+  --container: 72rem;
+  --radius: 2px;
+  --motion: 150ms ease;
+}

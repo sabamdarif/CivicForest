@@ -1,0 +1,30 @@
+{% load static %}
+{# Django Template Language twin of templates/jinja2/base.html, for the pages allauth
+   and the Django admin ship as DTL. Same two stylesheets, same chrome. M5 points
+   allauth/layouts/base.html at this file so every auth page inherits it. #}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}CivicForest{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="container">
+        <a class="wordmark" href="/">CivicForest</a>
+      </div>
+    </header>
+
+    <main id="main" class="container">
+      {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>
