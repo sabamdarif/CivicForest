@@ -136,7 +136,7 @@ def test_webhook_rejects_amount_mismatch_without_touching_order(user, variant):
 
 
 @override_settings(RAZORPAY_WEBHOOK_SECRET="whsec_test_secret")
-def test_distinct_capture_events_enqueue_custom_order_once(user, variant):
+def test_distinct_capture_events_submit_custom_order_once(user, variant):
     custom = CustomDesignOrder.objects.create(
         user=user, variant=variant, design_file="designs/test-design.png"
     )
@@ -158,11 +158,11 @@ def test_distinct_capture_events_enqueue_custom_order_once(user, variant):
         currency=order.currency,
     )
 
-    with patch("apps.custom_orders.tasks.submit_custom_order_to_qikink.delay") as enqueue:
+    with patch("apps.custom_orders.services.submit_paid_design") as submit:
         assert _post_webhook(first, sign_body(first)).data["status"] == "fulfilled"
         assert _post_webhook(second, sign_body(second)).data["status"] == "fulfilled"
 
-    enqueue.assert_called_once_with(str(custom.id))
+    submit.assert_called_once_with(custom)
 
 
 def test_verify_callback_returns_false_when_payment_row_is_missing(monkeypatch):

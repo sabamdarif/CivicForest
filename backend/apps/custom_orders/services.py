@@ -1,8 +1,8 @@
 """Custom-order services: build the Qikink payload, submit after payment, and map
 Qikink's status vocabulary onto our order state machine.
 
-Submission is idempotent — once ``qikink_order_id`` is set we never resubmit, so a
-retried Celery task can't create a duplicate print job (plan.md §8)."""
+Submission is idempotent: once ``qikink_order_id`` is set we never resubmit, so a
+retried submission cannot create a duplicate print job (plan.md §8)."""
 
 from __future__ import annotations
 
@@ -136,6 +136,19 @@ def submit_to_qikink(custom: CustomDesignOrder, *, client: QikinkClient | None =
     return "submitted"
 
 
+def submit_paid_design(custom: CustomDesignOrder) -> str:
+    """``submit_to_qikink`` with a Qikink outage downgraded to a logged failure.
+
+    Callers are the payment webhook and the admin retry action, neither of which may be
+    rolled back by a third party being unreachable. ``submit_status`` records the
+    failure, so the row stays visible for a retry."""
+    try:
+        return submit_to_qikink(custom)
+    except QikinkError as exc:
+        logger.warning("Qikink submit failed for %s: %s", custom.id, exc.message)
+        return "failed"
+
+
 def apply_status(
     custom: CustomDesignOrder, qikink_status: str, *, awb: str = "", link: str = ""
 ) -> None:
@@ -162,10 +175,34 @@ def apply_status(
         _advance_order(custom.order, target)
 
 
+def poll_open_orders() -> int:
+    """Pull status and tracking for every submitted, non-terminal custom order.
+
+    Qikink publishes no outbound webhook, so polling is the only source of truth for
+    status and AWB. One unreachable order never stops the sweep."""
+    open_orders = CustomDesignOrder.objects.filter(
+        submit_status=CustomDesignOrder.SubmitStatus.SUBMITTED
+    ).exclude(qikink_order_id="")
+    client = QikinkClient()
+    polled = 0
+    for custom in open_orders.select_related("order"):
+        try:
+            data = client.get_order_status(custom.qikink_order_id)
+        except QikinkError:
+            continue
+        status = data.get("status") or data.get("order_status") or ""
+        awb = data.get("awb") or data.get("tracking_id") or ""
+        link = data.get("tracking_link") or ""
+        if status:
+            apply_status(custom, status, awb=awb, link=link)
+            polled += 1
+    return polled
+
+
 def _advance_order(order: Order, target: str) -> None:
     """Guarded transition: only apply if legal, so out-of-order polls never regress or
     corrupt order state."""
     try:
         order_services.transition(order, target)
     except order_services.OrderError:
-        logger.debug("Skipped illegal order transition %s → %s", order.status, target)
+        logger.debug("Skipped illegal order transition %s to %s", order.status, target)

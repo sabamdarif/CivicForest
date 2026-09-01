@@ -1,4 +1,4 @@
-"""Order email task (apps.common.email) — content, recipients, failure handling."""
+"""Order email (apps.common.email): content, recipients, failure handling."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def order():
 
 
 def test_confirmation_email_contents(order):
-    result = send_order_email.apply(args=[str(order.pk), "confirmation"]).get()
+    result = send_order_email(str(order.pk), "confirmation")
     assert result == "sent"
     assert len(mail.outbox) == 1
     msg = mail.outbox[0]
@@ -38,19 +38,19 @@ def test_shipped_email_includes_tracking_awb(order):
         design_file="designs/x.png",
         tracking_awb="AWB123456",
     )
-    send_order_email.apply(args=[str(order.pk), "shipped"]).get()
+    send_order_email(str(order.pk), "shipped")
     assert "AWB123456" in mail.outbox[0].body
 
 
 def test_unknown_order_or_kind_skips(order):
-    assert send_order_email.apply(args=["0" * 32, "confirmation"]).get() == "skipped"
-    assert send_order_email.apply(args=[str(order.pk), "nonsense"]).get() == "skipped"
+    assert send_order_email("0" * 32, "confirmation") == "skipped"
+    assert send_order_email(str(order.pk), "nonsense") == "skipped"
     assert mail.outbox == []
 
 
-def test_smtp_failure_eager_returns_failed(order, monkeypatch):
+def test_smtp_failure_returns_failed_without_raising(order, monkeypatch):
     def boom(*a, **kw):
         raise OSError("smtp down")
 
     monkeypatch.setattr("apps.common.email.send_mail", boom)
-    assert send_order_email.apply(args=[str(order.pk), "confirmation"]).get() == "failed"
+    assert send_order_email(str(order.pk), "confirmation") == "failed"

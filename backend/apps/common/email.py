@@ -1,16 +1,16 @@
-"""Transactional email — one Celery task, plain-text bodies built inline.
+"""Transactional email: plain-text bodies built inline.
 
 Order emails are the only transactional mail we send (confirmation, shipping,
-delivery). They're enqueued from the order state changes in ``orders.services`` so a
-slow/failed SMTP call never blocks the payment webhook. With ``EMAIL_HOST`` unset the
-console backend prints them (dev/offline); set SMTP env vars to actually deliver.
+delivery), sent from the order state changes in ``orders.services``. A send failure is
+logged and swallowed, never raised, so a dead mail server cannot fail a payment
+webhook. With ``EMAIL_HOST`` unset the console backend prints them (dev/offline); set
+SMTP env vars to actually deliver.
 """
 
 from __future__ import annotations
 
 import logging
 
-from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
 
@@ -66,10 +66,8 @@ _BUILDERS = {
 }
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def send_order_email(self, order_id: str, kind: str) -> str:
-    """Render and send one order email. Enqueued from ``orders.services``; retried on
-    transient SMTP failure (skipped when running eager, where there's no broker)."""
+def send_order_email(order_id: str, kind: str) -> str:
+    """Render and send one order email. Called from ``orders.services``."""
     from apps.orders.models import Order
 
     order = Order.objects.filter(pk=order_id).first()
@@ -78,9 +76,8 @@ def send_order_email(self, order_id: str, kind: str) -> str:
     subject, body = _BUILDERS[kind](order)
     try:
         send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [order.email])
-    except Exception as exc:  # noqa: BLE001 — transient SMTP; retry off the queue
-        if self.request.is_eager:
-            logger.warning("Order email %s/%s failed (eager): %s", order.order_number, kind, exc)
-            return "failed"
-        raise self.retry(exc=exc) from exc
+    # A dead mail server must not fail the caller, so every send error is swallowed.
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Order email %s/%s failed: %s", order.order_number, kind, exc)
+        return "failed"
     return "sent"

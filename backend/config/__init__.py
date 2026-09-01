@@ -1,3 +1,1 @@
-from .celery import app as celery_app
-
-__all__ = ("celery_app",)
+"""Project configuration package: settings, URL conf, WSGI entrypoint, Jinja2 environment."""

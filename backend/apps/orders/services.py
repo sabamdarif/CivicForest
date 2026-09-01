@@ -56,13 +56,13 @@ def transition(order: Order, to_status: str) -> Order:
     order.status = to_status
     order.save(update_fields=["status", "updated_at"])
 
-    # Notify on the transitions the customer cares about. Enqueued (not sent inline) so
-    # a slow mail server never blocks the status-poll task or webhook.
+    # Notify on the transitions the customer cares about. A send failure is swallowed
+    # inside send_order_email, so a slow mail server cannot fail the caller.
     kind = {Order.Status.SHIPPED: "shipped", Order.Status.DELIVERED: "delivered"}.get(to_status)
     if kind:
         from apps.common.email import send_order_email
 
-        send_order_email.delay(str(order.pk), kind)
+        send_order_email(str(order.pk), kind)
     return order
 
 
@@ -222,5 +222,5 @@ def fulfil_paid_order(order: Order, cart=None) -> Order | None:
 
     from apps.common.email import send_order_email
 
-    send_order_email.delay(str(order.pk), "confirmation")
+    send_order_email(str(order.pk), "confirmation")
     return order

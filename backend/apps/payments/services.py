@@ -145,7 +145,7 @@ def _handle_capture(event: dict) -> str:
         return "oversold"
 
     if fulfilled_order is not None:
-        _enqueue_post_payment(fulfilled_order)
+        _submit_custom_designs(fulfilled_order)
     return "fulfilled"
 
 
@@ -155,19 +155,18 @@ def _cart_for(user):
     return Cart.objects.filter(user=user).first()
 
 
-def _enqueue_post_payment(order: Order) -> None:
-    """Kick off async work that must happen only after payment is confirmed: for custom
-    items, the Qikink print submission. Imported lazily so payments doesn't hard-depend
-    on custom_orders being installed/migrated yet."""
+def _submit_custom_designs(order: Order) -> None:
+    """Place the Qikink print jobs for a paid order's custom lines. Imported lazily so
+    payments doesn't hard-depend on custom_orders being installed/migrated yet."""
     if not hasattr(order, "custom_designs"):
         return
     try:
-        from apps.custom_orders.tasks import submit_custom_order_to_qikink
-
-        for custom in order.custom_designs.all():
-            submit_custom_order_to_qikink.delay(str(custom.id))
-    except Exception:  # noqa: BLE001 - custom_orders optional
-        logger.debug("No custom-order submission enqueued for %s", order.order_number)
+        from apps.custom_orders import services as custom_services
+    except Exception:  # noqa: BLE001
+        logger.debug("No custom-order submission for %s", order.order_number)
+        return
+    for custom in order.custom_designs.all():
+        custom_services.submit_paid_design(custom)
 
 
 def _scrub(event: dict) -> dict:
