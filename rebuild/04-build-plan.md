@@ -46,29 +46,29 @@ connects to Neon, and can write to R2.
 
 Tasks:
 
-1. Branch `rebuild/foundation`. Tag the current `main` as `v1-nextjs` so the old stack is recoverable.
-2. Delete `frontend/`, `caddy/`, `docker-compose.yml`, `docker-compose.prod.yml`, `config/celery.py`,
+1. [x] Branch `rebuild/foundation`. Tag the current `main` as `v1-nextjs` so the old stack is recoverable.
+2. [x] Delete `frontend/`, `caddy/`, `docker-compose.yml`, `docker-compose.prod.yml`, `config/celery.py`,
    `apps/search/`, `k6-search-suggest.js`, `Makefile`, `.env.render`, `django-allauth/`.
-3. Move everything from `backend/` to the repo root. Fix `pyproject.toml` paths, `manage.py`,
+3. [x] Move everything from `backend/` to the repo root. Fix `pyproject.toml` paths, `manage.py`,
    `DJANGO_SETTINGS_MODULE` references and the pytest config.
-4. Rewrite `pyproject.toml`: drop `celery`, `django-celery-beat`, `meilisearch`, `redis`,
+4. [x] Rewrite `pyproject.toml`: drop `celery`, `django-celery-beat`, `meilisearch`, `redis`,
    `django-cors-headers`, `gunicorn`, `uvicorn`. Add `django-allauth[socialaccount,mfa]==65.19.1`,
    `resend`, `jinja2`. Add `[tool.vercel]` and `[tool.vercel.scripts]`.
-5. Delete `config/asgi.py`; keep `config/wsgi.py` as the sole entrypoint.
-6. Rewrite the four `config/settings/` modules (`base`, `local`, `production`, `test`) per
+5. [x] Delete `config/asgi.py`; keep `config/wsgi.py` as the sole entrypoint.
+6. [x] Rewrite the four `config/settings/` modules (`base`, `local`, `production`, `test`) per
    `03-architecture.md` §2.
    Delete `e2e.py` and fold its fake-gateway switches into `test.py`.
-7. Add `config/jinja2.py` and register both template engines.
-8. Create `templates/jinja2/base.html` and `templates/django/base.html` sharing one stylesheet.
-9. Provision Neon, create the `main` and `preview` branches, set `DATABASE_URL`. Run migrations.
-10. Provision two R2 buckets (public `civicforest-media`, private `civicforest-designs`), an API
+7. [x] Add `config/jinja2.py` and register both template engines.
+8. [x] Create `templates/jinja2/base.html` and `templates/django/base.html` sharing one stylesheet.
+9. [ ] Provision Neon, create the `main` and `preview` branches, set `DATABASE_URL`. Run migrations.
+10. [ ] Provision two R2 buckets (public `civicforest-media`, private `civicforest-designs`), an API
     token, and a public CDN hostname. Verify a `collectstatic` upload and a signed private read.
-11. Create the Vercel project, set all environment variables, deploy, confirm the styled page renders
+11. [ ] Create the Vercel project, set all environment variables, deploy, confirm the styled page renders
     with CDN-served static files.
-12. Add `vercel.json` with `functions.maxDuration`, security headers and an empty `crons` array.
-13. Rewrite `.github/workflows/ci.yml`: ruff → pytest against Postgres → `pip-audit`. Keep
+12. [ ] Add `vercel.json` with `functions.maxDuration`, security headers and an empty `crons` array.
+13. [ ] Rewrite `.github/workflows/ci.yml`: ruff → pytest against Postgres → `pip-audit`. Keep
     `codeql.yml` and `dependabot.yml`.
-14. Rewrite `README.md` for the new stack. Move the old plan documents into `rebuild/legacy/`.
+14. [ ] Rewrite `README.md` for the new stack. Move the old plan documents into `rebuild/legacy/`.
 
 **Done when:** a pushed commit auto-deploys, `/` renders a styled page, `/healthz` returns 200,
 migrations are applied on Neon, static files come from the CDN, and CI is green.
