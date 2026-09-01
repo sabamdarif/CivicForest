@@ -10,7 +10,7 @@ from pathlib import Path
 
 import environ
 
-# backend/config/settings/base.py -> backend/
+# config/settings/base.py -> the repo root
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env(
@@ -20,8 +20,8 @@ env = environ.Env(
     CSRF_TRUSTED_ORIGINS=(list, []),
 )
 
-# Read a local .env if present (compose passes real env vars in containers).
-env_file = BASE_DIR.parent / ".env"
+# Read a local .env if present; the host supplies real env vars in deployment.
+env_file = BASE_DIR / ".env"
 if env_file.exists():
     env.read_env(str(env_file))
 

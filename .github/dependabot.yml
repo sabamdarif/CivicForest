@@ -11,34 +11,10 @@ updates:
       day: "sunday"
     open-pull-requests-limit: 5
 
-  # Backend Python dependencies (scans pyproject.toml)
+  # Python dependencies (scans pyproject.toml)
   - package-ecosystem: "pip"
-    directory: "/backend"
+    directory: "/"
     schedule:
       interval: "weekly"
       day: "sunday"
     open-pull-requests-limit: 10
-
-  # Frontend Node/NPM dependencies (scans package.json)
-  - package-ecosystem: "npm"
-    directory: "/frontend"
-    schedule:
-      interval: "weekly"
-      day: "sunday"
-    open-pull-requests-limit: 10
-
-  # Backend Docker base images
-  - package-ecosystem: "docker"
-    directory: "/backend"
-    schedule:
-      interval: "weekly"
-      day: "sunday"
-    open-pull-requests-limit: 5
-
-  # Frontend Docker base images
-  - package-ecosystem: "docker"
-    directory: "/frontend"
-    schedule:
-      interval: "weekly"
-      day: "sunday"
-    open-pull-requests-limit: 5
