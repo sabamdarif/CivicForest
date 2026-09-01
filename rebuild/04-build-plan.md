@@ -66,7 +66,7 @@ Tasks:
 11. [ ] Create the Vercel project, set all environment variables, deploy, confirm the styled page renders
     with CDN-served static files.
 12. [ ] Add `vercel.json` with `functions.maxDuration`, security headers and an empty `crons` array.
-13. [ ] Rewrite `.github/workflows/ci.yml`: ruff → pytest against Postgres → `pip-audit`. Keep
+13. [x] Rewrite `.github/workflows/ci.yml`: ruff → pytest against Postgres → `pip-audit`. Keep
     `codeql.yml` and `dependabot.yml`.
 14. [ ] Rewrite `README.md` for the new stack. Move the old plan documents into `rebuild/legacy/`.
 

@@ -20,7 +20,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript-typescript', 'python' ]
+        # javascript-typescript comes back with the first vanilla ES modules under
+        # static/js/. CodeQL fails a scan that finds no source of the named language.
+        language: [ 'python' ]
 
     steps:
     - name: Checkout repository
