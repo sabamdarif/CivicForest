@@ -25,7 +25,6 @@ ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = False
 DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "e2e.sqlite3"}}
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
-MEILISEARCH_URL = ""  # Postgres/SQLite icontains fallback
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},

@@ -4,7 +4,6 @@
 !.env.example
 !.env.production.example
 *.pem
-caddy/certs/
 
 # Python
 __pycache__/
@@ -21,19 +20,11 @@ staticfiles/
 mediafiles/
 media/
 
-# Node / Next.js
+# Node (Playwright is the only Node dependency)
 node_modules/
-.next/
-out/
-next-env.d.ts
-*.tsbuildinfo
-.eslintcache
 
-# Databases / volumes
+# Databases
 *.sqlite3
-data/
-meili_data/
-pgdata/
 
 # OS / editor
 .DS_Store
@@ -48,8 +39,3 @@ Thumbs.db
 
 # Working files for the current plan (see CLAUDE.md, Spec-driven workflow)
 /progress.md
-
-# E2E artifacts
-backend/e2e_media/
-frontend/test-results/
-frontend/playwright-report/

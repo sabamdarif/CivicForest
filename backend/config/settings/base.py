@@ -61,7 +61,6 @@ LOCAL_APPS = [
     "apps.common",
     "apps.accounts",
     "apps.catalog",
-    "apps.search",
     "apps.cart",
     "apps.orders",
     "apps.payments",
@@ -347,13 +346,6 @@ CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=not _has
 CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-
-# ─── Meilisearch ─────────────────────────────────────────────────────────────
-MEILISEARCH_URL = env("MEILISEARCH_URL", default="")
-if "meilisearch:7700" in MEILISEARCH_URL:
-    MEILISEARCH_URL = ""
-MEILISEARCH_MASTER_KEY = env("MEILISEARCH_MASTER_KEY", default="")
-MEILISEARCH_INDEX_PREFIX = env("MEILISEARCH_INDEX_PREFIX", default="civicforest")
 
 # ─── Cart / checkout pricing rules ───────────────────────────────────────────
 # Server-side pricing constants — the client never sends shipping or totals.

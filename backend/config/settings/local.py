@@ -47,9 +47,6 @@ if OFFLINE:
     }
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
     SESSION_ENGINE = "django.contrib.sessions.backends.db"
-    # No Meili in offline mode — search transparently uses the Postgres fallback,
-    # so the index-sync task returns instantly instead of waiting on TCP timeouts.
-    MEILISEARCH_URL = ""  # noqa: F811
     # Force local-disk storage offline even if S3_BUCKET_NAME is set in .env —
     # object storage needs credentials the offline/test run doesn't have.
     STORAGES = {  # noqa: F405

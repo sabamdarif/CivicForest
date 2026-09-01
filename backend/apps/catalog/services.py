@@ -1,8 +1,8 @@
 """Catalog read services.
 
 All catalog querysets funnel through here so the same active-only, prefetch-optimized
-logic is reused by API views, the search reindex job, and any admin action — the
-"fat services, thin views" rule from plan.md §3.
+logic is reused by every view and admin action: the "fat services, thin views" rule
+from plan.md §3.
 """
 
 from django.db.models import F, Min, Prefetch, Q, QuerySet

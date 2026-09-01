@@ -63,7 +63,6 @@ urlpatterns = [
     # allauth headless (browser/session flavor) powers the Next.js auth UI.
     path("_allauth/", include("allauth.headless.urls")),
     path("api/v1/", include("apps.catalog.urls")),
-    path("api/v1/", include("apps.search.urls")),
     path("api/v1/", include("apps.accounts.urls")),
     path("api/v1/", include("apps.cart.urls")),
     path("api/v1/", include("apps.orders.urls")),
