@@ -1,10 +1,9 @@
 """Request/correlation-ID plumbing and staff admin hardening.
 
 One request ID is generated (or taken from an inbound ``X-Request-ID``) per request,
-stashed on a contextvar so log records and Celery tasks can pick it up, and echoed back
-on the response — so a single failed checkout can be traced Caddy → Django → worker
-(plan.md §16). ``StaffAdminMiddleware`` gates the admin path on confirmed TOTP MFA and
-shortens staff sessions (plan.md §11).
+stashed on a contextvar so every log record carries it, and echoed back on the response,
+so a single failed checkout can be traced end to end. ``StaffAdminMiddleware`` gates the
+admin path on confirmed TOTP MFA and shortens staff sessions.
 """
 
 from __future__ import annotations
@@ -70,17 +69,15 @@ class StaffAdminMiddleware:
         user = getattr(request, "user", None)
         is_staff = user is not None and user.is_authenticated and user.is_staff
         if is_staff:
-            # Staff sessions expire faster on *every* path, not just admin — otherwise
-            # a staff session browsing the storefront keeps the customer-length
-            # lifetime (bugs.md #12). Idempotent; cheap.
+            # Staff sessions expire faster on *every* path, not just admin, otherwise a
+            # staff session browsing the storefront keeps the customer-length lifetime.
             request.session.set_expiry(settings.STAFF_SESSION_AGE)
         if request.path.startswith(self.admin_prefix):
-            # Django's native admin login authenticates with password only and skips
-            # allauth's MFA step — never serve it (bugs.md #2). Staff log in via the
-            # frontend (allauth headless login + MFA), then visit the admin.
+            # Django's native admin login authenticates with a password only and skips
+            # allauth's MFA step, so it is never served. Staff sign in through the site.
             if request.path == self.admin_prefix + "login/":
-                return redirect(f"{settings.FRONTEND_ORIGIN}/login")
-            # Dev convenience: seeded admin can use the panel without TOTP enrollment.
+                return redirect(settings.LOGIN_URL)
+            # Dev convenience: a seeded admin can use the panel without TOTP enrolment.
             # DEBUG is always False in production settings, so the gate holds there.
             if is_staff and not settings.DEBUG and not self._session_used_mfa(request):
                 return self._deny(request)
@@ -97,9 +94,9 @@ class StaffAdminMiddleware:
 
     @staticmethod
     def _deny(request):
-        # Superuser mid-setup gets redirected to configure TOTP; anyone else just 404s so
-        # the admin's existence isn't confirmed to a half-authenticated session.
-        mfa_url = f"{settings.FRONTEND_ORIGIN}/account/security"
+        # Superuser mid-setup gets sent to the login flow to complete MFA; anyone else
+        # just 404s, so the admin's existence isn't confirmed to a half-authenticated
+        # session.
         if request.user.is_superuser:
-            return redirect(mfa_url)
+            return redirect(settings.LOGIN_URL)
         return HttpResponseNotFound()

@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.utils import timezone
 
 from apps.cart import services
@@ -45,6 +46,9 @@ def test_update_quantity_to_zero_removes_line(client, variant):
 
 
 # ─── Shipping rule ───────────────────────────────────────────────────────────
+# Pinned rather than read from the environment, so the rule is under test and not a
+# developer's .env.
+@override_settings(SHIPPING_FLAT_RATE="79.00", FREE_SHIPPING_THRESHOLD="999.00")
 def test_flat_shipping_applies_below_threshold(client, category):
     from apps.catalog.models import Product, ProductVariant
 
@@ -56,8 +60,8 @@ def test_flat_shipping_applies_below_threshold(client, category):
     )
     resp = client.post("/api/v1/cart/items", {"variant_id": str(v.id), "quantity": 1})
     assert Decimal(resp.data["subtotal"]) == Decimal("100.00")
-    assert Decimal(resp.data["shipping"]) == Decimal("59.00")
-    assert Decimal(resp.data["total"]) == Decimal("159.00")
+    assert Decimal(resp.data["shipping"]) == Decimal("79.00")
+    assert Decimal(resp.data["total"]) == Decimal("179.00")
 
 
 # ─── Coupons (server-side only) ──────────────────────────────────────────────

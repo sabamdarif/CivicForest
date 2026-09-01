@@ -1,8 +1,7 @@
 """Root URL configuration.
 
-The admin lives at a non-guessable, env-driven path (never /admin/ — plan.md §11).
-The versioned API and allauth's headless endpoints are mounted under stable prefixes
-that Caddy forwards to Django.
+The admin lives at a non-guessable, env-driven path, never /admin/. Everything else is
+mounted under a stable prefix: ``/api/v1/`` for this site's own JSON endpoints.
 """
 
 import secrets
@@ -14,26 +13,11 @@ from django.http import JsonResponse
 from django.urls import include, path
 
 
-def _health_authorized(request) -> bool:
-    expected = settings.HEALTH_CHECK_TOKEN
-    supplied = request.headers.get("X-Health-Token", "")
-    return bool(expected) and secrets.compare_digest(supplied, expected)
-
-
 def healthz(request):
-    """Authenticated liveness probe for internal orchestrators only."""
+    """Liveness for an external monitor, plus dependency detail for whoever holds the
+    token. The bare 200 leaks nothing, so it needs no secret to poll."""
     if not _health_authorized(request):
-        return JsonResponse({"detail": "Not found."}, status=404)
-    return JsonResponse({"status": "ok"})
-
-
-def readyz(request):
-    """Readiness probe — checks the backing services this process needs (plan.md §16).
-
-    Returns 503 if the database or cache is unreachable so an orchestrator/load
-    balancer routes traffic away until dependencies recover."""
-    if not _health_authorized(request):
-        return JsonResponse({"detail": "Not found."}, status=404)
+        return JsonResponse({"status": "ok"})
 
     from django.core.cache import cache
     from django.db import connection
@@ -45,8 +29,8 @@ def readyz(request):
     except Exception:  # noqa: BLE001
         checks["database"] = "error"
     try:
-        cache.set("readyz", "1", 5)
-        checks["cache"] = "ok" if cache.get("readyz") == "1" else "error"
+        cache.set("healthz", "1", 5)
+        checks["cache"] = "ok" if cache.get("healthz") == "1" else "error"
     except Exception:  # noqa: BLE001
         checks["cache"] = "error"
 
@@ -56,12 +40,15 @@ def readyz(request):
     )
 
 
+def _health_authorized(request) -> bool:
+    expected = settings.HEALTH_CHECK_TOKEN
+    supplied = request.headers.get("X-Health-Token", "")
+    return bool(expected) and secrets.compare_digest(supplied, expected)
+
+
 urlpatterns = [
-    path("healthz", healthz),
-    path("readyz", readyz),
+    path("healthz/", healthz, name="healthz"),
     path(settings.ADMIN_URL, admin.site.urls),
-    # allauth headless (browser/session flavor) powers the Next.js auth UI.
-    path("_allauth/", include("allauth.headless.urls")),
     path("api/v1/", include("apps.catalog.urls")),
     path("api/v1/", include("apps.accounts.urls")),
     path("api/v1/", include("apps.cart.urls")),
@@ -71,14 +58,4 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
-    from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-
-    urlpatterns += [
-        path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-        path(
-            "api/docs/",
-            SpectacularSwaggerView.as_view(url_name="schema"),
-            name="swagger-ui",
-        ),
-    ]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

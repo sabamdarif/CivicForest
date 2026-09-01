@@ -237,16 +237,12 @@ Run everything before committing:
 
 That runs, in order: the em dash grep on the staged diff, `ruff check` and
 `ruff format --check`, `makemigrations --check --dry-run` (fails if a model change has no
-migration), and `pytest -q` (101 tests passing today). The Django steps run with
-`USE_SQLITE=1 DJANGO_SECRET_KEY=dev-key`, so no Postgres, Redis or Docker is needed.
-Frontend lint and `tsc --noEmit` run last and are advisory only: `eslint-config-next` ships
-an `eslint-plugin-react` that crashes under the installed ESLint 10, and `frontend/` is
-deleted in M0, so a failure there prints a warning instead of blocking the commit.
+migration), and `pytest -q` (101 tests passing today). Everything runs with
+`USE_SQLITE=1 DJANGO_SECRET_KEY=dev-key`, so no Postgres and no credentials are needed.
 
 Single file or single test:
 
 ```bash
-cd backend
 USE_SQLITE=1 DJANGO_SECRET_KEY=dev-key uv run pytest apps/cart/tests/test_cart.py
 USE_SQLITE=1 DJANGO_SECRET_KEY=dev-key uv run pytest -k coupon -q
 uv run ruff check apps/cart          # lint one app
@@ -254,12 +250,8 @@ uv run ruff format .                 # write formatting, not just check
 ```
 
 Not covered by the script and worth running when relevant: `uv run pip-audit --strict`,
-Playwright (`cd frontend && npm run e2e`), and the axe pass
-(`node frontend/axe-audit.js`). CI runs ruff, the migration check, pytest, pip-audit,
-frontend lint and build, CodeQL, and a Trivy image scan.
-
-The `Makefile` targets (`make up`, `make test`, `make lint`, `make seed`, `make reindex`)
-drive the Docker Compose stack and only work while that stack exists. M0 deletes it.
+and `manage.py check --deploy` against `config.settings.production`. CI runs ruff, the
+migration check, pytest against Postgres, pip-audit and CodeQL.
 
 ## What Is Already Documented
 
@@ -279,15 +271,13 @@ gets written there immediately.
 
 Not in the README on purpose:
 
-- `DJANGO_ADMIN_URL` and `DJANGO_ADMIN_PATH` must stay in sync: the first is Django's route,
-  the second is the Caddy matcher. Both are secrets in effect, since the admin is hidden.
-- `USE_SQLITE=1` switches the local settings module to SQLite and eager execution, which is
-  what makes the offline test run work.
+- `USE_SQLITE=1` forces the local SQLite file even when `DATABASE_URL` points elsewhere,
+  which is what makes the offline test run work.
 - `RAZORPAY_FAKE_MODE=True` lets tests sign their own webhooks with the local secret and
-  reach the real fulfilment path without a Razorpay account.
-- `ADMIN_IP_ALLOWLIST` is enforced by Caddy, not Django, so it does nothing under
-  `runserver`.
-- `HEALTH_CHECK_TOKEN` gates the detailed body of the health endpoint.
+  reach the real fulfilment path without a Razorpay account. It is on in
+  `config.settings.test` and must never be set in production.
+- `HEALTH_CHECK_TOKEN` gates the detailed body of the health endpoint. `/healthz/` itself
+  answers 200 to anyone, because an uptime monitor should not need a secret.
 
 ## Architecture
 
@@ -323,10 +313,10 @@ is only the index.
 | `orders` | `Order` and `OrderItem`, both fully snapshotted at creation so later catalogue edits cannot rewrite history. Random `CF-XXXXXXXX` public number |
 | `payments` | `Payment` (one Razorpay order id per row), `WebhookEvent` (replay dedup ledger), signature verification |
 | `custom_orders` | `CustomDesignOrder`, the Qikink client (`qikink.py`), and upload validation and re-encoding (`uploads.py`) |
-| `search` | Meilisearch client, documents, query log. Deleted in M0 and rebuilt on Postgres full-text in M3 |
 
-`config/` holds `settings/{base,local,production,e2e}.py`, `urls.py`, `wsgi.py`, `asgi.py`
-and `celery.py`. The last two go away in M0.
+`config/` holds `settings/{base,local,production,test}.py`, `urls.py`, `wsgi.py` and
+`jinja2.py`. WSGI is the only entrypoint, deliberately: Vercel prefers ASGI when both
+exist. `apps/search` is gone and M3 rebuilds it on Postgres full-text.
 
 ### Where to look first
 
@@ -339,7 +329,7 @@ and `celery.py`. The last two go away in M0.
 | Upload rejected or corrupt | `apps/custom_orders/uploads.py` |
 | Stock wrong after a sale | the fulfilment transaction in `apps/orders/services.py` |
 | Cart lost or duplicated on login | `apps/cart/services.py`, `merge_guest_cart_into_user` |
-| Admin returns 404 | `DJANGO_ADMIN_URL` and `DJANGO_ADMIN_PATH` disagree, or the Caddy IP allowlist |
+| Admin returns 404 | `DJANGO_ADMIN_URL` is unset, so the admin sits on an unreachable path, or the staff user has no confirmed TOTP |
 
 ### Common tasks
 

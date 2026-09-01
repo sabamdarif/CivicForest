@@ -1,26 +1,20 @@
 [project]
-name = "civicforest-backend"
+name = "civicforest"
 version = "0.1.0"
-description = "CivicForest storefront API — Django + DRF"
+description = "CivicForest Clothing storefront: Django, DRF and Jinja2 on one Vercel deployment"
 requires-python = ">=3.12"
 dependencies = [
     "django>=5.2,<6.2",
     "djangorestframework>=3.15",
-    "django-allauth[socialaccount,mfa]>=65.0",
-    "django-cors-headers>=4.4",
+    "django-allauth[socialaccount,mfa]==65.19.1",
     "django-environ>=0.11",
     "django-filter>=24.3",
-    "drf-spectacular>=0.27",
     "argon2-cffi>=23.1",
     "psycopg[binary]>=3.2",
-    "redis>=5.0",
-    "celery>=5.4",
-    "django-celery-beat>=2.7",
-    "meilisearch>=0.31",
+    "jinja2>=3.1",
+    "resend>=2.42",
     "pillow>=10.4",
     "filetype>=1.2",
-    "gunicorn>=23.0",
-    "uvicorn>=0.30",
     "whitenoise>=6.7",
     "django-storages[s3]>=1.14",
     "boto3>=1.35",
@@ -39,6 +33,12 @@ dev = [
     "pip-audit>=2.7",
 ]
 
+# Vercel resolves the entrypoint from WSGI_APPLICATION, but naming it here keeps the
+# choice explicit: ASGI would win if config/asgi.py ever came back.
+# No [tool.vercel.scripts]: collectstatic runs automatically and nothing else builds.
+[tool.vercel]
+entrypoint = "config.wsgi:application"
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
@@ -53,6 +53,6 @@ ignore = ["DJ001"]
 known-first-party = ["apps", "config"]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "config.settings.local"
+DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 addopts = "--reuse-db"

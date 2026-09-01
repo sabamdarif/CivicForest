@@ -36,11 +36,11 @@ class CartError(Exception):
 
 
 def _shipping_flat() -> Decimal:
-    return Decimal(str(getattr(settings, "SHIPPING_FLAT_RATE", "59.00")))
+    return Decimal(str(settings.SHIPPING_FLAT_RATE))
 
 
 def _free_shipping_threshold() -> Decimal:
-    return Decimal(str(getattr(settings, "FREE_SHIPPING_THRESHOLD", "999.00")))
+    return Decimal(str(settings.FREE_SHIPPING_THRESHOLD))
 
 
 # ─── Cart resolution ─────────────────────────────────────────────────────────
