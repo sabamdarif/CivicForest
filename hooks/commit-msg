@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Rejects a commit message body longer than 5 lines. Subject and trailers do not count.
+# Install once per clone: ln -sf ../../hooks/commit-msg .git/hooks/commit-msg
+set -euo pipefail
+
+msg_file="$1"
+body_lines=$(
+  sed -e '1d' -e '/^#/d' "$msg_file" \
+    | sed -e '/^[A-Za-z-]\+: /d' \
+    | sed -e '/^[[:space:]]*$/d' \
+    | wc -l
+)
+
+if [ "$body_lines" -gt 5 ]; then
+  echo "commit body is $body_lines lines, limit is 5." >&2
+  echo "Split the commit or cut the message. Do not list the diff." >&2
+  exit 1
+fi

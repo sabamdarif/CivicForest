@@ -46,6 +46,9 @@ Thumbs.db
 /images
 /skills-lock.json
 
+# Working files for the current plan (see CLAUDE.md, Spec-driven workflow)
+/progress.md
+
 # E2E artifacts
 backend/e2e_media/
 frontend/test-results/
