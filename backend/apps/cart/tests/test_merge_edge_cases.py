@@ -7,8 +7,8 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory
 
 from apps.cart import services
-from apps.cart.signals import merge_cart_on_login
 from apps.cart.models import Cart, CartItem
+from apps.cart.signals import merge_cart_on_login
 from apps.common.factories import (
     CartFactory,
     CartItemFactory,

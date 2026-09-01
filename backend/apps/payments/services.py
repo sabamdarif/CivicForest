@@ -115,9 +115,10 @@ def _handle_capture(event: dict) -> str:
 
     # A partial capture or currency mismatch must never fulfil the full order —
     # flag it for manual review instead (bugs.md #1).
-    if entity.get("amount") != gateway.to_paise(payment.amount) or entity.get(
-        "currency", payment.currency
-    ) != payment.currency:
+    if (
+        entity.get("amount") != gateway.to_paise(payment.amount)
+        or entity.get("currency", payment.currency) != payment.currency
+    ):
         logger.error(
             "Amount/currency mismatch on %s: got %s %s, expected %s %s — needs review",
             gateway_order_id,

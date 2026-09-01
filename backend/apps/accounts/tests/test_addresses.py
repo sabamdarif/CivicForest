@@ -57,9 +57,7 @@ def test_address_create_requires_recent_auth(monkeypatch):
 
 
 def test_password_user_with_recent_auth_can_create(monkeypatch):
-    user = get_user_model().objects.create_user(
-        email="recent@example.com", password="pw-1234567!"
-    )
+    user = get_user_model().objects.create_user(email="recent@example.com", password="pw-1234567!")
     monkeypatch.setattr("apps.accounts.views.did_recently_authenticate", lambda request: True)
 
     response = _client(user).post("/api/v1/account/addresses", ADDRESS, format="json")

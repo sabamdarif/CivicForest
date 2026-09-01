@@ -6,7 +6,7 @@ and a SQLite fallback so the project boots without a running Postgres for quick 
 """
 
 from .base import *  # noqa: F403
-from .base import env
+from .base import CORS_ALLOWED_ORIGINS, CSRF_TRUSTED_ORIGINS, env
 
 DEBUG = env("DJANGO_DEBUG", default=True)
 
@@ -15,7 +15,12 @@ DEBUG = env("DJANGO_DEBUG", default=True)
 OFFLINE = env.bool("USE_SQLITE", default=False)
 
 # Ensure local origins (http://localhost:3000, http://127.0.0.1:3000) are allowed in local dev
-_dev_origins = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000", "http://127.0.0.1:8000"]
+_dev_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
 for origin in _dev_origins:
     if origin not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(origin)
@@ -59,4 +64,3 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=OFFLINE)
 
 INTERNAL_IPS = ["127.0.0.1"]
-

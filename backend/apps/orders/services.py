@@ -141,9 +141,9 @@ def _attach_custom_designs(user, order: Order, variant_ids: list) -> None:
         variant_id__in=variant_ids,
     ).update(order=order)
     if linked:
-        order.items.filter(
-            variant_id__in=order.custom_designs.values("variant_id")
-        ).update(is_custom=True)
+        order.items.filter(variant_id__in=order.custom_designs.values("variant_id")).update(
+            is_custom=True
+        )
         order.has_custom_items = True
         order.save(update_fields=["has_custom_items", "updated_at"])
 

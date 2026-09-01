@@ -119,7 +119,9 @@ DATABASES["default"]["ATOMIC_REQUESTS"] = False
 DATABASES["default"]["CONN_MAX_AGE"] = 60
 
 REDIS_URL = env("REDIS_URL", default="")
-if "redis:6379" in REDIS_URL or not (REDIS_URL.startswith("redis://") or REDIS_URL.startswith("rediss://")):
+if "redis:6379" in REDIS_URL or not (
+    REDIS_URL.startswith("redis://") or REDIS_URL.startswith("rediss://")
+):
     REDIS_URL = ""
 
 if REDIS_URL:
@@ -320,10 +322,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # drift (bugs.md #10); the shared default matches Caddy's, so leaving both unset
 # serves the admin only on a path Caddy IP-blocks. DJANGO_ADMIN_URL kept as a
 # legacy fallback for existing .env files.
-ADMIN_URL = env(
-    "DJANGO_ADMIN_PATH",
-    default=env("DJANGO_ADMIN_URL", default="/__admin_disabled__/"),
-).strip("/") + "/"
+ADMIN_URL = (
+    env(
+        "DJANGO_ADMIN_PATH",
+        default=env("DJANGO_ADMIN_URL", default="/__admin_disabled__/"),
+    ).strip("/")
+    + "/"
+)
 # Staff sessions expire faster than customer sessions; enforced in StaffAdminMiddleware.
 STAFF_SESSION_AGE = env.int("STAFF_SESSION_AGE", default=60 * 60)
 
@@ -334,7 +339,10 @@ if "redis:6379" in CELERY_BROKER_URL:
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="")
 if "redis:6379" in CELERY_RESULT_BACKEND:
     CELERY_RESULT_BACKEND = ""
-_has_redis_broker = bool(CELERY_BROKER_URL and (CELERY_BROKER_URL.startswith("redis://") or CELERY_BROKER_URL.startswith("rediss://")))
+_has_redis_broker = bool(
+    CELERY_BROKER_URL
+    and (CELERY_BROKER_URL.startswith("redis://") or CELERY_BROKER_URL.startswith("rediss://"))
+)
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=not _has_redis_broker)
 CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True

@@ -32,7 +32,13 @@ class OrderAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
     raw_id_fields = ["user"]
     inlines = [OrderItemInline]
-    actions = ["mark_processing", "mark_shipped", "mark_delivered", "mark_cancelled", "mark_refunded"]
+    actions = [
+        "mark_processing",
+        "mark_shipped",
+        "mark_delivered",
+        "mark_cancelled",
+        "mark_refunded",
+    ]
     # Totals and the address snapshot are immutable history — never editable in admin.
     # ``status`` is read-only too: changes go through the actions below so the state
     # machine (and its emails) can't be bypassed with the raw dropdown (bugs.md #3).

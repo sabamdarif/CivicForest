@@ -33,9 +33,7 @@ def admin_dashboard():
     today = timezone.localdate()
     start = today - timedelta(days=29)
 
-    window = Order.objects.filter(
-        status__in=REVENUE_STATUSES, created_at__date__gte=start
-    )
+    window = Order.objects.filter(status__in=REVENUE_STATUSES, created_at__date__gte=start)
     by_day = {
         row["day"]: row
         for row in window.annotate(day=TruncDate("created_at"))

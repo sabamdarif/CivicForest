@@ -46,9 +46,7 @@ class AddressViewSet(viewsets.ModelViewSet):
                     else "Please confirm your password to change a saved address."
                 ),
                 code=(
-                    "oauth_reauthentication_required"
-                    if oauth_only
-                    else "reauthentication_required"
+                    "oauth_reauthentication_required" if oauth_only else "reauthentication_required"
                 ),
             )
 

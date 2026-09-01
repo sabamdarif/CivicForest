@@ -45,11 +45,7 @@ def test_admin_index_shows_dashboard(client, settings):
 def test_dashboard_template_renders():
     OrderFactory(status=Order.Status.PAID, total=Decimal("500"))
 
-    html = (
-        engines["django"]
-        .from_string("{% load admin_dashboard %}{% admin_dashboard %}")
-        .render()
-    )
+    html = engines["django"].from_string("{% load admin_dashboard %}{% admin_dashboard %}").render()
 
     assert "Revenue — last 30 days" in html
     assert "cf-dash-data" in html

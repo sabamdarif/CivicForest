@@ -86,4 +86,3 @@ def validate_product_image(uploaded_file) -> None:
         getattr(settings, "DESIGN_UPLOAD_MAX_DIMENSION", 8000),
     )
     uploaded_file.seek(0)
-

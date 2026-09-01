@@ -13,17 +13,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-
-class GuestCSRFSessionAuthentication(SessionAuthentication):
-    """SessionAuthentication only CSRF-checks *authenticated* sessions; guest cart
-    writes would otherwise accept cross-site POSTs (bugs.md #11)."""
-
-    def authenticate(self, request):
-        result = super().authenticate(request)
-        if result is None:
-            self.enforce_csrf(request)
-        return result
-
 from apps.catalog.models import Product
 
 from . import services
@@ -36,6 +25,17 @@ from .serializers import (
     WishlistItemSerializer,
     WishlistToggleSerializer,
 )
+
+
+class GuestCSRFSessionAuthentication(SessionAuthentication):
+    """SessionAuthentication only CSRF-checks *authenticated* sessions; guest cart
+    writes would otherwise accept cross-site POSTs (bugs.md #11)."""
+
+    def authenticate(self, request):
+        result = super().authenticate(request)
+        if result is None:
+            self.enforce_csrf(request)
+        return result
 
 
 def _priced_response(request, cart, *, status_code=status.HTTP_200_OK) -> Response:

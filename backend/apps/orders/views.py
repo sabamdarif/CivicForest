@@ -76,7 +76,9 @@ class CheckoutView(APIView):
             if existing:
                 payment = existing.payments.first()
                 if payment:
-                    return Response(self._payment_payload(existing, payment), status=status.HTTP_200_OK)
+                    return Response(
+                        self._payment_payload(existing, payment), status=status.HTTP_200_OK
+                    )
                 try:
                     payment = payment_services.create_gateway_order(existing)
                 except payment_gateway.PaymentError as exc:
@@ -84,9 +86,7 @@ class CheckoutView(APIView):
                         {"error": {"code": exc.code, "message": exc.message, "details": {}}},
                         status=status.HTTP_502_BAD_GATEWAY,
                     )
-                return Response(
-                    self._payment_payload(existing, payment), status=status.HTTP_200_OK
-                )
+                return Response(self._payment_payload(existing, payment), status=status.HTTP_200_OK)
 
         serializer = CheckoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
