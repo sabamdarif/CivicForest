@@ -5,14 +5,18 @@
 
 {% macro stepper(name="quantity", value=1, min=1, max=10, submit=True, label="Quantity",
                  id="", attrs={}) -%}
-  {%- set fid = id or "id-" ~ name -%}
   {%- set type = "submit" if submit else "button" -%}
   <div class="stepper">
     <button class="stepper__btn" type="{{ type }}" name="op" value="dec"
       aria-label="Reduce quantity"{% if value <= min %} disabled{% endif %}>{{ icon("minus", 16) }}</button>
-    <label class="sr-only" for="{{ fid }}">{{ label }}</label>
-    <input class="stepper__input" id="{{ fid }}" name="{{ name }}" type="number"
-      value="{{ value }}" min="{{ min }}" max="{{ max }}" step="1" inputmode="numeric"{{ attr(attrs) }}>
+    {# The label wraps the input, so a page with one stepper per cart line needs no ids at
+       all and cannot end up with two of the same. #}
+    <label>
+      <span class="sr-only">{{ label }}</span>
+      <input class="stepper__input"{% if id %} id="{{ id }}"{% endif %} name="{{ name }}"
+        type="number" value="{{ value }}" min="{{ min }}" max="{{ max }}" step="1"
+        inputmode="numeric"{{ attr(attrs) }}>
+    </label>
     <button class="stepper__btn" type="{{ type }}" name="op" value="inc"
       aria-label="Increase quantity"{% if value >= max %} disabled{% endif %}>{{ icon("plus", 16) }}</button>
   </div>
