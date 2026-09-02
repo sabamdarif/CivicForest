@@ -55,11 +55,11 @@ class RequestIDLogFilter(logging.Filter):
 
 class StaffAdminMiddleware:
     """Harden the admin path: staff must have confirmed TOTP MFA, and staff sessions
-    expire faster than customer sessions (plan.md §11).
+    expire faster than customer sessions.
 
-    An authenticated staff user without MFA is redirected to set it up rather than shown
-    the admin. (The IP allow-list itself lives at Caddy, which 404s outsiders before the
-    request reaches Django.)"""
+    A staff user whose session never completed an MFA step gets a 404, so the admin's
+    existence is not confirmed to a half-authenticated session. A superuser mid-setup is
+    sent to the login flow instead."""
 
     def __init__(self, get_response):
         self.get_response = get_response
