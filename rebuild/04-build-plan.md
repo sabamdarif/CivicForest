@@ -100,7 +100,7 @@ Tasks:
    account link, cart button with live count. Sticky, with a mobile drawer.
 7. [ ] `templates/jinja2/_partials/footer.html`: the four link columns from the screenshots (Shop,
    Collections, Customer Care, About Us), newsletter form, social row, legal row.
-8. [ ] Announcement bar partial, driven by the `AnnouncementBar` model.
+8. [x] Announcement bar partial, driven by the `AnnouncementBar` model.
 9. [ ] Shared behaviours: `static/js/nav.js`, `drawer.js`, `toast.js`, `accordion.js`, `modal.js`.
 10. [ ] A `/styleguide/` page (staff-only) rendering every component in every state. This is the
     regression surface for CSS work and the reference for the back-office pages.

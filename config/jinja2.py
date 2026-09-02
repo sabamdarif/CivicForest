@@ -13,6 +13,14 @@ from jinja2 import Environment, FileSystemBytecodeCache
 from apps.common.formatting import pct_off, rupees
 
 
+def announcement():
+    """The live announcement bar, or None. Imported inside the call because the app
+    registry is not ready when the template environment is built."""
+    from apps.content.services import current_announcement
+
+    return current_announcement()
+
+
 def environment(**options):
     # /tmp is the only writable path on Vercel and it survives inside a warm instance,
     # so compiled templates are cached there instead of recompiled per request.
@@ -23,6 +31,7 @@ def environment(**options):
             "static": static,
             "url": reverse,
             "now": timezone.localtime,
+            "announcement": announcement,
         }
     )
     env.filters.update(

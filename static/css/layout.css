@@ -1,0 +1,20 @@
+/* Page chrome: the announcement bar, the header and its nav, and the footer.
+
+   Everything here appears on every page, so it is the one sheet where a byte costs the
+   most. The header is sticky and the mobile panel is a <details>, which is what keeps the
+   nav working with JavaScript off (P6). */
+
+/* ── Announcement bar ─────────────────────────────────────────────────────── */
+.announcement {
+  background: var(--ink);
+  color: var(--gold);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-wide);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.announcement__inner {
+  margin: 0;
+  padding-block: var(--space-2);
+}

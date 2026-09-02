@@ -17,11 +17,14 @@
     <link rel="stylesheet" href="{{ static('css/tokens.css') }}">
     <link rel="stylesheet" href="{{ static('css/base.css') }}">
     <link rel="stylesheet" href="{{ static('css/components.css') }}">
+    <link rel="stylesheet" href="{{ static('css/layout.css') }}">
     {% block head %}{% endblock %}
   </head>
   <body>
     {% include "_partials/icons.html" %}
     <a class="skip-link" href="#main">Skip to content</a>
+
+    {% include "_partials/announcement.html" %}
 
     <header class="site-header">
       <div class="container">

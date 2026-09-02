@@ -1,0 +1,10 @@
+{# The strip above the header (D14). Staff own the text, the link and the toggle, so
+   nothing here is hardcoded and an empty bar renders nothing at all. #}
+{% set bar = announcement() %}
+{% if bar %}
+  <div class="announcement on-dark">
+    <p class="announcement__inner container">
+      {%- if bar.url %}<a href="{{ bar.url }}">{{ bar.text }}</a>{% else %}{{ bar.text }}{% endif -%}
+    </p>
+  </div>
+{% endif %}
