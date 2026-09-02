@@ -96,9 +96,9 @@ Tasks:
    help and error states, badge, card, accordion, modal, drawer, toast, breadcrumb, pagination,
    quantity stepper, price display (MRP strike-through + percentage off), swatch, star rating,
    empty state, skeleton.
-6. [ ] `templates/jinja2/_partials/header.html`: logo, five nav items plus CUSTOMISE, search trigger,
+6. [x] `templates/jinja2/_partials/header.html`: logo, five nav items plus CUSTOMISE, search trigger,
    account link, cart button with live count. Sticky, with a mobile drawer.
-7. [ ] `templates/jinja2/_partials/footer.html`: the four link columns from the screenshots (Shop,
+7. [x] `templates/jinja2/_partials/footer.html`: the four link columns from the screenshots (Shop,
    Collections, Customer Care, About Us), newsletter form, social row, legal row.
 8. [x] Announcement bar partial, driven by the `AnnouncementBar` model.
 9. [ ] Shared behaviours: `static/js/nav.js`, `drawer.js`, `toast.js`, `accordion.js`, `modal.js`.

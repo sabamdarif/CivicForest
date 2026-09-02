@@ -30,3 +30,22 @@ def test_the_django_engine_shell_loads_the_same_stylesheets():
 
     for sheet in STYLESHEETS:
         assert sheet in rendered
+
+
+def test_the_header_marks_the_page_you_are_on(rf):
+    # Later milestones mount /shop/ and the rest; the header links to them by path now.
+    rendered = get_template("_partials/header.html").render({}, rf.get("/shop/"))
+
+    for path in ("/shop/", "/customise/", "/collections/", "/about/", "/contact/", "/cart/"):
+        assert f'href="{path}"' in rendered
+    assert '<a class="nav__link" href="/shop/" aria-current="page">' in rendered
+
+
+def test_the_cart_badge_stays_off_until_there_is_something_in_the_cart(rf):
+    empty = get_template("_partials/header.html").render({}, rf.get("/"))
+    filled = get_template("_partials/header.html").render({"cart_count": 3}, rf.get("/"))
+
+    assert "cart-link__count" not in empty
+    assert 'aria-label="Cart, 0 items"' in empty
+    assert 'aria-label="Cart, 3 items"' in filled
+    assert ">3</span>" in filled

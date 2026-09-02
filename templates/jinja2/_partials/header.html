@@ -1,0 +1,67 @@
+{# Site chrome: wordmark, six nav items, the icon actions and the mobile panel.
+
+   The nav is one list rendered twice, once for the bar and once for the mobile panel. Both
+   are display:none at their breakpoint, so exactly one is in the accessibility tree.
+
+   Paths are literal from the URL map in rebuild/03-architecture.md §4 rather than url():
+   Jinja2's url() raises on a route a later milestone has not mounted, and a literal path
+   goes live the moment its milestone mounts it, with no edit here. #}
+{% from "_macros/button.html" import icon_button %}
+{% from "_macros/icon.html" import icon %}
+
+{% set nav_items = [
+  ("Home", "/"),
+  ("Shop", "/shop/"),
+  ("Customise", "/customise/"),
+  ("Collections", "/collections/"),
+  ("About us", "/about/"),
+  ("Contact", "/contact/"),
+] %}
+{% set cart_count = cart_count|default(0) %}
+
+{% macro nav_list(items, path, extra="") %}
+  <ul class="nav__list{{ ' ' ~ extra if extra else '' }}">
+    {%- for label, href in items %}
+      {%- set current = href == path or (href != "/" and path.startswith(href)) %}
+      <li>
+        <a class="nav__link" href="{{ href }}"{% if current %} aria-current="page"{% endif %}>{{ label }}</a>
+      </li>
+    {%- endfor %}
+  </ul>
+{% endmacro %}
+
+<header class="site-header on-dark">
+  <div class="site-header__inner container">
+    <a class="wordmark" href="/">
+      CivicForest
+      <span class="wordmark__sub">Clothing</span>
+    </a>
+
+    <nav class="nav site-header__nav" aria-label="Main">
+      {{ nav_list(nav_items, request.path) }}
+    </nav>
+
+    <div class="site-header__actions">
+      {{ icon_button("search", "Search", href="/search/") }}
+      {{ icon_button("account", "Your account", href="/account/") }}
+      <a class="icon-btn cart-link" href="/cart/"
+        aria-label="Cart, {{ cart_count }} item{{ '' if cart_count == 1 else 's' }}">
+        {{ icon("cart") }}
+        {%- if cart_count %}<span class="cart-link__count" aria-hidden="true">{{ cart_count }}</span>{% endif %}
+      </a>
+
+      {# A <details> panel, so the mobile nav opens, closes and takes the keyboard with no
+         JavaScript at all. nav.js only adds Escape and scrim dismissal. #}
+      <details class="nav-toggle" data-nav>
+        <summary class="nav-toggle__btn icon-btn" aria-label="Menu">
+          <span class="nav-toggle__open">{{ icon("menu", 22) }}</span>
+          <span class="nav-toggle__close">{{ icon("close", 22) }}</span>
+        </summary>
+        <div class="nav-toggle__scrim" data-nav-scrim></div>
+        <nav class="nav nav-toggle__panel" aria-label="Main">
+          {{ nav_list(nav_items, request.path, "nav__list--stacked") }}
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>

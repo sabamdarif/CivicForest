@@ -1,7 +1,10 @@
 {#
   Shell for every page CivicForest owns. The Django Template Language twin at
-  templates/django/base.html loads the same two stylesheets, so allauth's pages and the
+  templates/django/base.html loads the same four stylesheets, so allauth's pages and the
   admin look like the rest of the site.
+
+  page_css is for the one page-area sheet a page may add on top of the shared four, which
+  is what keeps any single page inside the 60 KB CSS budget (P3, P11).
 #}
 <!doctype html>
 <html lang="en">
@@ -18,6 +21,7 @@
     <link rel="stylesheet" href="{{ static('css/base.css') }}">
     <link rel="stylesheet" href="{{ static('css/components.css') }}">
     <link rel="stylesheet" href="{{ static('css/layout.css') }}">
+    {% block page_css %}{% endblock %}
     {% block head %}{% endblock %}
   </head>
   <body>
@@ -25,22 +29,13 @@
     <a class="skip-link" href="#main">Skip to content</a>
 
     {% include "_partials/announcement.html" %}
+    {% include "_partials/header.html" %}
 
-    <header class="site-header">
-      <div class="container">
-        <a class="wordmark" href="{{ url('home') }}">CivicForest</a>
-      </div>
-    </header>
-
-    <main id="main" class="container">
+    <main id="main">
       {% block content %}{% endblock %}
     </main>
 
-    <footer class="site-footer">
-      <div class="container">
-        <p>&copy; {{ now().year }} CivicForest Clothing. All prices include GST.</p>
-      </div>
-    </footer>
+    {% include "_partials/footer.html" %}
 
     {% block scripts %}{% endblock %}
   </body>

@@ -151,7 +151,7 @@ environment globals above, each a callable that resolves lazily from the request
 /cart/                               cart page
 /checkout/                           login-gated; address → summary → pay
 /checkout/complete/<order_number>/   thank-you, idempotent, safe to reload
-/about/  /contact/  /faq/  /size-guide/
+/about/  /contact/  /faq/  /size-guide/  /sustainability/
 /shipping-delivery/  /returns-exchanges/  /privacy/  /terms/  /grievance-redressal/
 /track/                              guest order tracking by number + email
 /account/                            dashboard
@@ -379,7 +379,7 @@ and tells the customer so if JavaScript is unavailable.
 
 | Group | Templates |
 |---|---|
-| Shell | `base.html`, `_partials/{header,footer,announcement,nav_drawer,icons,search_overlay,cart_drawer,toast,cookie_banner,trust_strip}.html` |
+| Shell | `base.html`, `_partials/{header,footer,announcement,icons,search_overlay,cart_drawer,toast,cookie_banner,trust_strip}.html` |
 | Macros | `_macros/{icon,button,field,card,badge,price,swatch,rating,accordion,modal,stepper,empty,breadcrumbs,pagination}.html` |
 | Storefront | `home.html`, `shop/{list,_grid,_filters,_sort,_filter_drawer}.html`, `collections/{index,detail}.html`, `product/{detail,_gallery,_buy_panel,_accordions,_size_chart,_related}.html`, `search/{results,_zero}.html` |
 | Custom line | `customise/{landing,designer,_blank_card,_upload_panel,_placement_tabs}.html` |

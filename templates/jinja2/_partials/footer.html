@@ -1,0 +1,91 @@
+{# Footer: four link columns (task 7), newsletter, social row and legal row. Paths are
+   literal from the §4 URL map for the same reason the header's are.
+
+   The social row is data, not markup: fill in the four real profile URLs and it appears.
+   Linking to accounts that do not exist yet would just be four dead links. #}
+{% from "_macros/button.html" import icon_button %}
+{% from "_macros/icon.html" import icon %}
+
+{% set columns = [
+  ("Shop", [
+    ("All products", "/shop/"),
+    ("T-shirts", "/shop/t-shirts/"),
+    ("Hoodies", "/shop/hoodies/"),
+    ("Sweatshirts", "/shop/sweatshirts/"),
+    ("Polo shirts", "/shop/polo-shirts/"),
+    ("Customise", "/customise/"),
+  ]),
+  ("Collections", [
+    ("All collections", "/collections/"),
+    ("New arrivals", "/collections/new-arrivals/"),
+  ]),
+  ("Customer care", [
+    ("FAQs", "/faq/"),
+    ("Shipping and delivery", "/shipping-delivery/"),
+    ("Returns and exchanges", "/returns-exchanges/"),
+    ("Size guide", "/size-guide/"),
+    ("Track order", "/track/"),
+  ]),
+  ("About us", [
+    ("Our story", "/about/"),
+    ("Sustainability", "/sustainability/"),
+    ("Contact us", "/contact/"),
+    ("Grievance redressal", "/grievance-redressal/"),
+  ]),
+] %}
+{% set social = [] %}
+
+<footer class="site-footer on-dark">
+  <div class="container">
+    <div class="site-footer__grid grid grid--auto" style="--col-min: 10.5rem">
+      <div class="site-footer__brand">
+        <p class="wordmark">CivicForest <span class="wordmark__sub">Clothing</span></p>
+        <p class="site-footer__tagline">
+          Elevated everyday wear crafted for comfort, designed for confidence.
+        </p>
+        {%- if social %}
+          <ul class="site-footer__social" aria-label="CivicForest on social media">
+            {%- for name, href in social %}
+              <li>{{ icon_button(name|lower, "CivicForest on " ~ name, href=href) }}</li>
+            {%- endfor %}
+          </ul>
+        {%- endif %}
+      </div>
+
+      {%- for heading, links in columns %}
+        <nav class="site-footer__col" aria-label="{{ heading }}">
+          <h2 class="site-footer__heading">{{ heading }}</h2>
+          <ul class="site-footer__links">
+            {%- for label, href in links %}
+              <li><a href="{{ href }}">{{ label }}</a></li>
+            {%- endfor %}
+          </ul>
+        </nav>
+      {%- endfor %}
+
+      <div class="site-footer__col">
+        <h2 class="site-footer__heading">Newsletter</h2>
+        <p>Sign up and get 10% off your first order.</p>
+        {# Double opt-in (J5): submitting sends a confirmation email, and only a confirmed
+           address gets the code. M9 task 8 mounts this path. #}
+        <form class="newsletter" action="/newsletter/subscribe/" method="post">
+          {{ csrf_input }}
+          <label class="sr-only" for="newsletter-email">Email address</label>
+          <input class="field__control newsletter__input" id="newsletter-email" type="email"
+            name="email" placeholder="Enter your email" required autocomplete="email">
+          <button class="btn btn--gold newsletter__submit" type="submit" aria-label="Sign up">
+            {{ icon("arrow-right", 18) }}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="site-footer__legal">
+      <p>&copy; {{ now().year }} CivicForest Clothing. All rights reserved. All prices include GST.</p>
+      <p class="site-footer__policies">
+        <a href="/privacy/">Privacy policy</a>
+        <a href="/terms/">Terms and conditions</a>
+      </p>
+    </div>
+  </div>
+</footer>
