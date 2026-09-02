@@ -13,6 +13,8 @@ from django.http import JsonResponse
 from django.urls import include, path
 from django.views.generic import TemplateView
 
+from apps.common.views import styleguide
+
 
 def healthz(request):
     """Liveness for an external monitor, plus dependency detail for whoever holds the
@@ -51,6 +53,8 @@ urlpatterns = [
     # Placeholder home page until M2 builds the real one.
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
     path("healthz/", healthz, name="healthz"),
+    # Staff-only, and the regression surface for every stylesheet.
+    path("styleguide/", styleguide, name="styleguide"),
     path(settings.ADMIN_URL, admin.site.urls),
     path("api/v1/", include("apps.catalog.urls")),
     path("api/v1/", include("apps.accounts.urls")),

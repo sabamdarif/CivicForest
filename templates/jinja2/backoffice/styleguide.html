@@ -1,0 +1,292 @@
+{# The regression surface for every stylesheet: each component in each state, at one URL.
+   Staff only. When a CSS change breaks something, it breaks here first. #}
+{% extends "base.html" %}
+{% from "_macros/accordion.html" import accordion %}
+{% from "_macros/badge.html" import badge %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/button.html" import button, icon_button %}
+{% from "_macros/card.html" import card, product_card %}
+{% from "_macros/empty.html" import empty %}
+{% from "_macros/field.html" import field, select, checkbox %}
+{% from "_macros/icon.html" import icon %}
+{% from "_macros/modal.html" import modal, drawer %}
+{% from "_macros/pagination.html" import pagination %}
+{% from "_macros/price.html" import price %}
+{% from "_macros/rating.html" import rating %}
+{% from "_macros/stepper.html" import stepper %}
+{% from "_macros/swatch.html" import swatch %}
+
+{% set palette = [
+  ("--ink", "#0d0d0d", "Body text on cream, 17.7:1"),
+  ("--gold", "#c9a227", "Dark surfaces and fills only, 2.2:1 on cream"),
+  ("--gold-deep", "#8a6a14", "Gold text and icons on light, 4.6:1"),
+  ("--cream", "#f7f4ef", "Page background"),
+  ("--paper", "#ffffff", "Cards and inputs"),
+  ("--muted", "#5f5f5f", "Secondary text on light, 5.8:1"),
+  ("--muted-on-dark", "#b9b2a6", "Secondary text on ink, 9.2:1"),
+  ("--line", "#e4ded4", "Decorative hairlines only, 1.2:1"),
+  ("--line-strong", "#8c8578", "Control borders, 3.3:1 for SC 1.4.11"),
+  ("--success", "#17703f", "5.6:1 on cream"),
+  ("--danger", "#93211b", "7.7:1 on cream"),
+  ("--sale", "#b3261e", "Sale price on paper, 6.5:1"),
+] %}
+{% set steps = [
+  ("--step-6", "Style that speaks"), ("--step-5", "Find your style"),
+  ("--step-4", "Our collections"), ("--step-3", "You may also like"),
+  ("--step-2", "Order summary"), ("--step-1", "Lead paragraph"),
+  ("--step-0", "Body copy at sixteen pixels"), ("--step--1", "Meta and help text"),
+  ("--step--2", "Micro labels and legal"),
+] %}
+{% set icons = [
+  "search", "account", "cart", "heart", "close", "menu", "filter", "check", "check-circle",
+  "alert", "plus", "minus", "trash", "upload", "truck", "shield", "leaf", "headset", "star",
+  "star-filled", "chevron-down", "chevron-up", "chevron-left", "chevron-right",
+  "arrow-left", "arrow-right", "instagram", "facebook", "pinterest", "youtube",
+] %}
+
+{% block title %}Design system, CivicForest{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container">
+  <header class="sg-section" style="border-top: 0">
+    <p class="eyebrow">Staff only</p>
+    <h1>Design system</h1>
+    <p>
+      Every component the storefront is built from, in every state it ships in. Check this
+      page at 360, 768 and 1280 pixels after any change to a stylesheet.
+    </p>
+  </header>
+  <section class="sg-section">
+    <h2>Colour</h2>
+    <div class="grid grid--auto" style="--col-min: 9rem">
+      {%- for token, value, note in palette %}
+        <div>
+          <div class="sg-swatch" style="background: {{ value }}"></div>
+          <p class="sg-token">{{ token }}</p>
+          <p class="sg-note">{{ value }}. {{ note }}</p>
+        </div>
+      {%- endfor %}
+    </div>
+  </section>
+
+  <section class="sg-section">
+    <h2>Type</h2>
+    {%- for token, sample in steps %}
+      <p style="font-size: var({{ token }}); margin-bottom: var(--space-2)">{{ sample }}</p>
+      <p class="sg-token">{{ token }}</p>
+    {%- endfor %}
+    <h3>Display face</h3>
+    <p style="font-family: var(--font-display); font-size: var(--step-3)">
+      Playfair Display, 400 to 900. ₹1,23,456.00
+    </p>
+    <h3>Body face</h3>
+    <p style="font-family: var(--font-body); font-size: var(--step-1)">
+      Source Sans 3, 200 to 900. ₹1,23,456.00
+    </p>
+  </section>
+
+  <section class="sg-section">
+    <h2>Icons</h2>
+    <div class="grid grid--auto" style="--col-min: 7rem">
+      {%- for name in icons %}
+        <p class="sg-note" style="text-align: center">
+          {{ icon(name, 24) }}<br>{{ name }}
+        </p>
+      {%- endfor %}
+    </div>
+  </section>
+  <section class="sg-section">
+    <h2>Buttons</h2>
+    <h3>Variants</h3>
+    <div class="sg-row">
+      {{ button("Primary") }}
+      {{ button("Gold", variant="gold") }}
+      {{ button("Secondary", variant="secondary") }}
+      {{ button("Ghost", variant="ghost", icon_end="arrow-right") }}
+    </div>
+    <h3>Sizes</h3>
+    <div class="sg-row">
+      {{ button("Small", size="sm") }}
+      {{ button("Default") }}
+      {{ button("Large", size="lg", icon_end="arrow-right") }}
+    </div>
+    <h3>States</h3>
+    <div class="sg-row">
+      {{ button("Disabled", disabled=True) }}
+      {{ button("Working", busy=True) }}
+      {{ button("A link that looks like a button", href="/shop/", variant="secondary") }}
+      {{ icon_button("heart", "Save to wishlist") }}
+      {{ icon_button("heart", "Save to wishlist", variant="paper") }}
+    </div>
+    <h3>Full width</h3>
+    {{ button("Proceed to checkout", block=True, icon_end="arrow-right") }}
+    <h3>On a dark surface</h3>
+    <div class="sg-dark on-dark sg-row">
+      {{ button("Gold", variant="gold") }}
+      {{ button("Secondary", variant="secondary") }}
+      {{ button("Ghost", variant="ghost") }}
+      {{ icon_button("cart", "Cart") }}
+    </div>
+  </section>
+
+  <section class="sg-section">
+    <h2>Form fields</h2>
+    <div class="grid" style="--cols: 2; --grid-gap: var(--space-6)">
+      <div>
+        {{ field("sg-name", "Your name", required=True, placeholder="Arjun Mehta") }}
+        {{ field("sg-email", "Email address", type="email", icon_start="account",
+                 hint="We use this for order updates only.") }}
+        {{ field("sg-pin", "Pincode", value="380051", error="We do not deliver to 380051 yet.") }}
+        {{ field("sg-locked", "Order number", value="CF-7Q3KX9AR", attrs={"disabled": "disabled"}) }}
+      </div>
+      <div>
+        {{ select("sg-sort", "Sort by", [("relevance", "Relevance"), ("newest", "Newest"),
+                  ("asc", "Price, low to high")], value="newest") }}
+        {{ field("sg-message", "Your message", type="textarea",
+                 placeholder="How can we help?") }}
+        <div class="stack" style="--stack-space: var(--space-3); margin-top: var(--space-4)">
+          {{ checkbox("sg-terms", "I accept the terms and conditions") }}
+          {{ checkbox("sg-news", "Email me new arrivals and offers") }}
+          {{ checkbox("sg-ship", "Same as shipping address", checked=True) }}
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="sg-section">
+    <h2>Badges, price and rating</h2>
+    <div class="sg-row">
+      {{ badge("New", "new") }}
+      {{ badge("Sale", "sale") }}
+      {{ badge("Bestseller", "bestseller") }}
+      {{ badge("Only 2 left", "quiet") }}
+      {{ badge("Custom") }}
+    </div>
+    <h3>Price</h3>
+    <div class="sg-row">
+      {{ price(799) }}
+      {{ price(1274, 1499) }}
+      {{ price(2847, size="lg") }}
+    </div>
+    <h3>Rating</h3>
+    <div class="sg-row">
+      {{ rating(5, 42) }}
+      {{ rating(4.3, 128) }}
+      {{ rating(0) }}
+    </div>
+    <h3>Swatches</h3>
+    <div class="sg-row">
+      {{ swatch("#0d0d0d", "Black") }}
+      {{ swatch("#1f3a2e", "Forest green") }}
+      {{ swatch("#e8d9bf", "Beige", size="lg") }}
+      {{ swatch("#0d0d0d", "Black", as_button=True, selected=True, size="lg") }}
+      {{ swatch("#8f9ba8", "Grey", as_button=True, out_of_stock=True, size="lg") }}
+    </div>
+  </section>
+
+  <section class="sg-section">
+    <h2>Cards</h2>
+    {% call card("Order summary") %}
+      <p>Subtotal, 3 items <strong>{{ 2997 | rupees }}</strong></p>
+      <p>Shipping <strong>{{ 0 | rupees }}</strong></p>
+      {{ button("Proceed to checkout", block=True, icon_end="arrow-right") }}
+    {% endcall %}
+    <h3>Product cards</h3>
+    <div class="grid grid--auto" style="--col-min: 14rem">
+      {{ product_card("Classic Black Tee", "/shop/", static("img/seed/hero-black-tee.png"),
+         799, meta="Black | M, L, XL", badges=[("Bestseller", "bestseller")],
+         colours=[("#0d0d0d", "Black"), ("#1f3a2e", "Forest green")], loading="eager") }}
+      {{ product_card("Forest Green Hoodie", "/shop/", static("img/seed/hoodie-green.png"),
+         1274, mrp=1499, meta="Green | S, M, L, XL", badges=[("Sale", "sale")],
+         colours=[("#1f3a2e", "Forest green")]) }}
+      {{ product_card("Signature Navy Polo", "/shop/", static("img/seed/polo-navy.png"),
+         1099, meta="Navy | M, L, XL", badges=[("New", "new")], wishlist=False) }}
+      {{ product_card("Minimal Grey Sweatshirt", "/shop/",
+         static("img/seed/sweatshirt-grey.png"), 999, meta="Grey | M, L") }}
+    </div>
+  </section>
+  <section class="sg-section">
+    <h2>Navigation</h2>
+    <h3>Breadcrumbs</h3>
+    {{ breadcrumbs([("Home", "/"), ("Shop", "/shop/")], "Classic Black Tee") }}
+    <h3>Pagination</h3>
+    {{ pagination(1, 4) }}
+    {{ pagination(6, 12, query="size=M&sort=newest") }}
+    <h3>Section furniture</h3>
+    <div class="section-head section-head--center">
+      <p class="eyebrow">Shop by category</p>
+      <h2 style="margin-bottom: var(--space-3)">Find your style</h2>
+      <p class="divider">{{ icon("leaf", 18) }}</p>
+    </div>
+  </section>
+
+  <section class="sg-section">
+    <h2>Accordion</h2>
+    <p class="sg-note">
+      One group, so opening one closes the last. Native details, no JavaScript.
+    </p>
+    {% call accordion("Description", group="sg", open=True) %}
+      <p>Premium 240 GSM combed cotton, pre-shrunk, with a ribbed collar.</p>
+    {% endcall %}
+    {% call accordion("Fabric and care", group="sg") %}
+      <p>Machine wash cold, do not bleach, dry in shade.</p>
+    {% endcall %}
+    {% call accordion("Shipping and returns", group="sg") %}
+      <p>Free above ₹999. Returns within 7 days of delivery.</p>
+    {% endcall %}
+  </section>
+
+  <section class="sg-section">
+    <h2>Overlays and feedback</h2>
+    <div class="sg-row">
+      {{ button("Open the size chart", variant="secondary",
+                attrs={"data-dialog-open": "sg-modal"}) }}
+      {{ button("Open the cart drawer", variant="secondary",
+                attrs={"data-dialog-open": "sg-drawer"}) }}
+      {{ button("Confirmation toast", variant="secondary",
+                attrs={"data-toast": "Added to your cart.", "data-toast-variant": "success"}) }}
+      {{ button("Error toast", variant="secondary",
+                attrs={"data-toast": "That size just sold out.", "data-toast-variant": "error"}) }}
+      {{ button("Plain toast", variant="secondary", attrs={"data-toast": "Cart updated."}) }}
+    </div>
+    {% call modal("sg-modal", "Size chart") %}
+      <p>Measurements in inches, taken flat.</p>
+      <table>
+        <thead><tr><th>Size</th><th>Chest</th><th>Length</th></tr></thead>
+        <tbody>
+          <tr><td>M</td><td>40</td><td>28</td></tr>
+          <tr><td>L</td><td>42</td><td>29</td></tr>
+        </tbody>
+      </table>
+    {% endcall %}
+    {% call drawer("sg-drawer", "Your cart") %}
+      <p>Two items, {{ 2098 | rupees }}.</p>
+      {{ button("Proceed to checkout", block=True, icon_end="arrow-right") }}
+    {% endcall %}
+  </section>
+  <section class="sg-section">
+    <h2>Quantity, empty states and loading</h2>
+    <h3>Stepper</h3>
+    <div class="sg-row">
+      {{ stepper(value=1, submit=False) }}
+      {{ stepper(value=4, submit=False) }}
+      {{ stepper(value=10, submit=False) }}
+    </div>
+    <h3>Empty state</h3>
+    {% call empty("Your cart is empty", "Nothing added yet. Have a look at what just landed.") %}
+      {{ button("Start shopping", href="/shop/", icon_end="arrow-right") }}
+    {% endcall %}
+    <h3>Skeleton</h3>
+    <div class="sg-skeletons">
+      <div class="skeleton" style="height: 12rem"></div>
+      <div class="skeleton" style="height: 1rem"></div>
+      <div class="skeleton" style="height: 1rem; width: 60%"></div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ static('js/modal.js') }}"></script>
+  <script type="module" src="{{ static('js/toast.js') }}"></script>
+{% endblock %}

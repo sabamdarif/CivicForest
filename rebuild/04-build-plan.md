@@ -103,7 +103,7 @@ Tasks:
 8. [x] Announcement bar partial, driven by the `AnnouncementBar` model.
 9. [x] Shared behaviours: `static/js/nav.js`, `toast.js`, `modal.js` (which drives the drawer too).
    No `drawer.js` or `accordion.js`: `<dialog>` and `<details name>` already do their work.
-10. [ ] A `/styleguide/` page (staff-only) rendering every component in every state. This is the
+10. [x] A `/styleguide/` page (staff-only) rendering every component in every state. This is the
     regression surface for CSS work and the reference for the back-office pages.
 
 **Done when:** the styleguide renders correctly at 360 / 768 / 1280 px, keyboard focus is visible
