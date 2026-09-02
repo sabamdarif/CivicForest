@@ -101,7 +101,8 @@ Tasks:
 7. [x] `templates/jinja2/_partials/footer.html`: the four link columns from the screenshots (Shop,
    Collections, Customer Care, About Us), newsletter form, social row, legal row.
 8. [x] Announcement bar partial, driven by the `AnnouncementBar` model.
-9. [ ] Shared behaviours: `static/js/nav.js`, `drawer.js`, `toast.js`, `accordion.js`, `modal.js`.
+9. [x] Shared behaviours: `static/js/nav.js`, `toast.js`, `modal.js` (which drives the drawer too).
+   No `drawer.js` or `accordion.js`: `<dialog>` and `<details name>` already do their work.
 10. [ ] A `/styleguide/` page (staff-only) rendering every component in every state. This is the
     regression surface for CSS work and the reference for the back-office pages.
 

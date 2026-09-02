@@ -358,7 +358,7 @@ markup rather than by script tag:
 ```
 static/js/
 ├── util.js            fetch wrapper with CSRF, rupee formatter, debounce, focus trap
-├── nav.js  drawer.js  modal.js  accordion.js  toast.js
+├── nav.js  modal.js  toast.js
 ├── filters.js         URL-param sync, fetch-and-replace grid, chip removal
 ├── search-overlay.js  debounced suggest, keyboard nav, aria-live
 ├── gallery.js  variant-picker.js  pincode.js  recently-viewed.js

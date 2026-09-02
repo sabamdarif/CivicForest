@@ -37,6 +37,9 @@
 
     {% include "_partials/footer.html" %}
 
+    {# Every page has the header, so nav.js is the only module the shell loads. The rest are
+       loaded by the pages that use them, through the scripts block. #}
+    <script type="module" src="{{ static('js/nav.js') }}"></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>
