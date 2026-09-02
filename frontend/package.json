@@ -36,7 +36,7 @@
   "overrides": {
     "postcss": "$postcss",
     "typescript": "$typescript",
-    "fast-uri": "^3.1.4",
+    "fast-uri": "^3.1.7",
     "sharp": "^0.35.0"
   }
 }
