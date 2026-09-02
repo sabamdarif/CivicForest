@@ -51,9 +51,22 @@ def _form(category, **overrides) -> dict:
         "slug": "midnight-wrap-dress",
         "category": str(category.pk),
         "base_price": "2499.00",
+        "mrp": "",
+        "hsn_code": "62044200",
+        "country_of_origin": "India",
+        "tax_rate": "5.00",
         "description": "Bias-cut wrap dress.",
         "material": "",
         "tags": [],
+        "collections": [],
+        "care_instructions": "",
+        "fit_notes": "",
+        "model_note": "",
+        "gsm": "",
+        "weight_grams": "",
+        "length_cm": "",
+        "width_cm": "",
+        "height_cm": "",
         "meta_title": "",
         "meta_description": "",
         "is_active": "on",  # ← the publish switch
@@ -100,6 +113,17 @@ def test_staff_publishes_a_dress_and_it_appears_on_the_storefront(staff_client, 
 
     listed = APIClient().get("/api/v1/catalog/products").json()["results"]
     assert product.slug in {row["slug"] for row in listed}
+
+
+def test_a_product_cannot_be_published_without_its_hsn_code(staff_client, settings, tmp_path):
+    """C10 and L9 through the form staff actually use, not just through clean()."""
+    settings.MEDIA_ROOT = tmp_path
+    category = CategoryFactory(name="Dresses", slug="dresses")
+
+    resp = staff_client.post(ADD_URL, _form(category, hsn_code=""), format="multipart")
+
+    assert resp.status_code == 200  # form redisplayed with the error
+    assert not Product.objects.filter(slug="midnight-wrap-dress").exists()
 
 
 def test_gallery_rejects_a_file_that_is_not_an_image(staff_client, settings, tmp_path):

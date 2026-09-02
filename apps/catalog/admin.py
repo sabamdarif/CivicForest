@@ -6,7 +6,18 @@ from django.utils.safestring import mark_safe
 
 from apps.custom_orders.uploads import UploadError, validate_product_image
 
-from .models import Category, Color, Material, Product, ProductImage, ProductVariant, Size, Tag
+from .models import (
+    Category,
+    Collection,
+    Color,
+    Material,
+    Product,
+    ProductImage,
+    ProductVariant,
+    Size,
+    SizeChart,
+    Tag,
+)
 
 EMPTY_THUMB = mark_safe(  # noqa: S308 — constant markup, no user input
     '<span style="display:inline-block;height:44px;width:44px;border-radius:6px;'
@@ -79,8 +90,23 @@ class ProductVariantInline(admin.TabularInline):
     verbose_name_plural = "Variants — one row per size/colour you actually sell"
 
 
+class ProductImageForm(forms.ModelForm):
+    """Alt text is required here, not on the model: every image needs one (C12, WCAG 1.1.1),
+    and a NOT NULL column would have broken the rows that predate the rule."""
+
+    class Meta:
+        model = ProductImage
+        fields = ["image", "alt_text", "display_order", "variant"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["alt_text"].required = True
+        self.fields["alt_text"].help_text = "What the photo shows, for screen readers."
+
+
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
+    form = ProductImageForm
     extra = 0
     fields = ["preview", "image", "alt_text", "display_order", "variant"]
     readonly_fields = ["preview"]
@@ -115,9 +141,22 @@ class ProductAdminForm(forms.ModelForm):
             "slug",
             "category",
             "base_price",
+            "mrp",
             "description",
             "material",
             "tags",
+            "collections",
+            "country_of_origin",
+            "hsn_code",
+            "tax_rate",
+            "care_instructions",
+            "fit_notes",
+            "model_note",
+            "gsm",
+            "weight_grams",
+            "length_cm",
+            "width_cm",
+            "height_cm",
             "is_active",
             "is_new",
             "is_bestseller",
@@ -177,6 +216,7 @@ class CategoryAdmin(admin.ModelAdmin):
     list_filter = ["is_active"]
     prepopulated_fields = {"slug": ["name"]}
     search_fields = ["name"]
+    fields = ["name", "slug", "parent", "description", "image", "display_order", "is_active"]
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(_products=Count("products"))
@@ -184,6 +224,34 @@ class CategoryAdmin(admin.ModelAdmin):
     @admin.display(description="products", ordering="_products")
     def product_count(self, obj):
         return obj._products
+
+
+@admin.register(Collection)
+class CollectionAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug", "display_order", "product_count", "is_active"]
+    list_editable = ["display_order", "is_active"]
+    list_filter = ["is_active"]
+    prepopulated_fields = {"slug": ["name"]}
+    search_fields = ["name"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_products=Count("products"))
+
+    @admin.display(description="products", ordering="_products")
+    def product_count(self, obj):
+        return obj._products
+
+
+@admin.register(SizeChart)
+class SizeChartAdmin(admin.ModelAdmin):
+    list_display = ["category", "unit", "row_count"]
+    list_filter = ["unit"]
+    autocomplete_fields = ["category"]
+
+    @admin.display(description="rows")
+    def row_count(self, obj):
+        # Minus the header row, which is what the first entry always is.
+        return max(len(obj.rows) - 1, 0)
 
 
 @admin.register(Material)
@@ -219,21 +287,43 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ["category", "material", "is_active", "is_new", "is_bestseller"]
     search_fields = ["name", "slug", "description"]
     prepopulated_fields = {"slug": ["name"]}
-    autocomplete_fields = ["category", "material", "tags"]
+    autocomplete_fields = ["category", "material", "tags", "collections"]
     inlines = [ProductVariantInline, ProductImageInline]
     save_on_top = True
     fieldsets = [
         (
             None,
             {
-                "fields": ["name", "slug", "category", "base_price", "description"],
-                "description": "Name, category and price are all a new product needs — "
-                "add sizes/colours in Variants below, then drop the photos in.",
+                "fields": ["name", "slug", "category", "description"],
+                "description": "Name and category are all a new product needs to exist. "
+                "Add sizes/colours in Variants below, then drop the photos in.",
+            },
+        ),
+        (
+            "Price and tax",
+            {
+                "fields": ["base_price", "mrp", "hsn_code", "tax_rate", "country_of_origin"],
+                "description": "Prices are shown tax-inclusive (C3). The HSN code and country "
+                "of origin are legally required and a product cannot go live without them.",
             },
         ),
         ("Photos", {"fields": ["gallery"]}),
-        ("Details", {"fields": ["material", "tags"]}),
-        ("Storefront placement", {"fields": ["is_active", "is_new", "is_bestseller"]}),
+        (
+            "Fabric and fit",
+            {"fields": ["material", "gsm", "care_instructions", "fit_notes", "model_note"]},
+        ),
+        (
+            "Parcel",
+            {
+                "classes": ["collapse"],
+                "fields": ["weight_grams", "length_cm", "width_cm", "height_cm"],
+                "description": "What the courier needs. Blank until you have weighed one.",
+            },
+        ),
+        (
+            "Storefront placement",
+            {"fields": ["collections", "tags", "is_active", "is_new", "is_bestseller"]},
+        ),
         (
             "SEO",
             {"classes": ["collapse"], "fields": ["meta_title", "meta_description"]},
@@ -252,10 +342,7 @@ class ProductAdmin(admin.ModelAdmin):
     def thumb(self, obj):
         image = next(iter(obj.images.all()), None)
         if not image:
-            return format_html(
-                '<span style="display:inline-block;height:44px;width:44px;border-radius:6px;'
-                'background:rgba(0,0,0,.06)"></span>'
-            )
+            return EMPTY_THUMB
         return format_html(
             '<img src="{}" style="height:44px;width:44px;object-fit:cover;border-radius:6px">',
             image.image.url,
@@ -265,7 +352,7 @@ class ProductAdmin(admin.ModelAdmin):
     def variant_summary(self, obj):
         variants = [v for v in obj.variants.all() if v.is_active]
         if not variants:
-            return format_html('<span style="color:#b3261e">none — not buyable</span>')
+            return NO_VARIANTS
         return f"{len(variants)} · {len({v.size for v in variants})} sizes"
 
     @admin.display(description="stock")

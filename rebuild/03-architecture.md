@@ -187,6 +187,7 @@ environment globals above, each a callable that resolves lazily from the request
 
 | Model | Change | Why |
 |---|---|---|
+| `Category` | + `image` | The shop-by-category tiles on the home page, staff-editable (O10) |
 | `Product` | + `mrp`, `country_of_origin`, `hsn_code`, `tax_rate`, `care_instructions`, `fit_notes`, `model_note`, `gsm`, `weight_grams`, `length_cm`, `width_cm`, `height_cm`, `collections` M2M | C2, C3, C10 and courier data |
 | `ProductVariant` | + `low_stock_threshold`, `qikink_sku` (blank for stock-only products) | A6 alerts, F11 mapping |
 | `ProductImage` | `image` becomes an R2 key; + `width_variants` JSON of generated widths | A1 |

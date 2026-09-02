@@ -117,7 +117,7 @@ throughout, axe reports no violations on it, and total CSS is under 60 KB uncomp
 
 Tasks:
 
-1. Migrate `apps/catalog`: add `Collection`, `SizeChart`, and to `Product` add `mrp`,
+1. [x] Migrate `apps/catalog`: add `Collection`, `SizeChart`, and to `Product` add `mrp`,
    `country_of_origin`, `hsn_code`, `tax_rate`, `care_instructions`, `fit_notes`, `model_note`,
    `gsm`, `weight_grams`, `length_cm`/`width_cm`/`height_cm`. Add `Product.collections` M2M.
 2. Add `ProductImage` variants: store the R2 key plus generated widths; `alt_text` becomes required
