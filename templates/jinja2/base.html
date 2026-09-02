@@ -10,6 +10,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}CivicForest{% endblock %}</title>
     <meta name="description" content="{% block description %}Premium menswear for India.{% endblock %}">
+    {# Both faces are used on every page, so both are worth a preload: without it the
+       browser only discovers them after the stylesheet parses. #}
+    <link rel="preload" href="{{ static('fonts/playfair-display-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ static('fonts/source-sans-3-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ static('css/tokens.css') }}">
     <link rel="stylesheet" href="{{ static('css/base.css') }}">
     {% block head %}{% endblock %}

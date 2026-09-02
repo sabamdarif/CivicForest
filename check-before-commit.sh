@@ -10,7 +10,8 @@ step() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
 step "em dash in staged changes"
 # An em dash is banned everywhere. A spaced "--" standing in for one is banned in
 # prose files only, because it is legitimate syntax in code and CLI flags. Inline
-# code spans are stripped first, so a doc can quote the banned characters.
+# code spans are stripped first, so a doc can quote the banned characters. A verbatim
+# third-party licence is excluded: its text cannot be rewritten to suit a house rule.
 strip_code() { sed -e 's/`[^`]*`//g'; }
 # Spelled as an escape so this file does not trip its own check.
 em_dash=$'\u2014'
@@ -18,8 +19,8 @@ if git diff --cached --unified=0 -- . | grep '^+' | grep -v '^+++' | strip_code 
   echo "found an em dash in added lines: use a comma, a colon, parentheses or two sentences"
   fail=1
 fi
-if git diff --cached --unified=0 -- '*.md' '*.txt' '*.rst' | grep '^+' | grep -v '^+++' \
-    | strip_code | grep -n ' -- '; then
+if git diff --cached --unified=0 -- '*.md' '*.txt' '*.rst' ':(exclude)*OFL.txt' \
+    | grep '^+' | grep -v '^+++' | strip_code | grep -n ' -- '; then
   echo "found ' -- ' used as a dash in prose: rewrite it"
   fail=1
 fi

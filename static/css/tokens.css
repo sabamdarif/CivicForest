@@ -1,29 +1,108 @@
-/* Design tokens: the one source of colour, type, spacing and motion values.
-   Deliberately small. M1 task 1 expands this into the full scale, and M1 task 2
-   replaces the system font stacks with self-hosted woff2 subsets. */
+/* Design tokens: the one source of colour, type, spacing, elevation and motion values.
+
+   Contrast ratios in the colour comments are measured, and they are why there are two
+   golds: #c9a227 is 2.2:1 on cream, so it carries text only on dark surfaces or as a fill
+   with ink on top of it. */
+
+@font-face {
+  font-family: "Playfair Display";
+  src: url("../fonts/playfair-display-latin.woff2") format("woff2");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/source-sans-3-latin.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  /* Decision P1: near-black, gold, cream. */
-  --ink: #0d0d0d;
-  --gold: #c9a227;
+  /* ── Colour (decision P1: near-black, gold, cream) ─────────────────────── */
+  --ink: #0d0d0d; /* 17.7:1 on cream */
+  --ink-soft: #1c1c1c; /* raised dark surfaces against --ink */
+  --gold: #c9a227; /* 8.0:1 on ink, dark surfaces and fills only */
+  --gold-deep: #8a6a14; /* 4.6:1 on cream: gold text and icons on light */
   --cream: #f7f4ef;
+  --cream-deep: #efe9e0; /* inset panels, table stripes */
   --paper: #fff;
-  --muted: #6b6b6b;
-  --line: #e4ded4;
+  --muted: #5f5f5f; /* 5.8:1 on cream */
+  --muted-on-dark: #b9b2a6; /* 9.2:1 on ink */
+  --line: #e4ded4; /* decorative hairlines only, 1.2:1 */
+  --line-strong: #8c8578; /* control borders, 3.3:1 for SC 1.4.11 */
+  --success: #17703f; /* 5.6:1 on cream */
+  --danger: #93211b; /* 7.7:1 on cream */
+  --sale: #b3261e; /* 6.5:1 on paper */
+  --scrim: rgb(13 13 13 / 55%);
 
-  --font-display: Georgia, "Times New Roman", serif;
-  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* ── Type ──────────────────────────────────────────────────────────────── */
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
 
+  --step--2: 0.75rem;
   --step--1: 0.875rem;
   --step-0: 1rem;
-  --step-1: 1.25rem;
-  --step-3: clamp(2rem, 5vw, 3rem);
+  --step-1: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+  --step-2: clamp(1.25rem, 1.15rem + 0.45vw, 1.5rem);
+  --step-3: clamp(1.5rem, 1.3rem + 0.85vw, 1.875rem);
+  --step-4: clamp(1.875rem, 1.5rem + 1.6vw, 2.5rem);
+  --step-5: clamp(2.25rem, 1.55rem + 3vw, 3.5rem);
+  --step-6: clamp(2.75rem, 1.6rem + 5vw, 4.5rem);
 
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-normal: 1.6;
+
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.16em; /* the uppercase eyebrow and nav labels */
+
+  /* ── Space, on a 4px base ──────────────────────────────────────────────── */
+  --space-1: 0.25rem;
   --space-2: 0.5rem;
+  --space-3: 0.75rem;
   --space-4: 1rem;
+  --space-5: 1.5rem;
   --space-6: 2rem;
+  --space-7: 3rem;
   --space-8: 4rem;
+  --space-9: 6rem;
 
-  --container: 72rem;
-  --radius: 2px;
-  --motion: 150ms ease;
+  /* ── Radii and elevation ───────────────────────────────────────────────── */
+  --radius-sm: 2px;
+  --radius: 4px;
+  --radius-lg: 8px;
+  --radius-pill: 999px;
+
+  --shadow-1: 0 1px 2px rgb(13 13 13 / 6%), 0 1px 3px rgb(13 13 13 / 5%);
+  --shadow-2: 0 8px 24px rgb(13 13 13 / 10%);
+
+  /* ── Measure ───────────────────────────────────────────────────────────── */
+  --container: 75rem;
+  --container-narrow: 40rem;
+  --container-wide: 85rem;
+  --tap-target: 44px; /* SC 2.5.8 minimum for anything clickable */
+
+  /* ── Layers. Native <dialog> sits in the top layer, so only the sticky
+        header, its scrim and the toast region need to be ordered here. ────── */
+  --z-header: 100;
+  --z-scrim: 200;
+  --z-drawer: 300;
+  --z-toast: 500;
+
+  /* ── Motion (decision P9: subtle, 150ms) ───────────────────────────────── */
+  --motion-fast: 100ms;
+  --motion: 150ms;
+  --motion-slow: 250ms;
+  --ease: cubic-bezier(0.2, 0.6, 0.3, 1);
+
+  --focus-width: 2px;
+  --focus-offset: 2px;
 }

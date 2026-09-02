@@ -82,26 +82,26 @@ reference screenshots.
 
 Tasks:
 
-1. `static/css/tokens.css`: colour (near-black `#0d0d0d`, gold `#c9a227`, cream `#f7f4ef`, ink,
+1. [x] `static/css/tokens.css`: colour (near-black `#0d0d0d`, gold `#c9a227`, cream `#f7f4ef`, ink,
    muted, success, danger), type scale, spacing scale, radii, shadows, container widths, z-index
    layers, transition durations. All as custom properties on `:root`.
-2. Self-host the two typefaces as subset `woff2` with `font-display: swap`: a serif display face for
+2. [x] Self-host the two typefaces as subset `woff2` with `font-display: swap`: a serif display face for
    headings, a humanist sans for body. Record the licence for each in `static/fonts/LICENCE.md`.
-3. `static/css/base.css`: reset, element defaults, focus-visible rings, `prefers-reduced-motion`
+3. [x] `static/css/base.css`: reset, element defaults, focus-visible rings, `prefers-reduced-motion`
    guard, `.container`, grid and stack utilities, `.sr-only`.
-4. `static/icons/sprite.svg`: search, account, cart, heart, close, chevrons, plus/minus, trash,
+4. [ ] `static/icons/sprite.svg`: search, account, cart, heart, close, chevrons, plus/minus, trash,
    truck, shield, leaf, headset, star, upload, check, filter, social icons.
-5. Component CSS + Jinja2 macros: button (primary/secondary/ghost, 3 sizes), form field with label,
+5. [ ] Component CSS + Jinja2 macros: button (primary/secondary/ghost, 3 sizes), form field with label,
    help and error states, badge, card, accordion, modal, drawer, toast, breadcrumb, pagination,
    quantity stepper, price display (MRP strike-through + percentage off), swatch, star rating,
    empty state, skeleton.
-6. `templates/jinja2/_partials/header.html`: logo, five nav items plus CUSTOMISE, search trigger,
+6. [ ] `templates/jinja2/_partials/header.html`: logo, five nav items plus CUSTOMISE, search trigger,
    account link, cart button with live count. Sticky, with a mobile drawer.
-7. `templates/jinja2/_partials/footer.html`: the four link columns from the screenshots (Shop,
+7. [ ] `templates/jinja2/_partials/footer.html`: the four link columns from the screenshots (Shop,
    Collections, Customer Care, About Us), newsletter form, social row, legal row.
-8. Announcement bar partial, driven by the `AnnouncementBar` model.
-9. Shared behaviours: `static/js/nav.js`, `drawer.js`, `toast.js`, `accordion.js`, `modal.js`.
-10. A `/styleguide/` page (staff-only) rendering every component in every state. This is the
+8. [ ] Announcement bar partial, driven by the `AnnouncementBar` model.
+9. [ ] Shared behaviours: `static/js/nav.js`, `drawer.js`, `toast.js`, `accordion.js`, `modal.js`.
+10. [ ] A `/styleguide/` page (staff-only) rendering every component in every state. This is the
     regression surface for CSS work and the reference for the back-office pages.
 
 **Done when:** the styleguide renders correctly at 360 / 768 / 1280 px, keyboard focus is visible
