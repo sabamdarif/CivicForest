@@ -1,0 +1,5 @@
+{# Every icon is decorative: an icon-only control gets its name from aria-label on the
+   control itself, never from the svg. #}
+{% macro icon(name, size=20, cls="") -%}
+  <svg class="icon{% if cls %} {{ cls }}{% endif %}" width="{{ size }}" height="{{ size }}" aria-hidden="true" focusable="false"><use href="#i-{{ name }}"></use></svg>
+{%- endmacro %}

@@ -40,7 +40,6 @@ CivicForest/
 ├── static/
 │   ├── css/                       # tokens.css, base.css, and one sheet per page area
 │   ├── js/                        # one ES module per interactive feature
-│   ├── icons/sprite.svg
 │   └── fonts/                     # self-hosted woff2 subsets
 ├── designs/                       # reference screenshots (unchanged)
 └── rebuild/                       # these documents
@@ -380,8 +379,8 @@ and tells the customer so if JavaScript is unavailable.
 
 | Group | Templates |
 |---|---|
-| Shell | `base.html`, `_partials/{header,footer,announcement,nav_drawer,search_overlay,cart_drawer,toast,cookie_banner,breadcrumbs,pagination,trust_strip}.html` |
-| Macros | `_macros/{button,field,card,badge,price,swatch,rating,accordion,modal,stepper,empty}.html` |
+| Shell | `base.html`, `_partials/{header,footer,announcement,nav_drawer,icons,search_overlay,cart_drawer,toast,cookie_banner,trust_strip}.html` |
+| Macros | `_macros/{icon,button,field,card,badge,price,swatch,rating,accordion,modal,stepper,empty,breadcrumbs,pagination}.html` |
 | Storefront | `home.html`, `shop/{list,_grid,_filters,_sort,_filter_drawer}.html`, `collections/{index,detail}.html`, `product/{detail,_gallery,_buy_panel,_accordions,_size_chart,_related}.html`, `search/{results,_zero}.html` |
 | Custom line | `customise/{landing,designer,_blank_card,_upload_panel,_placement_tabs}.html` |
 | Cart & checkout | `cart/{page,_lines,_summary,_coupon,_progress}.html`, `checkout/{page,_address,_summary,complete}.html` |

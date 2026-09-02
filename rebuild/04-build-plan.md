@@ -89,8 +89,9 @@ Tasks:
    headings, a humanist sans for body. Record the licence for each in `static/fonts/LICENCE.md`.
 3. [x] `static/css/base.css`: reset, element defaults, focus-visible rings, `prefers-reduced-motion`
    guard, `.container`, grid and stack utilities, `.sr-only`.
-4. [ ] `static/icons/sprite.svg`: search, account, cart, heart, close, chevrons, plus/minus, trash,
-   truck, shield, leaf, headset, star, upload, check, filter, social icons.
+4. [x] `templates/jinja2/_partials/icons.html`, the sprite inlined once per page because an external
+   `<use href>` only resolves same-origin: search, account, cart, heart, close, chevrons,
+   plus/minus, trash, truck, shield, leaf, headset, star, upload, check, filter, social icons.
 5. [ ] Component CSS + Jinja2 macros: button (primary/secondary/ghost, 3 sizes), form field with label,
    help and error states, badge, card, accordion, modal, drawer, toast, breadcrumb, pagination,
    quantity stepper, price display (MRP strike-through + percentage off), swatch, star rating,
