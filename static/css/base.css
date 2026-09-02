@@ -200,8 +200,10 @@ textarea {
   }
 }
 
-/* Paint lives on each <symbol> in the sprite, so this is sizing only. */
+/* Paint lives on each <symbol> in the sprite, so this is sizing only. inline-block, not the
+   block the svg reset gives every other svg: a row of icons has to flow as text. */
 .icon {
+  display: inline-block;
   flex: none;
   vertical-align: middle;
 }

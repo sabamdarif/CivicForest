@@ -13,7 +13,8 @@
   font-size: var(--step-3);
 }
 
-.sg-section h3 {
+/* Direct children only: a component's own h3, like a product card's name, is not a label. */
+.sg-section > h3 {
   margin-block: var(--space-5) var(--space-3);
   font-family: var(--font-body);
   font-size: var(--step--1);
