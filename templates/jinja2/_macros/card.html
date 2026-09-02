@@ -1,0 +1,44 @@
+{# card() is the generic surface: a bordered panel with an optional heading. Use
+   {% call %} for its body. product_card() takes scalars, never a model, so the shop grid
+   and the styleguide render the same markup. #}
+{% from "_macros/badge.html" import badge %}
+{% from "_macros/button.html" import icon_button %}
+{% from "_macros/price.html" import price %}
+{% from "_macros/swatch.html" import swatch %}
+
+{% macro card(title="", variant="") -%}
+  <div class="card{{ ' card--' ~ variant if variant else '' }}">
+    {%- if title %}<h2 class="card__title">{{ title }}</h2>{% endif %}
+    {{ caller() }}
+  </div>
+{%- endmacro %}
+
+{# badges: (label, variant) pairs. colours: hex strings for the swatch row. #}
+{% macro product_card(name, href, image, amount, alt="", meta="", mrp=None, badges=[],
+                      colours=[], wishlist=True, loading="lazy") -%}
+  <article class="product-card">
+    <div class="product-card__media">
+      <img src="{{ image }}" alt="{{ alt or name }}" width="600" height="800" loading="{{ loading }}">
+      {%- if badges %}
+        <div class="product-card__badges">
+          {%- for label, variant in badges %}{{ badge(label, variant) }}{% endfor %}
+        </div>
+      {%- endif %}
+      {%- if wishlist %}
+        <div class="product-card__wish">
+          {{ icon_button("heart", "Save " ~ name ~ " to your wishlist", variant="paper") }}
+        </div>
+      {%- endif %}
+    </div>
+    <div class="product-card__body">
+      <h3 class="product-card__name"><a href="{{ href }}">{{ name }}</a></h3>
+      {%- if meta %}<p class="product-card__meta">{{ meta }}</p>{% endif %}
+      {{ price(amount, mrp) }}
+      {%- if colours %}
+        <ul class="swatches" aria-label="Colours available">
+          {%- for hex, label in colours %}<li>{{ swatch(hex, label) }}</li>{% endfor %}
+        </ul>
+      {%- endif %}
+    </div>
+  </article>
+{%- endmacro %}

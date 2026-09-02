@@ -10,6 +10,8 @@ from django.urls import reverse
 from django.utils import timezone
 from jinja2 import Environment, FileSystemBytecodeCache
 
+from apps.common.formatting import pct_off, rupees
+
 
 def environment(**options):
     # /tmp is the only writable path on Vercel and it survives inside a warm instance,
@@ -21,6 +23,12 @@ def environment(**options):
             "static": static,
             "url": reverse,
             "now": timezone.localtime,
+        }
+    )
+    env.filters.update(
+        {
+            "rupees": rupees,
+            "pct_off": pct_off,
         }
     )
     return env

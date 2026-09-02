@@ -1,0 +1,871 @@
+/* The component layer: everything a page composes from, in one sheet.
+
+   Every component here is markup-only where the platform allows it, so the accordion is
+   <details>, the modal and drawer are <dialog>, and none of them need JavaScript to be
+   usable. Colour comes from tokens.css, which is where the contrast rules are recorded. */
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 3rem;
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--step--1);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition:
+    background-color var(--motion) var(--ease),
+    color var(--motion) var(--ease),
+    border-color var(--motion) var(--ease);
+
+  &:disabled,
+  &[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn--primary {
+  background: var(--ink);
+  color: var(--cream);
+
+  &:hover:not(:disabled) {
+    background: var(--ink-soft);
+  }
+}
+
+.btn--gold {
+  background: var(--gold);
+  color: var(--ink);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--gold) 88%, white);
+  }
+}
+
+.btn--secondary {
+  border-color: var(--line-strong);
+  background: var(--paper);
+  color: var(--ink);
+
+  &:hover:not(:disabled) {
+    border-color: var(--ink);
+    background: var(--cream);
+  }
+}
+
+.btn--ghost {
+  min-height: auto;
+  padding: var(--space-1) 0;
+  color: var(--gold-deep);
+
+  &:hover:not(:disabled) {
+    color: var(--ink);
+  }
+}
+
+/* Dark surfaces: the outline variant needs light borders and text to stay legible. */
+.on-dark .btn--secondary {
+  border-color: var(--muted-on-dark);
+  background: transparent;
+  color: var(--cream);
+
+  &:hover:not(:disabled) {
+    border-color: var(--gold);
+    background: transparent;
+    color: var(--gold);
+  }
+}
+
+.on-dark .btn--ghost {
+  color: var(--gold);
+}
+
+.btn--sm {
+  min-height: 2.25rem;
+  padding-inline: var(--space-4);
+  font-size: var(--step--2);
+}
+
+.btn--lg {
+  min-height: 3.5rem;
+  padding-inline: var(--space-6);
+  font-size: var(--step-0);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* Loading: the label stays in place so the button does not change width. */
+.btn[aria-busy="true"] {
+  pointer-events: none;
+
+  & .btn__spinner {
+    display: block;
+  }
+}
+
+.btn__spinner {
+  display: none;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentcolor;
+  border-top-color: transparent;
+  border-radius: var(--radius-pill);
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* An icon-only control. Its accessible name comes from aria-label on the control. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-pill);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--motion) var(--ease);
+
+  &:hover {
+    background: rgb(13 13 13 / 6%);
+  }
+}
+
+.on-dark .icon-btn:hover {
+  background: rgb(255 255 255 / 10%);
+}
+
+.icon-btn--sm {
+  width: 2rem;
+  height: 2rem;
+}
+
+.icon-btn--paper {
+  background: var(--paper);
+  box-shadow: var(--shadow-1);
+
+  &:hover {
+    background: var(--cream);
+  }
+}
+
+/* ── Form fields ──────────────────────────────────────────────────────────── */
+.field {
+  display: block;
+}
+
+.field + .field {
+  margin-block-start: var(--space-4);
+}
+
+.field__label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--step--1);
+  font-weight: var(--weight-semibold);
+}
+
+.field__required {
+  color: var(--danger);
+}
+
+.field__control {
+  width: 100%;
+  min-height: 3rem;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+
+  &::placeholder {
+    color: var(--muted);
+  }
+
+  &:disabled {
+    background: var(--cream-deep);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+
+  &[aria-invalid="true"] {
+    border-color: var(--danger);
+  }
+}
+
+textarea.field__control {
+  min-height: 8rem;
+  padding-block: var(--space-3);
+}
+
+select.field__control {
+  appearance: none;
+  padding-inline-end: var(--space-7);
+}
+
+/* The chevron sits behind the select as a sibling so the sprite stays the only icon
+   source: pointer-events off, or it would swallow the click. */
+.field__select {
+  position: relative;
+
+  & .field__chevron {
+    position: absolute;
+    top: 50%;
+    right: var(--space-4);
+    translate: 0 -50%;
+    pointer-events: none;
+  }
+}
+
+.field__hint,
+.field__error {
+  margin-block-start: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.field__hint {
+  color: var(--muted);
+}
+
+.field__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--danger);
+  font-weight: var(--weight-medium);
+}
+
+/* A leading icon inside the control, as the login and contact screens use. */
+.field__wrap {
+  position: relative;
+
+  & .field__icon {
+    position: absolute;
+    top: 50%;
+    left: var(--space-4);
+    translate: 0 -50%;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  & .field__control {
+    padding-inline-start: calc(var(--space-4) * 2 + 1.25rem);
+  }
+}
+
+/* Checkbox and radio stay native: accent-color styles them without losing semantics,
+   focus behaviour or the indeterminate state. Every consent box ships unticked (J9). */
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--step--1);
+  line-height: var(--leading-snug);
+  cursor: pointer;
+}
+
+.check__input {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+/* ── Badges ───────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--cream);
+  font-size: var(--step--2);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.badge--new {
+  background: var(--success);
+  color: var(--paper);
+}
+
+.badge--sale {
+  background: var(--sale);
+  color: var(--paper);
+}
+
+.badge--bestseller {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.badge--quiet {
+  background: var(--cream-deep);
+  color: var(--muted);
+}
+
+/* ── Cards ────────────────────────────────────────────────────────────────── */
+.card {
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.card--flat {
+  border: 0;
+  background: var(--cream-deep);
+}
+
+.card__title {
+  margin-bottom: var(--space-4);
+  font-size: var(--step-2);
+}
+
+/* ── Product card ─────────────────────────────────────────────────────────── */
+.product-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card__media {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--cream-deep);
+
+  & img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: scale var(--motion-slow) var(--ease);
+  }
+}
+
+.product-card:hover .product-card__media img {
+  scale: 1.03;
+}
+
+.product-card__badges {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: flex-start;
+}
+
+.product-card__wish {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+
+  /* Above the name link's ::after, which covers the card to make it one hit area. */
+  z-index: 1;
+}
+
+.product-card__body {
+  padding-block-start: var(--space-3);
+}
+
+.product-card__name {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+
+  & a {
+    text-decoration: none;
+
+    /* The whole card is the hit area, but only the name is the link. */
+    &::after {
+      position: absolute;
+      inset: 0;
+      content: "";
+    }
+  }
+}
+
+.product-card__meta {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+/* ── Price ────────────────────────────────────────────────────────────────── */
+.price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.price__now {
+  font-weight: var(--weight-semibold);
+}
+
+.price--sale .price__now {
+  color: var(--sale);
+}
+
+.price__mrp {
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.price__off {
+  color: var(--success);
+  font-size: var(--step--1);
+  font-weight: var(--weight-semibold);
+}
+
+.price--lg {
+  font-size: var(--step-3);
+
+  & .price__now {
+    font-family: var(--font-display);
+  }
+}
+
+/* ── Swatches ─────────────────────────────────────────────────────────────── */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.swatch {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+}
+
+.swatch--lg {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Selected reads as a ring rather than a colour change, so it survives any swatch hue. */
+.swatch[aria-pressed="true"],
+.swatch--selected {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.swatch--out {
+  opacity: 0.45;
+
+  /* A struck-through swatch says "gone" without relying on colour alone. */
+  background-image: linear-gradient(
+    to top left,
+    transparent calc(50% - 1px),
+    var(--ink) calc(50% - 1px),
+    var(--ink) calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+}
+
+/* ── Quantity stepper ─────────────────────────────────────────────────────── */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.stepper__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--ink);
+
+  &:disabled {
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+}
+
+.stepper__input {
+  width: 2.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+
+  /* The stepper buttons are the control; native spinners would duplicate them. */
+  appearance: textfield;
+
+  &::-webkit-inner-spin-button {
+    appearance: none;
+  }
+}
+
+/* ── Star rating ──────────────────────────────────────────────────────────── */
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--gold-deep);
+}
+
+.rating__count {
+  margin-inline-start: var(--space-2);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+/* ── Breadcrumbs ──────────────────────────────────────────────────────────── */
+.breadcrumbs {
+  font-size: var(--step--1);
+}
+
+.breadcrumbs__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.breadcrumbs__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+}
+
+.breadcrumbs__sep {
+  color: var(--line-strong);
+}
+
+.on-dark .breadcrumbs__item {
+  color: var(--muted-on-dark);
+}
+
+/* ── Pagination ───────────────────────────────────────────────────────────── */
+.pagination__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.pagination__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding-inline: var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+
+  &:hover {
+    border-color: var(--ink);
+  }
+
+  &[aria-current="page"] {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--cream);
+  }
+}
+
+.pagination__link--disabled {
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.pagination__gap {
+  color: var(--muted);
+}
+
+/* ── Accordion, native <details> ──────────────────────────────────────────── */
+.accordion {
+  border-bottom: 1px solid var(--line);
+}
+
+.accordion__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.accordion__body {
+  padding-block-end: var(--space-4);
+  color: var(--muted);
+}
+
+/* The plus becomes a minus when open, with no JavaScript involved. */
+.accordion .accordion__minus,
+.accordion[open] .accordion__plus {
+  display: none;
+}
+
+.accordion[open] .accordion__minus {
+  display: block;
+}
+
+/* ── Dialogs: modal and drawer ────────────────────────────────────────────── */
+.modal,
+.drawer {
+  padding: 0;
+  border: 0;
+  background: var(--paper);
+  color: var(--ink);
+
+  &::backdrop {
+    background: var(--scrim);
+  }
+}
+
+.modal {
+  width: min(32rem, calc(100vw - var(--space-6)));
+  max-height: calc(100dvh - var(--space-6));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+}
+
+/* A side sheet: full height, pinned to one edge, sliding in from it. */
+.drawer {
+  width: min(24rem, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0 0 0 auto;
+  translate: 100% 0;
+  transition:
+    translate var(--motion-slow) var(--ease),
+    display var(--motion-slow) allow-discrete,
+    overlay var(--motion-slow) allow-discrete;
+
+  &[open] {
+    translate: 0 0;
+  }
+
+  /* Entry needs the pre-open value declared, or the first frame is already in place. */
+  @starting-style {
+    &[open] {
+      translate: 100% 0;
+    }
+  }
+}
+
+.drawer--left {
+  margin-inline: 0 auto;
+  translate: -100% 0;
+
+  @starting-style {
+    &[open] {
+      translate: -100% 0;
+    }
+  }
+}
+
+.dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--line);
+}
+
+.dialog__title {
+  margin: 0;
+  font-size: var(--step-2);
+}
+
+.dialog__body {
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+
+.dialog__foot {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--line);
+}
+
+/* ── Toasts ───────────────────────────────────────────────────────────────── */
+.toast-region {
+  position: fixed;
+  z-index: var(--z-toast);
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(22rem, calc(100vw - var(--space-8)));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow-2);
+  font-size: var(--step--1);
+  pointer-events: auto;
+  animation: toast-in var(--motion-slow) var(--ease);
+}
+
+.toast--success {
+  border-left-color: var(--success);
+
+  & .toast__icon {
+    color: var(--success);
+  }
+}
+
+.toast--error {
+  border-left-color: var(--danger);
+
+  & .toast__icon {
+    color: var(--danger);
+  }
+}
+
+.toast__body {
+  flex: 1;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--space-3);
+  }
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+.empty {
+  padding-block: var(--space-8);
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty__icon {
+  margin-inline: auto;
+  color: var(--line-strong);
+}
+
+.empty__title {
+  margin-block: var(--space-4) var(--space-2);
+  color: var(--ink);
+  font-size: var(--step-2);
+}
+
+/* ── Skeleton ─────────────────────────────────────────────────────────────── */
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--cream-deep), var(--line), var(--cream-deep));
+  background-size: 200% 100%;
+  animation: skeleton 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ── Section furniture ────────────────────────────────────────────────────── */
+.eyebrow {
+  margin-bottom: var(--space-2);
+  color: var(--gold-deep);
+  font-size: var(--step--1);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+
+.on-dark .eyebrow {
+  color: var(--gold);
+}
+
+.section-head {
+  margin-bottom: var(--space-6);
+}
+
+.section-head--center {
+  text-align: center;
+
+  & .divider {
+    justify-content: center;
+  }
+}
+
+/* The gold rule with a leaf at its centre, under nearly every heading in the designs. */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--gold-deep);
+}
+
+.divider::before,
+.divider::after {
+  width: var(--space-8);
+  height: 1px;
+  background: currentcolor;
+  content: "";
+}
+
+.on-dark .divider {
+  color: var(--gold);
+}

@@ -1,0 +1,12 @@
+{# Prices are tax-inclusive everywhere (C3), and the percentage off is derived, never
+   stored (C2). Pass mrp only when it is genuinely higher than the selling price. #}
+{% macro price(amount, mrp=None, size="") -%}
+  {%- set off = amount|pct_off(mrp) -%}
+  <p class="price{{ ' price--sale' if off else '' }}{{ ' price--' ~ size if size else '' }}">
+    <span class="price__now">{{ amount|rupees }}</span>
+    {%- if off %}
+      <s class="price__mrp">{{ mrp|rupees }}</s>
+      <span class="price__off">{{ off }}% off</span>
+    {%- endif %}
+  </p>
+{%- endmacro %}

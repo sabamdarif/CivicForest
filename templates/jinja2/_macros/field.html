@@ -1,0 +1,73 @@
+{# Form controls. Every field gets a real <label>, and hint and error text are wired to the
+   control with aria-describedby, so a screen reader hears why a value was rejected. #}
+{% from "_macros/icon.html" import icon %}
+{% from "_macros/util.html" import attr %}
+
+{% macro _described_by(id, hint, error) -%}
+  {%- set ids = [] -%}
+  {%- if hint %}{% set ids = ids + [id ~ "-hint"] %}{% endif -%}
+  {%- if error %}{% set ids = ids + [id ~ "-error"] %}{% endif -%}
+  {%- if ids %} aria-describedby="{{ ids|join(' ') }}"{% endif -%}
+{%- endmacro %}
+
+{% macro _messages(id, hint, error) -%}
+  {%- if hint %}<p class="field__hint" id="{{ id }}-hint">{{ hint }}</p>{% endif -%}
+  {%- if error %}
+    <p class="field__error" id="{{ id }}-error">{{ icon("alert", 16) }}{{ error }}</p>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro field(name, label, type="text", value="", hint="", error="", required=False,
+               placeholder="", icon_start="", id="", attrs={}) -%}
+  {%- set fid = id or "id-" ~ name -%}
+  <div class="field">
+    <label class="field__label" for="{{ fid }}">
+      {{ label }}{% if required %} <span class="field__required" aria-hidden="true">*</span>{% endif %}
+    </label>
+    <div class="{{ 'field__wrap' if icon_start else '' }}">
+      {%- if icon_start %}<span class="field__icon">{{ icon(icon_start, 18) }}</span>{% endif -%}
+      {%- if type == "textarea" -%}
+        <textarea class="field__control" id="{{ fid }}" name="{{ name }}"
+          {%- if required %} required{% endif %}{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}
+          {%- if error %} aria-invalid="true"{% endif %}{{ _described_by(fid, hint, error) }}{{ attr(attrs) }}>{{ value }}</textarea>
+      {%- else -%}
+        <input class="field__control" id="{{ fid }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"
+          {%- if required %} required{% endif %}{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}
+          {%- if error %} aria-invalid="true"{% endif %}{{ _described_by(fid, hint, error) }}{{ attr(attrs) }}>
+      {%- endif -%}
+    </div>
+    {{ _messages(fid, hint, error) }}
+  </div>
+{%- endmacro %}
+
+{# options: a list of (value, label) pairs. #}
+{% macro select(name, label, options, value="", hint="", error="", required=False, id="",
+                attrs={}) -%}
+  {%- set fid = id or "id-" ~ name -%}
+  <div class="field">
+    <label class="field__label" for="{{ fid }}">
+      {{ label }}{% if required %} <span class="field__required" aria-hidden="true">*</span>{% endif %}
+    </label>
+    <div class="field__select">
+      <select class="field__control" id="{{ fid }}" name="{{ name }}"
+        {%- if required %} required{% endif %}{% if error %} aria-invalid="true"{% endif %}
+        {{- _described_by(fid, hint, error) }}{{ attr(attrs) }}>
+        {%- for opt_value, opt_label in options %}
+          <option value="{{ opt_value }}"{% if opt_value == value %} selected{% endif %}>{{ opt_label }}</option>
+        {%- endfor %}
+      </select>
+      <span class="field__chevron">{{ icon("chevron-down", 18) }}</span>
+    </div>
+    {{ _messages(fid, hint, error) }}
+  </div>
+{%- endmacro %}
+
+{# Consent boxes ship unticked (J9): checked has to be asked for, every time. #}
+{% macro checkbox(name, label, value="1", checked=False, type="checkbox", id="", attrs={}) -%}
+  {%- set fid = id or "id-" ~ name -%}
+  <label class="check" for="{{ fid }}">
+    <input class="check__input" id="{{ fid }}" type="{{ type }}" name="{{ name }}"
+      value="{{ value }}"{% if checked %} checked{% endif %}{{ attr(attrs) }}>
+    <span>{{ label }}</span>
+  </label>
+{%- endmacro %}

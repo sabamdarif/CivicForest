@@ -1,0 +1,37 @@
+{# Pass href for a link, leave it out for a form control: an <a> that posts and a
+   <button> that navigates are both wrong, and no CSS class can fix either. #}
+{% from "_macros/icon.html" import icon %}
+{% from "_macros/util.html" import attr %}
+
+{% macro _label(text, icon_start, icon_end, busy) -%}
+  {%- if busy %}<span class="btn__spinner"></span>{% endif -%}
+  {%- if icon_start %}{{ icon(icon_start, 18) }}{% endif -%}
+  <span>{{ text }}</span>
+  {%- if icon_end %}{{ icon(icon_end, 18) }}{% endif -%}
+{%- endmacro %}
+
+{% macro button(label, variant="primary", size="", href="", type="button",
+                icon_start="", icon_end="", disabled=False, busy=False, block=False,
+                attrs={}) -%}
+  {%- set css = "btn btn--" ~ variant ~ (" btn--" ~ size if size else "") ~ (" btn--block" if block else "") -%}
+  {%- if href -%}
+    <a class="{{ css }}" href="{{ href }}"{% if disabled %} aria-disabled="true"{% endif %}{{ attr(attrs) }}>
+      {{- _label(label, icon_start, icon_end, False) -}}
+    </a>
+  {%- else -%}
+    <button class="{{ css }}" type="{{ type }}"{% if disabled %} disabled{% endif %}{% if busy %} aria-busy="true"{% endif %}{{ attr(attrs) }}>
+      {{- _label(label, icon_start, icon_end, busy) -}}
+    </button>
+  {%- endif -%}
+{%- endmacro %}
+
+{# An icon-only control. label is required: it becomes the accessible name, because a
+   sighted-only icon is not a name. #}
+{% macro icon_button(name, label, href="", size=20, variant="", type="button", attrs={}) -%}
+  {%- set css = "icon-btn" ~ (" icon-btn--" ~ variant if variant else "") -%}
+  {%- if href -%}
+    <a class="{{ css }}" href="{{ href }}" aria-label="{{ label }}"{{ attr(attrs) }}>{{ icon(name, size) }}</a>
+  {%- else -%}
+    <button class="{{ css }}" type="{{ type }}" aria-label="{{ label }}"{{ attr(attrs) }}>{{ icon(name, size) }}</button>
+  {%- endif -%}
+{%- endmacro %}

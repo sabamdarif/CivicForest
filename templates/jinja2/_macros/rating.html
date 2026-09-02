@@ -1,0 +1,18 @@
+{# Stars are decoration over one number, so the number is what a screen reader gets. Half
+   stars are deliberately absent: the average rounds down to whole stars and the exact
+   figure is printed beside them. #}
+{% from "_macros/icon.html" import icon %}
+
+{% macro rating(value, count=None, size=16) -%}
+  <span class="rating">
+    <span aria-hidden="true">
+      {%- for n in range(1, 6) -%}
+        {{ icon("star-filled" if n <= value|round(0, "floor")|int else "star", size) }}
+      {%- endfor -%}
+    </span>
+    <span class="sr-only">Rated {{ value }} out of 5</span>
+    {%- if count is not none %}
+      <span class="rating__count">({{ count }})</span>
+    {%- endif %}
+  </span>
+{%- endmacro %}

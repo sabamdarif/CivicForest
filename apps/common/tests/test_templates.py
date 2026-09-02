@@ -8,7 +8,7 @@ define fails here, because the test settings use StrictUndefined.
 from django.template.loader import get_template
 from django.test import Client
 
-STYLESHEETS = ("css/tokens.css", "css/base.css")
+STYLESHEETS = ("css/tokens.css", "css/base.css", "css/components.css")
 
 
 def test_home_renders_through_the_jinja2_engine():

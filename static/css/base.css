@@ -286,15 +286,6 @@ textarea {
   font-size: var(--step--1);
 }
 
-.eyebrow {
-  margin-bottom: var(--space-2);
-  color: var(--gold-deep);
-  font-size: var(--step--1);
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-wider);
-  text-transform: uppercase;
-}
-
 .hero {
   max-width: 40rem;
   padding-block: var(--space-8);

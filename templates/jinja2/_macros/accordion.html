@@ -1,0 +1,14 @@
+{# Native <details>, so it opens, closes and takes keyboard focus with no JavaScript.
+   Pass the same group to several accordions and the browser keeps one open at a time. #}
+{% from "_macros/icon.html" import icon %}
+
+{% macro accordion(title, group="", open=False) -%}
+  <details class="accordion"{% if group %} name="{{ group }}"{% endif %}{% if open %} open{% endif %}>
+    <summary class="accordion__summary">
+      <span>{{ title }}</span>
+      <span class="accordion__plus">{{ icon("plus", 18) }}</span>
+      <span class="accordion__minus">{{ icon("minus", 18) }}</span>
+    </summary>
+    <div class="accordion__body">{{ caller() }}</div>
+  </details>
+{%- endmacro %}

@@ -9,6 +9,7 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from apps.catalog.models import ProductVariant
+from apps.common.formatting import rupees
 from apps.custom_orders.models import CustomDesignOrder
 from apps.orders.models import Order
 
@@ -22,10 +23,6 @@ REVENUE_STATUSES = [
     Order.Status.DELIVERED,
 ]
 LOW_STOCK_THRESHOLD = 5
-
-
-def _inr(value) -> str:
-    return f"₹{value:,.0f}"
 
 
 @register.inclusion_tag("admin/dashboard.html")
@@ -69,10 +66,13 @@ def admin_dashboard():
 
     return {
         "tiles": [
-            ("Revenue, last 30 days", _inr(revenue_30d)),
-            ("Revenue today", _inr(today_row.get("revenue") or 0)),
+            ("Revenue, last 30 days", rupees(revenue_30d, decimals=0)),
+            ("Revenue today", rupees(today_row.get("revenue") or 0, decimals=0)),
             ("Orders, last 30 days", f"{orders_30d:,}"),
-            ("Avg order value", _inr(revenue_30d / orders_30d) if orders_30d else "—"),
+            (
+                "Avg order value",
+                rupees(revenue_30d / orders_30d, decimals=0) if orders_30d else "no orders",
+            ),
             ("Awaiting fulfilment", f"{awaiting:,}"),
             ("Designs flagged for review", f"{flagged:,}"),
         ],

@@ -1,0 +1,26 @@
+{# Both are native <dialog>, which is where the focus trap, the inert page behind, the
+   backdrop and Escape-to-close come from. modal.js and drawer.js only open and close them,
+   so nothing here reimplements what the element already does. #}
+{% from "_macros/button.html" import icon_button %}
+
+{% macro _shell(id, title, css, close_label) -%}
+  <dialog class="{{ css }}" id="{{ id }}" aria-labelledby="{{ id }}-title">
+    <div class="dialog__head">
+      <h2 class="dialog__title" id="{{ id }}-title">{{ title }}</h2>
+      {{ icon_button("close", close_label, attrs={"data-dialog-close": id}) }}
+    </div>
+    <div class="dialog__body">{{ caller() }}</div>
+  </dialog>
+{%- endmacro %}
+
+{% macro modal(id, title, close_label="Close") -%}
+  {# caller() is captured first: inside the nested call block it would rebind to _shell. #}
+  {%- set body = caller() -%}
+  {%- call _shell(id, title, "modal", close_label) %}{{ body }}{% endcall -%}
+{%- endmacro %}
+
+{% macro drawer(id, title, side="right", close_label="Close") -%}
+  {%- set body = caller() -%}
+  {%- set css = "drawer" ~ (" drawer--left" if side == "left" else "") -%}
+  {%- call _shell(id, title, css, close_label) %}{{ body }}{% endcall -%}
+{%- endmacro %}
