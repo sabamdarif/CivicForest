@@ -5,10 +5,20 @@ logic is reused by every view and admin action: the "fat services, thin views" r
 from plan.md §3.
 """
 
+import io
+from pathlib import PurePosixPath
+
+from django.core.files.base import ContentFile
 from django.db.models import F, Min, Prefetch, Q, QuerySet
 from django.db.models.functions import Coalesce
+from PIL import Image as PILImage
+from PIL import ImageOps
 
-from .models import Category, Material, Product, ProductVariant, Size
+from .models import Category, Material, Product, ProductImage, ProductVariant, Size
+
+# P8 wants three widths. WebP only: it has been universal since 2020, so an AVIF and a JPEG
+# alongside it would triple the storage and the upload time for nothing.
+IMAGE_WIDTHS = (400, 800, 1600)
 
 
 def active_products() -> QuerySet[Product]:
@@ -87,3 +97,48 @@ def new_arrivals(limit: int = 8) -> QuerySet[Product]:
 
 def bestsellers(limit: int = 8) -> QuerySet[Product]:
     return active_products().filter(is_bestseller=True)[:limit]
+
+
+def build_image_widths(image: ProductImage) -> dict[str, str]:
+    """Write the WebP derivatives beside the original and record their storage keys.
+
+    Inline rather than deferred: §7's job system is not built, and a staff member adding a
+    handful of photos is not a request worth queueing. Never upscales, so a 900px original
+    yields 400 and 800 only and srcset can never promise a file that does not exist.
+    """
+    field = image.image
+    if not field:
+        return {}
+
+    with field.open("rb") as handle:
+        original = ImageOps.exif_transpose(PILImage.open(handle)).convert("RGB")
+    stem = PurePosixPath(field.name).with_suffix("")
+    targets = [width for width in IMAGE_WIDTHS if width <= original.width] or [original.width]
+
+    keys: dict[str, str] = {}
+    for target in targets:
+        derivative = original.copy()
+        derivative.thumbnail((target, original.height), PILImage.LANCZOS)
+        buffer = io.BytesIO()
+        derivative.save(buffer, format="WEBP", quality=82, method=6)
+        # Deterministic key, deleted first: re-running converges instead of piling up
+        # storage-suffixed duplicates.
+        key = f"{stem}.{target}.webp"
+        if field.storage.exists(key):
+            field.storage.delete(key)
+        keys[str(target)] = field.storage.save(key, ContentFile(buffer.getvalue()))
+
+    image.width_variants = keys
+    image.save(update_fields=["width_variants", "updated_at"])
+    return keys
+
+
+def srcset(image: ProductImage) -> str:
+    """``url 400w, url 800w`` from the recorded derivatives, empty when there are none."""
+    if not image.width_variants:
+        return ""
+    storage = image.image.storage
+    return ", ".join(
+        f"{storage.url(key)} {width}w"
+        for width, key in sorted(image.width_variants.items(), key=lambda pair: int(pair[0]))
+    )

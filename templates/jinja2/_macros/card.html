@@ -13,12 +13,14 @@
   </div>
 {%- endmacro %}
 
-{# badges: (label, variant) pairs. colours: hex strings for the swatch row. #}
+{# badges: (label, variant) pairs. colours: hex strings for the swatch row. Pass srcset with
+   the sizes the grid actually renders at, or the browser assumes the full viewport (P8). #}
 {% macro product_card(name, href, image, amount, alt="", meta="", mrp=None, badges=[],
-                      colours=[], wishlist=True, loading="lazy") -%}
+                      colours=[], wishlist=True, loading="lazy", srcset="", sizes="") -%}
   <article class="product-card">
     <div class="product-card__media">
-      <img src="{{ image }}" alt="{{ alt or name }}" width="600" height="800" loading="{{ loading }}">
+      <img src="{{ image }}" alt="{{ alt or name }}" width="600" height="800" loading="{{ loading }}"
+        {%- if srcset %} srcset="{{ srcset }}"{% endif %}{% if sizes %} sizes="{{ sizes }}"{% endif %}>
       {%- if badges %}
         <div class="product-card__badges">
           {%- for label, variant in badges %}{{ badge(label, variant) }}{% endfor %}

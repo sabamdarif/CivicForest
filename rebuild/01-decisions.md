@@ -290,7 +290,7 @@ change until the milestone that builds them begins.
 | P5 | JS-driven interactions | cart drawer · search overlay · filters · gallery zoom · variant picker · accordions · mobile nav · size-chart modal · design tool · pincode check · toasts · quantity steppers |
 | P6 | No-JS baseline | Browse, filter, sort, paginate, add to cart and check out **all work without JavaScript**, forms post normally and re-render | The design tool is the one exception and says so |
 | P7 | Icons | One inline SVG sprite | |
-| P8 | Images | `srcset` with three widths, `loading="lazy"` below the fold, AVIF and WebP with JPEG fallback, explicit dimensions to prevent layout shift | |
+| P8 | Images | `srcset` with three widths, `loading="lazy"` below the fold, WebP, explicit dimensions to prevent layout shift | WebP only, no AVIF and no JPEG fallback: WebP has been universal since 2020, so nine derivatives per image would triple storage and upload time for nothing. Never upscaled, so a narrow original is offered at fewer widths |
 | P9 | Motion | Subtle, 150 ms, honours `prefers-reduced-motion` | |
 | P10 | Dark mode toggle | Out | |
 | P11 | Performance budget | LCP under 2.5 s on a throttled 4G profile, CLS under 0.1, under 50 KB JS and 60 KB CSS per page | Enforced by a check in CI |

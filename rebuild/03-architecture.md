@@ -190,7 +190,7 @@ environment globals above, each a callable that resolves lazily from the request
 | `Category` | + `image` | The shop-by-category tiles on the home page, staff-editable (O10) |
 | `Product` | + `mrp`, `country_of_origin`, `hsn_code`, `tax_rate`, `care_instructions`, `fit_notes`, `model_note`, `gsm`, `weight_grams`, `length_cm`, `width_cm`, `height_cm`, `collections` M2M | C2, C3, C10 and courier data |
 | `ProductVariant` | + `low_stock_threshold`, `qikink_sku` (blank for stock-only products) | A6 alerts, F11 mapping |
-| `ProductImage` | `image` becomes an R2 key; + `width_variants` JSON of generated widths | A1 |
+| `ProductImage` | + `width_variants` JSON of the generated widths | A1. `image` stays an `ImageField`: it already holds the storage key and resolves it through `STORAGES["default"]`, so moving the catalogue onto R2 is a settings change and never a migration |
 | `Coupon` | + `per_user_limit`, `scope_categories`, `scope_products`, `first_order_only`, `exclude_sale_items`, `starts_at`, `free_shipping` | J2. **`per_user_limit` is the gap that makes the current coupon abusable** |
 | `Order` | + `fulfilment_kind` (stock / custom / mixed), `tax_total`, `place_of_supply`, `invoice_number`, `invoice_date`, `cancelled_at`, `cancel_reason`, `rights_ack_text` | Split fulfilment, GST invoice, cancellation |
 | `OrderItem` | + `tax_rate`, `tax_amount`, `hsn_code`, `mrp_at_purchase` | Snapshotted for the invoice; tax must never be recomputed from live product data |
@@ -304,8 +304,9 @@ Two buckets, because product photography and customer artwork have opposite acce
 | `civicforest-media` | Public, behind a CDN hostname | product and collection imagery, homepage art, generated widths, static files from `collectstatic` | `products/<uuid>/<width>.webp` |
 | `civicforest-designs` | **Private**, no public read | raw customer uploads, sanitised print-ready PNGs, generated mockups | `designs/raw/<uuid>.bin`, `designs/print/<uuid>.png` |
 
-- Product images: the admin uploads once; a job generates 400 / 800 / 1600 px WebP plus a JPEG
-  fallback and records the keys. Templates ask for a width and get a CDN URL.
+- Product images: the admin uploads once, the 400 / 800 / 1600 px WebP derivatives are written
+  beside the original and their keys recorded on the row. Templates ask for a width and get a CDN
+  URL. Generated inline today, because §7's job system is not built yet.
 - Design files are **never** publicly readable. Qikink receives a presigned GET valid for 24 hours,
   long enough for them to fetch it and short enough to be useless if leaked.
 - Raw uploads are deleted once sanitisation succeeds. Only the re-encoded PNG is retained.

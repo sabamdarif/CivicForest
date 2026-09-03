@@ -21,6 +21,14 @@ def announcement():
     return current_announcement()
 
 
+def srcset(image):
+    """The generated widths of a ProductImage as a srcset value (P8). Imported inside the
+    call for the same reason as ``announcement``."""
+    from apps.catalog.services import srcset as build
+
+    return build(image)
+
+
 def environment(**options):
     # /tmp is the only writable path on Vercel and it survives inside a warm instance,
     # so compiled templates are cached there instead of recompiled per request.
@@ -38,6 +46,7 @@ def environment(**options):
         {
             "rupees": rupees,
             "pct_off": pct_off,
+            "srcset": srcset,
         }
     )
     return env

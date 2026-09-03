@@ -6,6 +6,7 @@ from django.utils.safestring import mark_safe
 
 from apps.custom_orders.uploads import UploadError, validate_product_image
 
+from . import services
 from .models import (
     Category,
     Collection,
@@ -363,24 +364,25 @@ class ProductAdmin(admin.ModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         """Turn the multi-file picker into ProductImage rows, appended after any
-        gallery rows the inline created."""
+        gallery rows the inline created, then generate every missing set of widths."""
         super().save_related(request, form, formsets, change)
-        uploads = request.FILES.getlist("gallery")
-        if not uploads:
-            return
         product = form.instance
-        start = product.images.count()
-        ProductImage.objects.bulk_create(
-            [
-                ProductImage(
-                    product=product,
-                    image=upload,
-                    alt_text=product.name,
-                    display_order=start + offset,
-                )
-                for offset, upload in enumerate(uploads)
-            ]
-        )
+        uploads = request.FILES.getlist("gallery")
+        if uploads:
+            start = product.images.count()
+            ProductImage.objects.bulk_create(
+                [
+                    ProductImage(
+                        product=product,
+                        image=upload,
+                        alt_text=product.name,
+                        display_order=start + offset,
+                    )
+                    for offset, upload in enumerate(uploads)
+                ]
+            )
+        for image in product.images.filter(width_variants={}):
+            services.build_image_widths(image)
 
 
 @admin.register(ProductVariant)
