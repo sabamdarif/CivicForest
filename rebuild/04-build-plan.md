@@ -140,8 +140,9 @@ Tasks:
    `Organization` + `WebSite` on home. `AggregateRating` is omitted rather than stubbed: it
    arrives with `apps/reviews` in M9, and an invented one is a manual action plus the kind of
    fabrication J9 forbids. Canonical URLs land here too, dropping the query string (L4).
-9. `static/js/`: `filters.js`, `gallery.js`, `variant-picker.js`, `wishlist.js`, `pincode.js`,
-   `recently-viewed.js`.
+9. [x] `static/js/`: `filters.js`, `gallery.js`, `variant-picker.js`, `wishlist.js`, `pincode.js`,
+   `recently-viewed.js`. `wishlist.js` waits for M4, which mounts the route its heart posts to,
+   and `pincode.js` for M6 with the rest of the estimate.
 10. [x] `seed_catalog` command rewritten for the new fields, using the brand imagery in
     `frontend/public/brand/`: copy those PNGs to `static/img/seed/` before deleting `frontend/`.
 11. Sitemap covering products, categories, collections and static pages.

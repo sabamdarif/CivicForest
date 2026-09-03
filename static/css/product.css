@@ -104,6 +104,27 @@
   font-size: var(--step--1);
 }
 
+/* The lightbox is built by gallery.js, so it is the one dialog with no markup in a template. */
+.lightbox {
+  width: min(60rem, 96vw);
+  max-height: 96dvh;
+  background: none;
+  box-shadow: none;
+  cursor: zoom-out;
+}
+
+.lightbox__art {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+
+/* A colour swap replaces the gallery and the panel, so the old ones fade rather than jump. */
+[data-product][aria-busy="true"] {
+  opacity: 0.65;
+  transition: opacity var(--motion) var(--ease);
+}
+
 /* ── Buy panel ────────────────────────────────────────────────────────────── */
 .buy__badges {
   display: flex;

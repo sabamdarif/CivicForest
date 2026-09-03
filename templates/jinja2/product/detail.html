@@ -16,7 +16,7 @@
     {{ breadcrumbs(trail, current) }}
   </div>
 
-  <div class="container product">
+  <div class="container product" data-product data-product-slug="{{ product.slug }}">
     <div class="product__media">
       {% include "product/_gallery.html" %}
     </div>
@@ -35,4 +35,10 @@
   {% endwith %}
 
   {% include "_partials/trust_strip.html" %}
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ static('js/gallery.js') }}"></script>
+  <script type="module" src="{{ static('js/variant-picker.js') }}"></script>
+  <script type="module" src="{{ static('js/recently-viewed.js') }}"></script>
 {% endblock %}

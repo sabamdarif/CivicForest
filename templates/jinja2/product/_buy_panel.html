@@ -11,7 +11,7 @@
 {% from "_macros/stepper.html" import stepper %}
 {% from "_macros/swatch.html" import swatch %}
 
-<div class="buy">
+<div class="buy" data-buy>
   {%- if panel.badges %}
     <div class="buy__badges">
       {%- for label, variant in panel.badges %}{{ badge(label, variant) }}{% endfor %}

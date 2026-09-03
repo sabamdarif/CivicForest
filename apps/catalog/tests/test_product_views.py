@@ -186,3 +186,22 @@ def test_the_page_costs_a_bounded_number_of_queries(client, catalogue, django_as
     # something started querying inside a loop over the variants or the gallery.
     with django_assert_num_queries(8):
         client.get("/product/plain-tee/")
+
+
+def test_the_recently_viewed_strip_is_rendered_from_the_cookie_the_browser_wrote(client, catalogue):
+    assert "Recently viewed" not in _get(client, "/product/plain-tee/")
+
+    client.cookies["cf_recent"] = "green-hoodie,graphic-tee"
+    body = _get(client, "/product/plain-tee/")
+
+    assert "Recently viewed" in body
+    assert body.index("Green Hoodie") < body.index("Graphic Tee"), "the cookie's order"
+
+
+def test_a_hostile_cookie_cannot_reach_a_query(client, catalogue):
+    client.cookies["cf_recent"] = "' OR 1=1 --,../../etc/passwd,plain-tee"
+
+    body = _get(client, "/product/green-hoodie/")
+
+    assert "Recently viewed" in body, "the one real slug still shows"
+    assert "etc/passwd" not in body
