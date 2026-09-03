@@ -137,7 +137,7 @@ Tasks:
    `Organization` + `WebSite` on home.
 9. `static/js/`: `filters.js`, `gallery.js`, `variant-picker.js`, `wishlist.js`, `pincode.js`,
    `recently-viewed.js`.
-10. `seed_catalog` command rewritten for the new fields, using the brand imagery in
+10. [x] `seed_catalog` command rewritten for the new fields, using the brand imagery in
     `frontend/public/brand/`: copy those PNGs to `static/img/seed/` before deleting `frontend/`.
 11. Sitemap covering products, categories, collections and static pages.
 
