@@ -34,8 +34,9 @@ def test_the_django_engine_shell_loads_the_same_stylesheets():
         assert sheet in rendered
 
 
+@pytest.mark.django_db
 def test_the_header_marks_the_page_you_are_on(rf):
-    # Later milestones mount /shop/ and the rest; the header links to them by path now.
+    # The SHOP submenu reads the categories, so rendering the chrome touches the database.
     rendered = get_template("_partials/header.html").render({}, rf.get("/shop/"))
 
     for path in ("/shop/", "/customise/", "/collections/", "/about/", "/contact/", "/cart/"):
@@ -43,6 +44,7 @@ def test_the_header_marks_the_page_you_are_on(rf):
     assert '<a class="nav__link" href="/shop/" aria-current="page">' in rendered
 
 
+@pytest.mark.django_db
 def test_the_cart_badge_stays_off_until_there_is_something_in_the_cart(rf):
     empty = get_template("_partials/header.html").render({}, rf.get("/"))
     filled = get_template("_partials/header.html").render({"cart_count": 3}, rf.get("/"))

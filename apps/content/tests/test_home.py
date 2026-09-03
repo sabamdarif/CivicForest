@@ -98,6 +98,7 @@ def test_a_section_link_cannot_carry_a_javascript_url():
 
 def test_the_page_costs_a_bounded_number_of_queries(client, product, django_assert_num_queries):
     # Prefetching is what keeps a grid of products off the N+1 path; if this number climbs,
-    # something started querying inside the loop.
-    with django_assert_num_queries(7):
+    # something started querying inside the loop. Two of the eight are chrome: the
+    # announcement bar and the categories in the SHOP menu.
+    with django_assert_num_queries(8):
         client.get("/")

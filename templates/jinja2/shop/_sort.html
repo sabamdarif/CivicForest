@@ -1,0 +1,12 @@
+{# The sort control (D4). Its own form, carrying the filters as hidden inputs so choosing a
+   sort with JavaScript off cannot clear them. The submit button is what makes it work without
+   JavaScript; filters.js hides it and submits on change instead. #}
+{% from "_macros/field.html" import select %}
+
+<form class="sort" method="get" action="{{ action }}" data-sort>
+  {%- for name, value in hidden %}
+    <input type="hidden" name="{{ name }}" value="{{ value }}">
+  {%- endfor %}
+  {{ select("sort", "Sort by", sort_options, value=results.sort, id="sort-by") }}
+  <button class="btn btn--secondary btn--sm sort__go" type="submit" data-js-hide>Sort</button>
+</form>

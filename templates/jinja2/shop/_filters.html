@@ -1,0 +1,68 @@
+{# The filter panel (D1, D3), rendered twice on one page: once as the desktop sidebar and once
+   inside the mobile drawer.
+
+   id_prefix is why: field(), select() and checkbox() derive an id from the field name, so
+   without it every label in the drawer would point at the sidebar's copy of the same input.
+
+   enhance marks the copy filters.js takes over. The drawer's copy is left alone, so its Apply
+   button stays visible and a submit reloads the page like it does with JavaScript off. #}
+{% from "_macros/button.html" import button %}
+{% from "_macros/field.html" import checkbox, field %}
+{% from "_macros/swatch.html" import swatch %}
+
+{% set groups = [
+  ("category", "Category"),
+  ("size", "Size"),
+  ("color", "Colour"),
+  ("material", "Material"),
+  ("collection", "Collection"),
+  ("badge", "Highlights"),
+  ("availability", "Availability"),
+] %}
+
+{% macro filter_form(facets, filters, sort, action, id_prefix, enhance=False) -%}
+  <form class="filters" method="get" action="{{ action }}"
+    {%- if enhance %} data-filters{% endif %}>
+    {# The sort travels with the filters, or applying one would reset the other. #}
+    <input type="hidden" name="sort" value="{{ sort }}">
+
+    <div class="filters__head">
+      <h2 class="filters__title">Filters</h2>
+      <a class="btn btn--ghost" href="{{ action }}"><span>Clear all</span></a>
+    </div>
+
+    {%- for group, label in groups %}
+      {%- if facets[group] %}
+        <fieldset class="filters__group">
+          <legend class="filters__legend">{{ label }}</legend>
+          <ul class="filters__list">
+            {%- for facet in facets[group] %}
+              {%- set text = facet.label ~ " (" ~ facet.count ~ ")" %}
+              <li>
+                {{ checkbox(group, (swatch(facet.swatch, facet.label) ~ text) if facet.swatch else text,
+                            value=facet.value, checked=facet.selected,
+                            id=id_prefix ~ "-" ~ group ~ "-" ~ loop.index0) }}
+              </li>
+            {%- endfor %}
+          </ul>
+        </fieldset>
+      {%- endif %}
+    {%- endfor %}
+
+    <fieldset class="filters__group">
+      <legend class="filters__legend">Price</legend>
+      <div class="filters__price">
+        {{ field("min_price", "From", type="number", value=filters.min_price or "",
+                 id=id_prefix ~ "-min-price", attrs={"min": 0, "step": 1, "inputmode": "numeric"}) }}
+        {{ field("max_price", "To", type="number", value=filters.max_price or "",
+                 id=id_prefix ~ "-max-price", attrs={"min": 0, "step": 1, "inputmode": "numeric"}) }}
+      </div>
+    </fieldset>
+
+    {# Without JavaScript this button is how a filter is applied, so it is always in the markup
+       and filters.js hides only the copy it has taken over. #}
+    <div{% if enhance %} data-js-hide{% endif %}>
+      {{ button("Apply filters", size="sm", block=True, type="submit") }}
+    </div>
+  </form>
+{%- endmacro %}

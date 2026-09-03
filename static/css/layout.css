@@ -99,6 +99,56 @@
   gap: var(--space-1);
 }
 
+/* ── SHOP submenu (D13) ───────────────────────────────────────────────────── */
+.nav__item--menu {
+  position: relative;
+}
+
+.nav__menu {
+  position: absolute;
+  top: 100%;
+  left: calc(var(--space-3) * -1);
+  display: none;
+  min-width: 12rem;
+  padding: var(--space-2);
+  margin: 0;
+  border-radius: var(--radius);
+  background: var(--ink-soft);
+  box-shadow: var(--shadow-2);
+  list-style: none;
+}
+
+/* :focus-within is what makes it keyboard operable with no JavaScript: tabbing to SHOP opens
+   it, and tabbing on walks into it. */
+.nav__item--menu:hover .nav__menu,
+.nav__item--menu:focus-within .nav__menu {
+  display: block;
+}
+
+.nav__menu-link {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--cream);
+  font-size: var(--step--1);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    background: rgb(255 255 255 / 8%);
+    color: var(--gold);
+  }
+}
+
+/* Stacked in the mobile panel there is nowhere to pop out to, so it is an indented sublist. */
+.nav__list--stacked .nav__menu {
+  position: static;
+  display: block;
+  padding: 0 0 var(--space-2) var(--space-4);
+  background: none;
+  box-shadow: none;
+}
+
 .cart-link {
   position: relative;
 }

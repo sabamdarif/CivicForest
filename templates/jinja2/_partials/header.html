@@ -18,13 +18,24 @@
   ("Contact", "/contact/"),
 ] %}
 {% set cart_count = cart_count|default(0) %}
+{% set shop_menu = nav_categories() %}
 
+{# The SHOP submenu is a nested list opened by :hover and :focus-within (D13), so it needs no
+   JavaScript and Tab walks straight into it. #}
 {% macro nav_list(items, path, extra="") %}
   <ul class="nav__list{{ ' ' ~ extra if extra else '' }}">
     {%- for label, href in items %}
       {%- set current = href == path or (href != "/" and path.startswith(href)) %}
-      <li>
+      {%- set submenu = shop_menu if href == "/shop/" else [] %}
+      <li{% if submenu %} class="nav__item--menu"{% endif %}>
         <a class="nav__link" href="{{ href }}"{% if current %} aria-current="page"{% endif %}>{{ label }}</a>
+        {%- if submenu %}
+          <ul class="nav__menu">
+            {%- for category in submenu %}
+              <li><a class="nav__menu-link" href="{{ category.get_absolute_url() }}">{{ category.name }}</a></li>
+            {%- endfor %}
+          </ul>
+        {%- endif %}
       </li>
     {%- endfor %}
   </ul>

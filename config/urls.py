@@ -51,6 +51,7 @@ def _health_authorized(request) -> bool:
 
 urlpatterns = [
     path("", home, name="home"),
+    path("", include("apps.catalog.urls")),
     path("healthz/", healthz, name="healthz"),
     # Staff-only, and the regression surface for every stylesheet.
     path("styleguide/", styleguide, name="styleguide"),

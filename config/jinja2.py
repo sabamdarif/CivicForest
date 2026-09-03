@@ -21,6 +21,14 @@ def announcement():
     return current_announcement()
 
 
+def nav_categories():
+    """Top-level categories for the SHOP dropdown (D13), which the header renders on every
+    page. Same deferred import as ``announcement``, and the same one indexed query."""
+    from apps.catalog.services import nav_categories as fetch
+
+    return fetch()
+
+
 def srcset(image):
     """The generated widths of a ProductImage as a srcset value (P8). Imported inside the
     call for the same reason as ``announcement``."""
@@ -47,6 +55,7 @@ def environment(**options):
             "url": reverse,
             "now": timezone.localtime,
             "announcement": announcement,
+            "nav_categories": nav_categories,
         }
     )
     env.filters.update(

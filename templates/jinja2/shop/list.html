@@ -1,0 +1,32 @@
+{# The shop page: heading, then the region a filter change replaces.
+
+   The pagination macro emits ?page=N&<query>, so the page URL is always the whole filter
+   state and the back button needs nothing from JavaScript (D2, D5). #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/icon.html" import icon %}
+
+{% block title %}{{ heading }} | CivicForest Clothing{% endblock %}
+{% block description %}{{ blurb or "Premium menswear made in India: tees, hoodies, sweatshirts and polos, all prices inclusive of GST." }}{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/shop.css') }}">{% endblock %}
+
+{% block content %}
+  <div class="container">
+    {{ breadcrumbs(trail, current) }}
+    <header class="section-head shop__head">
+      <h1>{{ heading }}</h1>
+      <p class="divider" aria-hidden="true">{{ icon("leaf", 16) }}</p>
+      {%- if blurb %}<p>{{ blurb }}</p>{% endif %}
+    </header>
+  </div>
+
+  <div class="container" data-shop>
+    {% include "shop/_shop.html" %}
+  </div>
+
+  {% include "_partials/trust_strip.html" %}
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ static('js/filters.js') }}"></script>
+{% endblock %}

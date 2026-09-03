@@ -1,0 +1,255 @@
+/* The browse pages: the shop grid with its filter panel, and the collection cards.
+
+   The panel is a sidebar above 60rem and a <details> panel below it, and only one of the two
+   is ever in the layout, which is why both copies of the form need their own input ids. */
+
+.shop__head {
+  padding-block: var(--space-6) var(--space-5);
+}
+
+.shop__layout {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.shop__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.shop__count {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.shop__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* "Sort by: Relevance" reads as one control, so the label sits beside the select. */
+.sort {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  & .field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block-start: 0;
+  }
+
+  & .field__label {
+    margin-bottom: 0;
+    color: var(--muted);
+    font-weight: var(--weight-regular);
+    white-space: nowrap;
+  }
+
+  & .field__control {
+    min-height: 2.5rem;
+    padding-block: 0;
+  }
+}
+
+/* A filter change swaps this region's markup, so the old content fades rather than jumping. */
+[data-shop][aria-busy="true"] {
+  opacity: 0.6;
+  transition: opacity var(--motion) var(--ease);
+}
+
+/* ── Filter panel ─────────────────────────────────────────────────────────── */
+.filters__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.filters__title {
+  margin: 0;
+  font-size: var(--step-1);
+}
+
+.filters__group {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding-block: var(--space-4);
+}
+
+.filters__legend {
+  padding: 0;
+  font-size: var(--step--2);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+
+.filters__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: var(--space-3) 0 0;
+  list-style: none;
+
+  /* A long vocabulary scrolls inside its group instead of pushing the grid down the page. */
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+/* The swatch sits inside the label, so it must not swallow the click. */
+.filters__list .swatch {
+  margin-inline-end: var(--space-2);
+  pointer-events: none;
+  vertical-align: -0.2em;
+}
+
+.filters__price {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+
+  & .field {
+    flex: 1;
+    margin-block-start: 0;
+  }
+
+  & .field__control {
+    min-height: 2.5rem;
+  }
+}
+
+.filters form > [data-js-hide],
+.filters > div:last-child {
+  margin-top: var(--space-4);
+}
+
+/* ── Active filter chips ──────────────────────────────────────────────────── */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0 0 var(--space-5);
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2rem;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+  font-size: var(--step--1);
+  text-decoration: none;
+
+  &:hover {
+    border-color: var(--ink);
+    background: var(--cream-deep);
+  }
+}
+
+/* ── Mobile filter panel ──────────────────────────────────────────────────── */
+.filter-drawer__toggle {
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.filter-drawer__panel {
+  position: fixed;
+  z-index: var(--z-drawer);
+  inset: 0 0 0 auto;
+  width: min(22rem, 92vw);
+  padding: var(--space-5);
+  overflow-y: auto;
+  background: var(--paper);
+  box-shadow: var(--shadow-2);
+}
+
+/* Above the breakpoint the sidebar is the panel, so the mobile copy leaves the layout and the
+   accessibility tree entirely: two live copies would be two of every input. */
+@media (width >= 60rem) {
+  .shop__layout {
+    grid-template-columns: 16rem minmax(0, 1fr);
+  }
+
+  .filter-drawer {
+    display: none;
+  }
+}
+
+@media (width < 60rem) {
+  .shop__sidebar {
+    display: none;
+  }
+}
+
+/* ── Collection cards ─────────────────────────────────────────────────────── */
+.collections-grid {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.collection-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 18rem;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--cream-deep);
+}
+
+.collection-card__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The wash is what keeps the copy legible over any photograph. */
+.collection-card__copy {
+  position: relative;
+  max-width: 22rem;
+  padding: var(--space-6);
+  background: linear-gradient(to right, rgb(247 244 239 / 94%) 60%, transparent);
+}
+
+.collection-card__title {
+  margin-bottom: var(--space-3);
+  font-size: var(--step-3);
+  text-transform: uppercase;
+}
+
+.collection-card__count {
+  margin-bottom: var(--space-4);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.collection-hero {
+  padding-block: var(--space-8);
+  background: var(--ink);
+  color: var(--cream);
+}

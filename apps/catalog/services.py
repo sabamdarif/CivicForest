@@ -302,16 +302,31 @@ def parse_sort(raw) -> str:
     return raw if raw in SORTS else DEFAULT_SORT
 
 
+def sort_options() -> list[tuple[str, str]]:
+    """(value, label) pairs for the sort select, in the order D4 lists them."""
+    return [(value, SORT_LABELS[value]) for value in SORTS]
+
+
+def filter_pairs(filters: dict) -> list[tuple[str, str]]:
+    """The selected filters as form pairs.
+
+    The sort form posts these back as hidden inputs, which is what stops choosing a sort from
+    clearing the filters when there is no JavaScript to keep them.
+    """
+    pairs = [(group, value) for group in FILTER_GROUPS for value in (filters.get(group) or [])]
+    pairs += [
+        (key, filters[key]) for key in ("min_price", "max_price") if filters.get(key) is not None
+    ]
+    return pairs
+
+
 def query_string(filters: dict, sort: str = DEFAULT_SORT, **extra) -> str:
     """Canonical query string from parsed filters.
 
     Rebuilt rather than edited, so every link a page emits is normalised whatever the URL
     that produced it looked like, and the default sort never shows up as noise.
     """
-    pairs = [(group, value) for group in FILTER_GROUPS for value in (filters.get(group) or [])]
-    pairs += [
-        (key, filters[key]) for key in ("min_price", "max_price") if filters.get(key) is not None
-    ]
+    pairs = filter_pairs(filters)
     if sort and sort != DEFAULT_SORT:
         pairs.append(("sort", sort))
     pairs += [(key, value) for key, value in extra.items() if value]

@@ -126,7 +126,7 @@ Tasks:
    query pass; `facet_counts(queryset)`; `related_products(product)`; `price_display(variant)`.
 4. [x] Home page: hero, four-icon trust strip, shop-by-category tiles, "Just Landed" row, brand values
    band, newsletter: sections ordered and toggled by the `HomeSection` model.
-5. Shop page: grid, sidebar filters with counts, sort select, numbered pagination, mobile filter
+5. [x] Shop page: grid, sidebar filters with counts, sort select, numbered pagination, mobile filter
    drawer, active-filter chips with individual removal, empty state.
 6. Collections index and detail.
 7. Product detail: gallery with hover zoom and lightbox, colour swatches that swap images, size

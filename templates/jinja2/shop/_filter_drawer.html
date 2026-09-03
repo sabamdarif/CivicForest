@@ -1,0 +1,16 @@
+{# The mobile filter panel (D2). A <details>, not the drawer() <dialog> macro, because a dialog
+   cannot be opened without JavaScript and filtering has to work without it (P6).
+
+   Its copy of the form submits normally. filters.js leaves it alone, which also means an
+   innerHTML swap can never close a panel the customer is still using. #}
+{% from "shop/_filters.html" import filter_form %}
+{% from "_macros/icon.html" import icon %}
+
+<details class="filter-drawer">
+  <summary class="btn btn--secondary btn--sm filter-drawer__toggle">
+    {{ icon("filter", 18) }}<span>Filters</span>
+  </summary>
+  <div class="filter-drawer__panel">
+    {{ filter_form(results.facets, filters, results.sort, action, "d") }}
+  </div>
+</details>

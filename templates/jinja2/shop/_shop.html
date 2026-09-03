@@ -1,0 +1,59 @@
+{# Everything on the shop page that a filter change alters: the panel with its counts, the
+   result count, the sort, the chips, the grid and the pagination.
+
+   The server renders this region on its own when filters.js fetches with an X-Partial header,
+   which is why the facet counts can never go stale against the grid beside them (D3). #}
+{% from "shop/_filters.html" import filter_form %}
+{% from "_macros/empty.html" import empty %}
+{% from "_macros/icon.html" import icon %}
+{% from "_macros/pagination.html" import pagination %}
+
+{% set page = results.page %}
+
+<div class="shop__layout">
+  <aside class="shop__sidebar">
+    {{ filter_form(results.facets, filters, results.sort, action, "f", enhance=True) }}
+  </aside>
+
+  <div class="shop__main">
+    <div class="shop__bar">
+      <p class="shop__count" aria-live="polite">
+        {%- if page.paginator.count %}
+          Showing {{ page.start_index() }}&ndash;{{ page.end_index() }} of
+          {{ page.paginator.count }} product{{ "" if page.paginator.count == 1 else "s" }}
+        {%- else %}
+          No products match
+        {%- endif %}
+      </p>
+      <div class="shop__controls">
+        {% include "shop/_filter_drawer.html" %}
+        {% include "shop/_sort.html" %}
+      </div>
+    </div>
+
+    {%- if results.chips %}
+      <ul class="chips" aria-label="Active filters">
+        {%- for chip in results.chips %}
+          <li>
+            <a class="chip" href="{{ action }}{{ '?' ~ chip.query if chip.query else '' }}">
+              <span>{{ chip.label }}</span>
+              <span class="sr-only">, remove this filter</span>
+              {{ icon("close", 14) }}
+            </a>
+          </li>
+        {%- endfor %}
+      </ul>
+    {%- endif %}
+
+    {%- if page.object_list %}
+      {% with products = page.object_list, col_min = "12rem", card_sizes = "(min-width: 64rem) 18vw, (min-width: 40rem) 45vw, 92vw", eager = 4 %}
+        {% include "shop/_grid.html" %}
+      {% endwith %}
+      {{ pagination(page.number, page.paginator.num_pages, results.query) }}
+    {%- else %}
+      {% call empty("Nothing matches those filters", "Try widening the price range or removing a filter.", icon_name="filter") %}
+        <a class="btn btn--secondary" href="{{ action }}"><span>Clear all filters</span></a>
+      {% endcall %}
+    {%- endif %}
+  </div>
+</div>
