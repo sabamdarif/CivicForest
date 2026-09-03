@@ -9,6 +9,8 @@ from django.conf import settings
 from django.http import Http404
 from django.shortcuts import render
 
+from apps.common import seo
+
 from . import services
 
 PARTIAL_HEADER = "X-Partial"
@@ -31,7 +33,7 @@ def _browse(request, filters: dict, **extra) -> dict:
     results = services.product_list(
         filters, services.parse_sort(request.GET.get("sort")), request.GET.get("page")
     )
-    return {
+    context = {
         "results": results,
         "filters": filters,
         "hidden": services.filter_pairs(filters),
@@ -39,6 +41,10 @@ def _browse(request, filters: dict, **extra) -> dict:
         "action": BROWSE_ACTION,
         **extra,
     }
+    context["structured_data"] = [
+        seo.breadcrumb_list(request, context["trail"], context["current"])
+    ]
+    return context
 
 
 def shop(request, category: str = ""):
@@ -76,6 +82,7 @@ def collection_index(request):
             "collections": services.listed_collections(),
             "trail": [("Home", "/")],
             "current": "Collections",
+            "structured_data": [seo.breadcrumb_list(request, [("Home", "/")], "Collections")],
         },
     )
 
@@ -137,6 +144,10 @@ def product_detail(request, slug: str):
             ),
             "trail": trail,
             "current": product.name,
+            "structured_data": [
+                seo.breadcrumb_list(request, trail, product.name),
+                seo.product_offer(request, product, panel, settings.CURRENCY),
+            ],
         },
     )
     # The strip is a cookie the browser writes, so nothing here is cached per visitor.

@@ -136,8 +136,10 @@ Tasks:
    The size chart is in the size-guide accordion, not a modal (C11 amended: a `<dialog>` needs
    JavaScript). The pincode estimate defers to M6, which needs the same pincode data for H5;
    until then the page prints the shop's own dispatch and delivery commitment.
-8. JSON-LD: `Product` + `Offer` + `AggregateRating` on detail, `BreadcrumbList` on all,
-   `Organization` + `WebSite` on home.
+8. [x] JSON-LD: `Product` + `Offer` + `AggregateRating` on detail, `BreadcrumbList` on all,
+   `Organization` + `WebSite` on home. `AggregateRating` is omitted rather than stubbed: it
+   arrives with `apps/reviews` in M9, and an invented one is a manual action plus the kind of
+   fabrication J9 forbids. Canonical URLs land here too, dropping the query string (L4).
 9. `static/js/`: `filters.js`, `gallery.js`, `variant-picker.js`, `wishlist.js`, `pincode.js`,
    `recently-viewed.js`.
 10. [x] `seed_catalog` command rewritten for the new fields, using the brand imagery in

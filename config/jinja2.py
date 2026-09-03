@@ -38,6 +38,21 @@ def srcset(image):
     return build(image)
 
 
+def json_ld(data):
+    """One JSON-LD node, escaped so a product name can never close the script element.
+
+    Jinja2 would escape the quotes if this came back as a plain string, so it is marked safe
+    here and `\\u003c` stands in for every `<` (L4).
+    """
+    import json
+
+    from django.core.serializers.json import DjangoJSONEncoder
+    from django.utils.safestring import mark_safe
+
+    encoded = json.dumps(data, cls=DjangoJSONEncoder).replace("<", "\\u003c")
+    return mark_safe(encoded)  # noqa: S308 - every < is escaped above
+
+
 def card_data(product):
     """A product mapped onto the ``product_card()`` macro's arguments."""
     from apps.catalog.services import card_data as build
@@ -69,6 +84,7 @@ def environment(**options):
             "pct_off": pct_off,
             "srcset": srcset,
             "card_data": card_data,
+            "json_ld": json_ld,
         }
     )
     return env

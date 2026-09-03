@@ -22,6 +22,12 @@
     <link rel="stylesheet" href="{{ static('css/components.css') }}">
     <link rel="stylesheet" href="{{ static('css/layout.css') }}">
     {% block page_css %}{% endblock %}
+    {# Canonical drops the query string on purpose: one filter combination is not a page worth
+       indexing separately from the grid it filters (L4). #}
+    <link rel="canonical" href="{{ request.build_absolute_uri(request.path) }}">
+    {%- for node in structured_data|default([]) %}
+      <script type="application/ld+json">{{ node|json_ld }}</script>
+    {%- endfor %}
     {% block head %}{% endblock %}
   </head>
   <body>

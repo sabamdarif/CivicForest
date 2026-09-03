@@ -1,4 +1,8 @@
-"""Fixtures the catalogue tests share.
+"""Fixtures shared across apps.
+
+The storefront pages that need a catalogue are spread over `apps/catalog` and `apps/content`,
+and `apps/common` owns the SEO markup they all emit, so this sits at the root rather than in
+any one app's tests.
 
 The catalogue here is deliberately awkward, because the bugs worth catching only show up on
 data that is: a product with two variants in one size, a cheapest variant that undercuts its
