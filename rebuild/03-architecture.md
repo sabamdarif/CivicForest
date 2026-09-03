@@ -211,7 +211,7 @@ environment globals above, each a callable that resolves lazily from the request
 | `content.Page` | slug, title, body, meta fields, is_published | L2 |
 | `content.FaqEntry` | question, answer, category, display order | N3 |
 | `content.AnnouncementBar` | text, url, is_active, starts_at, ends_at | D14 |
-| `content.HomeSection` | kind, title, subtitle, image, target, display order, is_active | Editable homepage |
+| `content.HomeSection` | kind, eyebrow, title, subtitle, image, target, cta_label, display order, is_active | Editable homepage: one row per kind, and the row carries the chrome while the catalogue fills the band |
 | `content.ContactMessage` | name, email, order_number, subject, message, handled_by, handled_at, internal_note | N1, N2 |
 | `content.NewsletterSubscriber` | email, confirmed_at, unsubscribed_at, source | J5, double opt-in |
 | `common.JobRun` | name, key, status, payload JSON, attempts, next_attempt_at, last_error, started_at, finished_at | The whole deferred-work system (§7) |
@@ -338,7 +338,8 @@ static/css/
 ├── components.css  button, field, badge, card, accordion, modal, drawer, toast, breadcrumb,
 │                   pagination, stepper, price, swatch, rating, empty state, skeleton
 ├── layout.css      header, nav, footer, announcement bar
-├── shop.css        grid, filters, sort, pagination
+├── home.css        hero band, category tiles, the Just Landed row, values strip
+├── shop.css        grid, filters, sort, pagination, collection cards
 ├── product.css     gallery, buy panel, accordions, size chart
 ├── cart.css        cart page and drawer
 ├── checkout.css    checkout and thank-you

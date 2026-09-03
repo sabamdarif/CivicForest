@@ -71,9 +71,15 @@ def catalogue():
         base_price=Decimal("799"),
         hsn_code="61091000",
     )
-    ProductVariant.objects.create(product=plain, size="M", color="Black", stock_quantity=5)
-    ProductVariant.objects.create(product=plain, size="M", color="Beige", stock_quantity=4)
-    ProductVariant.objects.create(product=plain, size="L", color="Black", stock_quantity=0)
+    ProductVariant.objects.create(
+        product=plain, size="M", color="Black", color_hex="#111111", stock_quantity=5
+    )
+    ProductVariant.objects.create(
+        product=plain, size="M", color="Beige", color_hex="#d8c6a8", stock_quantity=4
+    )
+    ProductVariant.objects.create(
+        product=plain, size="L", color="Black", color_hex="#111111", stock_quantity=0
+    )
     plain.collections.set([landing, staples])
 
     printed = Product.objects.create(
@@ -403,3 +409,20 @@ def test_related_products_leave_out_the_product_itself_and_anything_retired(cata
     related = services.related_products(catalogue["plain"])
 
     assert {product.slug for product in related} == {"second-tee"}
+
+
+# ── What a card prints ───────────────────────────────────────────────────────
+def test_a_card_reads_sizes_in_vocabulary_order_and_the_lead_colour_staff_listed_first(catalogue):
+    data = services.card_data(services.product_by_slug("plain-tee"))
+
+    assert data["meta"] == "Black | M, L", "vocabulary order, not the alphabet's L before M"
+    assert [name for _hex, name in data["colours"]] == ["Black", "Beige"]
+    assert data["href"] == "/product/plain-tee/"
+
+
+def test_a_card_still_renders_before_anyone_uploads_a_photograph(catalogue):
+    data = services.card_data(services.product_by_slug("green-hoodie"))
+
+    assert (data["image"], data["srcset"]) == ("", "")
+    assert data["alt"] == "Green Hoodie", "the name stands in, never an empty alt"
+    assert data["colours"] == [], "a variant with no hex contributes no swatch, not a black one"

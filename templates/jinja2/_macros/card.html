@@ -14,9 +14,14 @@
 {%- endmacro %}
 
 {# badges: (label, variant) pairs. colours: hex strings for the swatch row. Pass srcset with
-   the sizes the grid actually renders at, or the browser assumes the full viewport (P8). #}
+   the sizes the grid actually renders at, or the browser assumes the full viewport (P8).
+
+   wishlist_action turns the heart into a real form that posts without JavaScript, which needs
+   `import product_card with context` so csrf_input resolves. Left blank it is inert, which is
+   what the styleguide renders. #}
 {% macro product_card(name, href, image, amount, alt="", meta="", mrp=None, badges=[],
-                      colours=[], wishlist=True, loading="lazy", srcset="", sizes="") -%}
+                      colours=[], wishlist=True, loading="lazy", srcset="", sizes="",
+                      wishlist_action="", wishlist_value="") -%}
   <article class="product-card">
     <div class="product-card__media">
       <img src="{{ image }}" alt="{{ alt or name }}" width="600" height="800" loading="{{ loading }}"
@@ -28,7 +33,16 @@
       {%- endif %}
       {%- if wishlist %}
         <div class="product-card__wish">
-          {{ icon_button("heart", "Save " ~ name ~ " to your wishlist", variant="paper") }}
+          {%- set label = "Save " ~ name ~ " to your wishlist" %}
+          {%- if wishlist_action %}
+            <form action="{{ wishlist_action }}" method="post">
+              {{ csrf_input }}
+              <input type="hidden" name="product" value="{{ wishlist_value }}">
+              {{ icon_button("heart", label, variant="paper", type="submit") }}
+            </form>
+          {%- else %}
+            {{ icon_button("heart", label, variant="paper") }}
+          {%- endif %}
         </div>
       {%- endif %}
     </div>

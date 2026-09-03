@@ -1,0 +1,26 @@
+{# E8's four promises, on the home page and under every browse and product page. Each one is
+   something the site actually does, which is what J9 requires of any claim on a page. #}
+{% from "_macros/icon.html" import icon %}
+
+{% set promises = [
+  ("leaf", "Premium fabric", "Superior comfort and durability"),
+  ("shield", "Quality assured", "Crafted with attention to detail"),
+  ("truck", "Fast delivery", "Dispatched in 1 to 2 business days"),
+  ("rotate-ccw", "Easy returns", "Within 7 days of delivery"),
+] %}
+
+<section class="trust-strip">
+  <div class="container">
+    <dl class="trust-strip__list grid grid--auto" style="--col-min: 13rem">
+      {%- for name, title, detail in promises %}
+        <div class="trust-strip__item">
+          <span class="trust-strip__icon">{{ icon(name, 32) }}</span>
+          <div>
+            <dt class="trust-strip__title">{{ title }}</dt>
+            <dd class="trust-strip__detail">{{ detail }}</dd>
+          </div>
+        </div>
+      {%- endfor %}
+    </dl>
+  </div>
+</section>

@@ -1,0 +1,182 @@
+/* The home page bands: hero, category tiles, the Just Landed row and the values strip.
+
+   Only this page loads it, which is what keeps the shared four sheets small enough for the
+   heaviest page to stay inside the 60 KB budget (P3, P11). */
+
+/* ── Band spacing ─────────────────────────────────────────────────────────── */
+.band {
+  padding-block: var(--space-8);
+}
+
+.band__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+
+  /* The head owns the gap to the grid, so section-head does not add a second one. */
+  & .section-head {
+    margin-bottom: var(--space-5);
+  }
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+.hero-band {
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.hero-band__inner {
+  display: grid;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.hero-band__copy {
+  padding-block: var(--space-8);
+}
+
+.hero-band__title {
+  margin-bottom: var(--space-4);
+  font-size: var(--step-6);
+  text-transform: uppercase;
+
+  /* The design breaks the line after the first word and colours the rest gold. */
+  & + .divider {
+    margin-bottom: var(--space-4);
+  }
+}
+
+.hero-band__lede {
+  max-width: 26rem;
+  margin-bottom: var(--space-6);
+  color: var(--muted-on-dark);
+  font-size: var(--step-1);
+}
+
+.hero-band__art {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  object-position: top center;
+}
+
+@media (width >= 60rem) {
+  .hero-band__inner {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hero-band__copy {
+    padding-block: var(--space-9);
+  }
+
+  .hero-band__art {
+    aspect-ratio: 3 / 4;
+    max-height: 34rem;
+  }
+}
+
+/* ── Shop-by-category tiles ───────────────────────────────────────────────── */
+.tiles {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.tile {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius);
+  color: var(--cream);
+  text-decoration: none;
+}
+
+.tile__art {
+  width: 100%;
+  aspect-ratio: 5 / 6;
+  object-fit: cover;
+  transition: scale var(--motion-slow) var(--ease);
+}
+
+.tile__art--blank {
+  display: block;
+  aspect-ratio: 5 / 6;
+  background: linear-gradient(160deg, var(--ink-soft), var(--ink));
+}
+
+.tile:hover .tile__art {
+  scale: 1.04;
+}
+
+/* The gradient is what keeps the label legible over any photograph. */
+.tile__label {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-7) var(--space-4) var(--space-4);
+  background: linear-gradient(to top, rgb(13 13 13 / 85%), transparent);
+  text-align: center;
+}
+
+.tile__name {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.tile__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--gold);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+
+/* ── Brand values ─────────────────────────────────────────────────────────── */
+.values {
+  padding-block: var(--space-7);
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.values__list {
+  --grid-gap: var(--space-6);
+
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.values__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.values__icon {
+  color: var(--gold);
+}
+
+.values__title {
+  margin-bottom: var(--space-1);
+  color: var(--gold);
+  font-family: var(--font-body);
+  font-size: var(--step--1);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.values__detail {
+  margin: 0;
+  color: var(--muted-on-dark);
+  font-size: var(--step--1);
+}

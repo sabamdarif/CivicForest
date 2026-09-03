@@ -1,16 +1,123 @@
-{% extends "base.html" %}
+{# The home page. Which bands appear and in what order is HomeSection data; what goes inside
+   each one comes from the catalogue, so a band can never be a heading over an empty strip.
 
-{% block title %}CivicForest, premium menswear{% endblock %}
+   There is no newsletter band: the footer's form is already on every page, and a second one
+   would put the same input id on the page twice. #}
+{% extends "base.html" %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/icon.html" import icon %}
+
+{% set brand_values = [
+  ("leaf", "Sustainable fashion", "Better for you, better for the planet."),
+  ("star", "Made for everyday", "Timeless pieces for every occasion."),
+  ("users", "Join the CivicForest family", "Be part of a community that values style."),
+] %}
+{% set card_sizes = "(min-width: 64rem) 22vw, (min-width: 40rem) 45vw, 92vw" %}
+
+{% block title %}CivicForest Clothing, premium menswear made in India{% endblock %}
+{% block description %}Elevated everyday wear crafted for comfort, designed for confidence. Tees, hoodies, sweatshirts and polos, shipped across India.{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/home.css') }}">{% endblock %}
+
+{% macro section_head(section, centred=True) %}
+  <div class="section-head{{ ' section-head--center' if centred else '' }}">
+    {%- if section.eyebrow %}<p class="eyebrow">{{ section.eyebrow }}</p>{% endif %}
+    {%- if section.title %}<h2>{{ section.title }}</h2>{% endif %}
+    <p class="divider" aria-hidden="true">{{ icon("leaf", 16) }}</p>
+    {%- if section.subtitle %}<p>{{ section.subtitle }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro hero(section) %}
+  <section class="hero-band on-dark">
+    <div class="container hero-band__inner">
+      <div class="hero-band__copy">
+        {%- if section.eyebrow %}<p class="eyebrow">{{ section.eyebrow }}</p>{% endif %}
+        <h1 class="hero-band__title">{{ section.title }}</h1>
+        <p class="divider" aria-hidden="true">{{ icon("leaf", 16) }}</p>
+        {%- if section.subtitle %}<p class="hero-band__lede">{{ section.subtitle }}</p>{% endif %}
+        {%- if section.target and section.cta_label %}
+          {{ button(section.cta_label, variant="gold", size="lg", href=section.target, icon_end="arrow-right") }}
+        {%- endif %}
+      </div>
+      {# Decorative: the heading already says what the page is, so alt is empty on purpose. #}
+      <img class="hero-band__art" alt=""
+        src="{{ section.image.url if section.image else static('img/seed/hero-black-tee.png') }}"
+        width="1804" height="872" loading="eager" fetchpriority="high">
+    </div>
+  </section>
+{% endmacro %}
+
+{% macro category_tiles(section, categories) %}
+  <section class="band container">
+    {{ section_head(section) }}
+    <ul class="tiles grid grid--auto" style="--col-min: 14rem">
+      {%- for category in categories %}
+        <li>
+          <a class="tile" href="{{ category.get_absolute_url() }}">
+            {%- if category.image %}
+              <img class="tile__art" src="{{ category.image.url }}" alt="" width="600" height="700"
+                loading="lazy" sizes="(min-width: 64rem) 22vw, (min-width: 40rem) 45vw, 92vw">
+            {%- else %}
+              <span class="tile__art tile__art--blank"></span>
+            {%- endif %}
+            <span class="tile__label">
+              <span class="tile__name">{{ category.name }}</span>
+              <span class="tile__cta">Explore {{ icon("arrow-right", 16) }}</span>
+            </span>
+          </a>
+        </li>
+      {%- endfor %}
+    </ul>
+  </section>
+{% endmacro %}
+
+{# The three items are fixed copy: they are the brand's own promise, not merchandising, and
+   O10 gives the back-office an editor for content like this in M9. #}
+{% macro value_band(section) %}
+  <section class="values on-dark">
+    <div class="container">
+      {%- if section.title %}{{ section_head(section) }}{% endif %}
+      <ul class="values__list grid grid--auto" style="--col-min: 15rem">
+        {%- for name, title, detail in brand_values %}
+          <li class="values__item">
+            <span class="values__icon">{{ icon(name, 36) }}</span>
+            <div>
+              <p class="values__title">{{ title }}</p>
+              <p class="values__detail">{{ detail }}</p>
+            </div>
+          </li>
+        {%- endfor %}
+      </ul>
+    </div>
+  </section>
+{% endmacro %}
 
 {% block content %}
-  <div class="container">
-    <section class="hero">
-      <p class="eyebrow">Made in India</p>
-      <h1>Premium menswear, built to last.</h1>
-      <p>
-        The storefront is being rebuilt. Browsing, search, the custom design line and
-        checkout arrive with the milestones that follow.
-      </p>
-    </section>
-  </div>
+  {%- for section in sections %}
+    {%- if section.kind == "hero" %}
+      {{ hero(section) }}
+    {%- elif section.kind == "trust" %}
+      {% include "_partials/trust_strip.html" %}
+    {%- elif section.kind == "categories" and categories %}
+      {{ category_tiles(section, categories) }}
+    {%- elif section.kind == "new_arrivals" and just_landed %}
+      <section class="band container">
+        <div class="band__head">
+          {{ section_head(section, centred=False) }}
+          {%- if section.target %}
+            <a class="btn btn--ghost" href="{{ section.target }}">
+              <span>{{ section.cta_label or "View all" }}</span>{{ icon("arrow-right", 18) }}
+            </a>
+          {%- endif %}
+        </div>
+        {# products and col_min are what shop/_grid.html reads; an include cannot take
+           arguments, and a macro's locals do not reach one. #}
+        {% with products = just_landed, col_min = "14rem" %}
+          {% include "shop/_grid.html" %}
+        {% endwith %}
+      </section>
+    {%- elif section.kind == "values" %}
+      {{ value_band(section) }}
+    {%- endif %}
+  {%- endfor %}
 {% endblock %}

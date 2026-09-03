@@ -29,6 +29,13 @@ def srcset(image):
     return build(image)
 
 
+def card_data(product):
+    """A product mapped onto the ``product_card()`` macro's arguments."""
+    from apps.catalog.services import card_data as build
+
+    return build(product)
+
+
 def environment(**options):
     # /tmp is the only writable path on Vercel and it survives inside a warm instance,
     # so compiled templates are cached there instead of recompiled per request.
@@ -47,6 +54,7 @@ def environment(**options):
             "rupees": rupees,
             "pct_off": pct_off,
             "srcset": srcset,
+            "card_data": card_data,
         }
     )
     return env

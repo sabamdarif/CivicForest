@@ -11,9 +11,9 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
-from django.views.generic import TemplateView
 
 from apps.common.views import styleguide
+from apps.content.views import home
 
 
 def healthz(request):
@@ -50,8 +50,7 @@ def _health_authorized(request) -> bool:
 
 
 urlpatterns = [
-    # Placeholder home page until M2 builds the real one.
-    path("", TemplateView.as_view(template_name="home.html"), name="home"),
+    path("", home, name="home"),
     path("healthz/", healthz, name="healthz"),
     # Staff-only, and the regression surface for every stylesheet.
     path("styleguide/", styleguide, name="styleguide"),

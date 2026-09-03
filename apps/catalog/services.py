@@ -105,9 +105,16 @@ def active_products() -> QuerySet[Product]:
     """Visible products with everything a card or a detail page reads prefetched.
 
     Only active variants are prefetched, so ``price_from`` and ``in_stock`` reflect what a
-    customer can actually buy.
+    customer can actually buy. They arrive in the vocabulary's size order rather than
+    alphabetically, which is what stops a size row reading L, M, S, XL, and within a size in
+    the order staff entered them, so the lead colour on a card is the one they listed first.
     """
-    active_variants = ProductVariant.objects.filter(is_active=True)
+    size_rank = Subquery(Size.objects.filter(name=OuterRef("size")).values("display_order")[:1])
+    active_variants = (
+        ProductVariant.objects.filter(is_active=True)
+        .alias(rank=Coalesce(size_rank, Value(999)))
+        .order_by("rank", "created_at")
+    )
     return (
         Product.objects.filter(is_active=True)
         .select_related("category", "material")
@@ -548,6 +555,36 @@ def low_stock_note(variant: ProductVariant, threshold: int) -> str:
     if variant and 0 < variant.stock_quantity <= threshold:
         return f"Only {variant.stock_quantity} left"
     return ""
+
+
+def card_data(product: Product) -> dict:
+    """Everything ``product_card()`` prints, read off what ``active_products()`` prefetched.
+
+    One place maps a product onto the macro, so the home row, the shop grid, a collection page
+    and the related row cannot drift apart, and the macro itself stays free of models.
+    """
+    image = next(iter(product.images.all()), None)
+    price, mrp = price_display(product)
+    sizes: list[str] = []
+    colours: dict[str, str] = {}
+    for variant in product.variants.all():
+        if variant.size and variant.size not in sizes:
+            sizes.append(variant.size)
+        if variant.color and variant.color not in colours:
+            colours[variant.color] = variant.color_hex
+    lead = next(iter(colours), "")
+    return {
+        "name": product.name,
+        "href": product.get_absolute_url(),
+        "image": image.image.url if image else "",
+        "srcset": srcset(image) if image else "",
+        "alt": (image.alt_text if image else "") or product.name,
+        "amount": price,
+        "mrp": mrp,
+        "meta": " | ".join(part for part in (lead, ", ".join(sizes)) if part),
+        "badges": product_badges(product),
+        "colours": [(hex_, name) for name, hex_ in colours.items() if hex_],
+    }
 
 
 def recently_viewed(cookie_value: str | None, exclude_slug: str = "") -> list[Product]:

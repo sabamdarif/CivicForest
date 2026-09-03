@@ -264,31 +264,3 @@ textarea {
     top: var(--space-2);
   }
 }
-
-/* ── M0 chrome, replaced when the header and footer partials land in M1.6 ──── */
-.site-header {
-  background: var(--ink);
-  color: var(--cream);
-  padding-block: var(--space-4);
-}
-
-.wordmark {
-  font-family: var(--font-display);
-  font-size: var(--step-1);
-  letter-spacing: var(--tracking-wider);
-  text-transform: uppercase;
-  text-decoration: none;
-}
-
-.site-footer {
-  margin-top: var(--space-8);
-  border-top: 1px solid var(--line);
-  padding-block: var(--space-6);
-  color: var(--muted);
-  font-size: var(--step--1);
-}
-
-.hero {
-  max-width: 40rem;
-  padding-block: var(--space-8);
-}

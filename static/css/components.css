@@ -340,6 +340,13 @@ select.field__control {
   font-size: var(--step-2);
 }
 
+/* ── Product grid ─────────────────────────────────────────────────────────── */
+.product-grid {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
 /* ── Product card ─────────────────────────────────────────────────────────── */
 .product-card {
   position: relative;
@@ -822,6 +829,43 @@ select.field__control {
   to {
     background-position: -200% 0;
   }
+}
+
+/* ── Trust strip (E8) ─────────────────────────────────────────────────────── */
+.trust-strip {
+  padding-block: var(--space-6);
+  border-block: 1px solid var(--line);
+  background: var(--cream-deep);
+}
+
+.trust-strip__list {
+  --grid-gap: var(--space-5);
+
+  margin: 0;
+}
+
+.trust-strip__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.trust-strip__icon {
+  color: var(--gold-deep);
+}
+
+.trust-strip__title {
+  font-size: var(--step--1);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+/* A <dd>, so the UA's 40px inline start has to go. */
+.trust-strip__detail {
+  margin: var(--space-1) 0 0;
+  color: var(--muted);
+  font-size: var(--step--1);
 }
 
 /* ── Section furniture ────────────────────────────────────────────────────── */

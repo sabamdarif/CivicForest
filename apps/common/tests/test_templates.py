@@ -19,10 +19,12 @@ def test_home_renders_through_the_jinja2_engine():
 
     assert response.status_code == 200
     body = response.content.decode()
-    assert "Premium menswear" in body
+    assert "premium menswear" in body
     assert "FREE SHIPPING ON ALL ORDERS ABOVE ₹999" in body
     for sheet in STYLESHEETS:
         assert sheet in body
+    # The one page sheet a page may add on top of the shared four (P3).
+    assert "css/home.css" in body
 
 
 def test_the_django_engine_shell_loads_the_same_stylesheets():

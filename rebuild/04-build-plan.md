@@ -124,7 +124,7 @@ Tasks:
    at the form level.
 3. [x] Services: `product_list(filters, sort, page)` returning products, facet counts and total in one
    query pass; `facet_counts(queryset)`; `related_products(product)`; `price_display(variant)`.
-4. Home page: hero, four-icon trust strip, shop-by-category tiles, "Just Landed" row, brand values
+4. [x] Home page: hero, four-icon trust strip, shop-by-category tiles, "Just Landed" row, brand values
    band, newsletter: sections ordered and toggled by the `HomeSection` model.
 5. Shop page: grid, sidebar filters with counts, sort select, numbered pagination, mobile filter
    drawer, active-filter chips with individual removal, empty state.
