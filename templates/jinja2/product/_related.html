@@ -1,0 +1,17 @@
+{# "You may also like" (C13): same category, itself excluded. Renders nothing at all when there
+   is nothing to show, rather than a heading over an empty row.
+
+   Context: products, heading. #}
+{% from "_macros/icon.html" import icon %}
+
+{%- if products %}
+  <section class="band container">
+    <div class="section-head">
+      <h2>{{ heading }}</h2>
+      <p class="divider" aria-hidden="true">{{ icon("leaf", 16) }}</p>
+    </div>
+    {% with col_min = "13rem", card_sizes = "(min-width: 64rem) 20vw, (min-width: 40rem) 45vw, 92vw" %}
+      {% include "shop/_grid.html" %}
+    {% endwith %}
+  </section>
+{%- endif %}

@@ -293,6 +293,17 @@ SHIPPING_FLAT_RATE = env("SHIPPING_FLAT_RATE", default="79.00")
 FREE_SHIPPING_THRESHOLD = env("FREE_SHIPPING_THRESHOLD", default="999.00")
 CURRENCY = env("CURRENCY", default="INR")
 
+# ─── Catalogue display ───────────────────────────────────────────────────────
+# The only number that turns a real stock level into a "only N left" line (E4). Nothing
+# invents urgency: below this and the count is printed, above it and nothing is said. A
+# per-variant override lands with M8's inventory tools.
+LOW_STOCK_THRESHOLD = env.int("LOW_STOCK_THRESHOLD", default=5)
+# The delivery promise the product page prints before add-to-cart (L9). Decision 12 buys no
+# courier API, so these are the shop's own dispatch and transit commitment, not a quote.
+DISPATCH_DAYS = env("DISPATCH_DAYS", default="1 to 2")
+DELIVERY_DAYS = env("DELIVERY_DAYS", default="3 to 7")
+RETURN_WINDOW_DAYS = env.int("RETURN_WINDOW_DAYS", default=7)
+
 # ─── Payments (Razorpay) ─────────────────────────────────────────────────────
 # Raw card data never reaches this app; Razorpay's hosted checkout keeps PCI scope at
 # SAQ-A. The webhook secret is separate from the API secret.

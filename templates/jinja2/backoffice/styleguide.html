@@ -10,6 +10,7 @@
 {% from "_macros/field.html" import field, select, checkbox %}
 {% from "_macros/icon.html" import icon %}
 {% from "_macros/modal.html" import modal, drawer %}
+{% from "_macros/notice.html" import notice %}
 {% from "_macros/pagination.html" import pagination %}
 {% from "_macros/price.html" import price %}
 {% from "_macros/rating.html" import rating %}
@@ -241,6 +242,14 @@
 
   <section class="sg-section">
     <h2>Overlays and feedback</h2>
+    <h3>Inline notice</h3>
+    <p>What a form that posts and redirects uses, because a toast needs JavaScript.</p>
+    <div class="stack">
+      {{ notice("Classic Black Tee, M in Black, is in your cart.", "success") }}
+      {{ notice("Only 3 left in stock.", "error") }}
+      {{ notice("Your cart was updated.") }}
+    </div>
+    <h3>Toasts, modal and drawer</h3>
     <div class="sg-row">
       {{ button("Open the size chart", variant="secondary",
                 attrs={"data-dialog-open": "sg-modal"}) }}

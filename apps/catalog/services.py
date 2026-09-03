@@ -92,6 +92,16 @@ class Chip:
 
 
 @dataclass(frozen=True)
+class Option:
+    """One size or colour a customer can pick, and whether it is worth picking."""
+
+    value: str
+    in_stock: bool
+    selected: bool
+    swatch: str = ""
+
+
+@dataclass(frozen=True)
 class Results:
     page: Page
     facets: dict[str, list[Facet]]
@@ -614,6 +624,80 @@ def card_data(product: Product) -> dict:
         "meta": " | ".join(part for part in (lead, ", ".join(sizes)) if part),
         "badges": product_badges(product),
         "colours": [(hex_, name) for name, hex_ in colours.items() if hex_],
+    }
+
+
+def gallery_images(product: Product, colour: str = "") -> list[ProductImage]:
+    """Product-level shots plus any pinned to the chosen colour (C12).
+
+    Matched on the prefetched variant ids rather than by following ``image.variant``, which
+    would be one query per photograph.
+    """
+    images = list(product.images.all())
+    if not colour:
+        return images
+    of_colour = {
+        variant.id for variant in product.variants.all() if variant.color.lower() == colour.lower()
+    }
+    return [
+        image for image in images if image.variant_id is None or image.variant_id in of_colour
+    ] or images
+
+
+def buy_panel(product: Product, colour: str = "", size: str = "") -> dict:
+    """The whole buy panel resolved on the server, which is what makes E2 work with no
+    JavaScript: a colour is a link back to this page, not a script that rewrites it.
+
+    Availability is per size *for the chosen colour*, because a size that is only out of stock
+    in one colour is not out of stock, and striking it through anyway loses a sale.
+    """
+    variants = [variant for variant in product.variants.all() if variant.size and variant.color]
+    colours: dict[str, str] = {}
+    for variant in variants:
+        colours.setdefault(variant.color, variant.color_hex)
+
+    chosen_colour = next((name for name in colours if name.lower() == colour.lower()), "")
+    chosen_colour = chosen_colour or next(iter(colours), "")
+    in_colour = [v for v in variants if v.color == chosen_colour]
+
+    sizes: dict[str, ProductVariant] = {}
+    for variant in in_colour:
+        current = sizes.get(variant.size)
+        # Keep whichever row can actually be sold, so a duplicated size is not struck through.
+        if current is None or (not current.stock_quantity and variant.stock_quantity):
+            sizes[variant.size] = variant
+
+    chosen_size = next((label for label in sizes if label.lower() == size.lower()), "")
+    if not chosen_size:
+        chosen_size = next(
+            (label for label, variant in sizes.items() if variant.stock_quantity),
+            next(iter(sizes), ""),
+        )
+    variant = sizes.get(chosen_size)
+
+    price, mrp = price_display(product, variant)
+    return {
+        "variant": variant,
+        "colour": chosen_colour,
+        "size": chosen_size,
+        "colours": [
+            Option(
+                name,
+                any(v.stock_quantity for v in variants if v.color == name),
+                name == chosen_colour,
+                hex_,
+            )
+            for name, hex_ in colours.items()
+        ],
+        "sizes": [
+            Option(label, bool(row.stock_quantity), label == chosen_size)
+            for label, row in sizes.items()
+        ],
+        "images": gallery_images(product, chosen_colour),
+        "price": price,
+        "mrp": mrp,
+        "badges": product_badges(product),
+        "in_stock": bool(variant and variant.stock_quantity),
     }
 
 

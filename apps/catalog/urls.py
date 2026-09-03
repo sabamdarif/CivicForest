@@ -13,4 +13,5 @@ urlpatterns = [
     path("shop/<slug:category>/", views.shop, name="shop-category"),
     path("collections/", views.collection_index, name="collections"),
     path("collections/<slug:slug>/", views.collection_detail, name="collection-detail"),
+    path("product/<slug:slug>/", views.product_detail, name="product-detail"),
 ]

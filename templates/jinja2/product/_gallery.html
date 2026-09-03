@@ -1,0 +1,41 @@
+{# The gallery (E1). A scroll-snap track with anchor thumbnails, so choosing a shot needs no
+   JavaScript: the anchor scrolls its own scrollport. gallery.js adds the pointer-tracked zoom
+   and the lightbox on top, and the main image links to the full file so that even without it
+   there is a way to see the detail. #}
+{% from "_macros/icon.html" import icon %}
+
+{% set images = panel.images %}
+
+<div class="gallery" data-gallery>
+  {%- if images %}
+    <ul class="gallery__track">
+      {%- for image in images %}
+        <li class="gallery__slide" id="shot-{{ loop.index0 }}">
+          <a class="gallery__frame" href="{{ image.image.url }}" data-gallery-open
+            aria-label="View {{ image.alt_text or product.name }} full size">
+            <img src="{{ image.image.url }}" srcset="{{ image|srcset }}"
+              sizes="(min-width: 64rem) 45vw, 96vw" alt="{{ image.alt_text or product.name }}"
+              width="900" height="1200" loading="{{ 'eager' if loop.first else 'lazy' }}"
+              {%- if loop.first %} fetchpriority="high"{% endif %}>
+          </a>
+        </li>
+      {%- endfor %}
+    </ul>
+    {%- if images|length > 1 %}
+      <ul class="gallery__thumbs" aria-label="Product photographs">
+        {%- for image in images %}
+          <li>
+            <a class="gallery__thumb{{ ' gallery__thumb--current' if loop.first else '' }}"
+              href="#shot-{{ loop.index0 }}" data-gallery-thumb="{{ loop.index0 }}">
+              <img src="{{ image.image.url }}" alt="" width="120" height="160" loading="lazy">
+              <span class="sr-only">Photograph {{ loop.index }}</span>
+            </a>
+          </li>
+        {%- endfor %}
+      </ul>
+    {%- endif %}
+  {%- else %}
+    {# No photography yet: a labelled placeholder beats a broken image frame. #}
+    <p class="gallery__empty">{{ icon("leaf", 40) }}<span>Photographs coming soon</span></p>
+  {%- endif %}
+</div>

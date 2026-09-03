@@ -5,6 +5,7 @@ answer twice from the same region template, whole page or just the region JavaSc
 the no-JS and JS paths can never render different results (D2, P6).
 """
 
+from django.conf import settings
 from django.http import Http404
 from django.shortcuts import render
 
@@ -97,3 +98,47 @@ def collection_detail(request, slug: str):
         current=collection.name,
     )
     return _render(request, "collections/detail.html", "shop/_shop.html", context)
+
+
+def product_detail(request, slug: str):
+    """One product, with everything L9 requires visible before add-to-cart.
+
+    The chosen colour and size come from the query string, so swapping a colour is a link this
+    view answers rather than something only JavaScript can do (E2, P6).
+    """
+    product = services.product_by_slug(slug)
+    if not product:
+        raise Http404
+
+    panel = services.buy_panel(product, request.GET.get("color", ""), request.GET.get("size", ""))
+    category = product.category
+    trail = [("Home", "/"), ("Shop", "/shop/")]
+    if category:
+        trail.append((category.name, category.get_absolute_url()))
+
+    response = render(
+        request,
+        "product/detail.html",
+        {
+            "product": product,
+            "panel": panel,
+            "low_stock": services.low_stock_note(panel["variant"], settings.LOW_STOCK_THRESHOLD),
+            "size_chart": services.size_chart_for(product),
+            "promise": {
+                "dispatch": settings.DISPATCH_DAYS,
+                "delivery": settings.DELIVERY_DAYS,
+                "returns": settings.RETURN_WINDOW_DAYS,
+                "flat": settings.SHIPPING_FLAT_RATE,
+                "free_shipping": settings.FREE_SHIPPING_THRESHOLD,
+            },
+            "related": services.related_products(product),
+            "recent": services.recently_viewed(
+                request.COOKIES.get(services.RECENT_COOKIE), exclude_slug=product.slug
+            ),
+            "trail": trail,
+            "current": product.name,
+        },
+    )
+    # The strip is a cookie the browser writes, so nothing here is cached per visitor.
+    response["Vary"] = "Cookie"
+    return response

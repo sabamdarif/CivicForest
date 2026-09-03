@@ -3,24 +3,6 @@
    Only this page loads it, which is what keeps the shared four sheets small enough for the
    heaviest page to stay inside the 60 KB budget (P3, P11). */
 
-/* ── Band spacing ─────────────────────────────────────────────────────────── */
-.band {
-  padding-block: var(--space-8);
-}
-
-.band__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-4);
-
-  /* The head owns the gap to the grid, so section-head does not add a second one. */
-  & .section-head {
-    margin-bottom: var(--space-5);
-  }
-}
-
 /* ── Hero ─────────────────────────────────────────────────────────────────── */
 .hero-band {
   overflow: hidden;

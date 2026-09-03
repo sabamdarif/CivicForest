@@ -1,0 +1,120 @@
+{# The buy panel: everything L9 requires visible before add-to-cart, and one form that posts.
+
+   Colour is a link back to this page carrying ?color=, so swapping it re-renders the gallery
+   and the size availability on the server (E2). Size is a radio inside the form. Nothing here
+   sends a price: the server resolves the slug, size and colour to a variant itself. #}
+{% from "_macros/badge.html" import badge %}
+{% from "_macros/button.html" import button, icon_button %}
+{% from "_macros/icon.html" import icon %}
+{% from "_macros/notice.html" import notices %}
+{% from "_macros/price.html" import price %}
+{% from "_macros/stepper.html" import stepper %}
+{% from "_macros/swatch.html" import swatch %}
+
+<div class="buy">
+  {%- if panel.badges %}
+    <div class="buy__badges">
+      {%- for label, variant in panel.badges %}{{ badge(label, variant) }}{% endfor %}
+    </div>
+  {%- endif %}
+
+  <p class="eyebrow">{{ product.category.name }}</p>
+  <h1 class="buy__name">{{ product.name }}</h1>
+  {{ price(panel.price, panel.mrp, size="lg") }}
+  <p class="buy__tax">Inclusive of all taxes</p>
+
+  {{ notices(request) }}
+
+  {%- if panel.colours|length > 1 or panel.colours %}
+    <fieldset class="buy__group">
+      <legend class="buy__legend">Colour: <strong>{{ panel.colour }}</strong></legend>
+      <ul class="swatch-options">
+        {%- for option in panel.colours %}
+          <li>
+            <a class="swatch-option{{ ' swatch-option--current' if option.selected else '' }}"
+              href="?color={{ option.value|urlencode }}" data-colour="{{ option.value }}"
+              {%- if option.selected %} aria-current="true"{% endif %}>
+              {{ swatch(option.swatch or "#e4ded4", option.value, out_of_stock=not option.in_stock) }}
+              <span class="sr-only">{{ option.value }}{{ ", sold out" if not option.in_stock else "" }}</span>
+            </a>
+          </li>
+        {%- endfor %}
+      </ul>
+    </fieldset>
+  {%- endif %}
+
+  <form class="buy__form" method="post" action="/cart/add/">
+    {{ csrf_input }}
+    <input type="hidden" name="product" value="{{ product.slug }}">
+    <input type="hidden" name="color" value="{{ panel.colour }}">
+
+    {%- if panel.sizes %}
+      <fieldset class="buy__group">
+        <legend class="buy__legend">
+          <span>Size</span>
+          {%- if size_chart %}
+            <a class="buy__size-link" href="#size-guide">Size guide</a>
+          {%- endif %}
+        </legend>
+        <ul class="size-options">
+          {%- for option in panel.sizes %}
+            <li>
+              {# Out of stock is struck through and disabled rather than hidden, so the
+                 customer can see the size exists and is simply gone (E4). #}
+              <label class="size-option{{ ' size-option--out' if not option.in_stock else '' }}">
+                <input class="sr-only" type="radio" name="size" value="{{ option.value }}"
+                  {%- if option.selected %} checked{% endif %}
+                  {%- if not option.in_stock %} disabled{% endif %}>
+                <span>{{ option.value }}</span>
+                {%- if not option.in_stock %}<span class="sr-only">, sold out</span>{% endif %}
+              </label>
+            </li>
+          {%- endfor %}
+        </ul>
+      </fieldset>
+    {%- endif %}
+
+    {%- if low_stock %}
+      <p class="buy__stock">{{ icon("alert", 16) }}<span>{{ low_stock }}</span></p>
+    {%- endif %}
+
+    <div class="buy__actions">
+      {{ stepper(max=10, submit=False) }}
+      {%- if panel.in_stock %}
+        {{ button("Add to cart", size="lg", type="submit", icon_start="cart") }}
+      {%- else %}
+        {{ button("Sold out", size="lg", variant="secondary", disabled=True) }}
+      {%- endif %}
+    </div>
+  </form>
+
+  {# The heart is a form of its own: M4 task 6 mounts /account/wishlist/ and it starts working
+     without another edit here. #}
+  <form class="buy__wishlist" method="post" action="/account/wishlist/">
+    {{ csrf_input }}
+    <input type="hidden" name="product" value="{{ product.pk }}">
+    {{ icon_button("heart", "Save " ~ product.name ~ " to your wishlist", type="submit") }}
+    <span>Save for later</span>
+  </form>
+
+  {# L9 wants the country of origin, the tax-inclusive price, the delivery estimate and the
+     return window all visible before add-to-cart. Decision 12 buys no courier API, so the
+     estimate is the shop's own dispatch and transit commitment rather than a quote. #}
+  <dl class="buy__facts">
+    <div>
+      <dt>{{ icon("truck", 18) }}<span>Delivery</span></dt>
+      <dd>
+        Dispatched in {{ promise.dispatch }} business days, delivered in
+        {{ promise.delivery }} business days across India. Free above {{ promise.free_shipping|rupees(0) }}.
+      </dd>
+    </div>
+    <div>
+      <dt>{{ icon("rotate-ccw", 18) }}<span>Returns</span></dt>
+      <dd>{{ promise.returns }} days from delivery, unworn and with tags on.</dd>
+    </div>
+    <div>
+      <dt>{{ icon("leaf", 18) }}<span>Country of origin</span></dt>
+      <dd>{{ product.country_of_origin }}</dd>
+    </div>
+  </dl>
+</div>

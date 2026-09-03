@@ -88,7 +88,7 @@ change until the milestone that builds them begins.
 | C8 | Category depth | Two levels | `parent` FK already nullable |
 | C9 | Badges | `New` auto from `created_at` window, `Sale` auto from the MRP gap, `Bestseller` manual | Matches the BESTSELLER / NEW / −15% badges in the shop screenshot |
 | C10 | Product fields | description · fabric/material · care instructions · fit notes · model height and size worn · GSM · sleeve/neck type · size chart · **country of origin** · HSN code · tax rate · weight · dimensions | Country of origin is legally required, not optional |
-| C11 | Size chart | Per-category table, admin-editable, opened in a modal | One chart maintained per garment type |
+| C11 | Size chart | Per-category table, admin-editable, in the product page's size-guide accordion | One chart maintained per garment type. E7 already lists size guide as an accordion, and a `<dialog>` cannot be opened without JavaScript, which P6 forbids relying on |
 | C12 | Images | Product-level and variant-level, ordered, alt text required, max 8 per product, hover zoom + lightbox. No video | Colour swatch selection swaps the gallery |
 | C13 | Related products | Same-category automatic, with a manual override list | Powers "You may also like" in the cart screenshot |
 | C14 | Bundles / sets | Out | |

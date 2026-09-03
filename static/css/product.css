@@ -1,0 +1,322 @@
+/* The product page: the gallery, the buy panel and its picker, and the spec tables.
+
+   The picker is radios and links dressed as swatches and buttons, so everything on this page
+   works before gallery.js and variant-picker.js load (P6). */
+
+.product {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+  padding-block: var(--space-5) var(--space-8);
+}
+
+@media (width >= 60rem) {
+  .product {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: var(--space-8);
+  }
+
+  /* The panel is short and the gallery is tall, so the panel follows the scroll. */
+  .product__panel {
+    position: sticky;
+    top: calc(var(--space-8) + var(--space-4));
+  }
+}
+
+/* ── Gallery ──────────────────────────────────────────────────────────────── */
+.gallery__track {
+  display: flex;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  list-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.gallery__slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+}
+
+.gallery__frame {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--cream-deep);
+  cursor: zoom-in;
+
+  & img {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    transition: scale var(--motion-slow) var(--ease);
+  }
+
+  /* gallery.js sets --zoom-x/--zoom-y from the pointer; without it the zoom is centred. */
+  &:hover img {
+    scale: 1.5;
+    transform-origin: var(--zoom-x, 50%) var(--zoom-y, 50%);
+  }
+}
+
+.gallery__thumbs {
+  display: flex;
+  gap: var(--space-2);
+  padding: 0;
+  margin: var(--space-3) 0 0;
+  overflow-x: auto;
+  list-style: none;
+}
+
+.gallery__thumb {
+  display: block;
+  width: 4.5rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+
+  & img {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+  }
+
+  &:hover,
+  &--current {
+    border-color: var(--ink);
+  }
+}
+
+.gallery__empty {
+  display: grid;
+  place-items: center;
+  gap: var(--space-3);
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius);
+  background: var(--cream-deep);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+/* ── Buy panel ────────────────────────────────────────────────────────────── */
+.buy__badges {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.buy__name {
+  margin-bottom: var(--space-3);
+  font-size: var(--step-4);
+}
+
+.buy__tax {
+  margin-block: var(--space-1) 0;
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.buy .notice {
+  margin-block-start: var(--space-4);
+}
+
+.buy__group {
+  padding: 0;
+  margin: var(--space-5) 0 0;
+  border: 0;
+}
+
+.buy__legend {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 0;
+  margin-bottom: var(--space-3);
+  font-size: var(--step--1);
+}
+
+/* Pushed to the far end, so "Colour: Beige" stays together and only this moves. */
+.buy__size-link {
+  margin-inline-start: auto;
+  color: var(--gold-deep);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+/* ── The picker ───────────────────────────────────────────────────────────── */
+.swatch-options,
+.size-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.swatch-option {
+  display: block;
+  padding: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+
+  &:hover {
+    border-color: var(--line-strong);
+  }
+
+  &--current {
+    border-color: var(--ink);
+  }
+}
+
+/* The radio is visually hidden, so the label carries the whole hit area and the focus ring. */
+.size-option {
+  display: grid;
+  place-items: center;
+  min-width: 3rem;
+  min-height: var(--tap-target);
+  padding-inline: var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--ink);
+  }
+
+  &:has(:checked) {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--cream);
+  }
+
+  &:has(:focus-visible) {
+    outline: var(--focus-width) solid var(--gold-deep);
+    outline-offset: var(--focus-offset);
+  }
+}
+
+/* Struck through and unclickable, so the size is visibly gone rather than quietly missing. */
+.size-option--out {
+  border-color: var(--line);
+  color: var(--muted);
+  text-decoration: line-through;
+  cursor: not-allowed;
+
+  &:hover {
+    border-color: var(--line);
+  }
+}
+
+.buy__stock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: var(--space-4) 0;
+  color: var(--danger);
+  font-size: var(--step--1);
+  font-weight: var(--weight-medium);
+}
+
+.buy__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-5);
+
+  & .btn {
+    flex: 1;
+    min-width: 12rem;
+  }
+}
+
+.buy__wishlist {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+/* ── Facts, specs and the size chart ──────────────────────────────────────── */
+.buy__facts {
+  display: grid;
+  gap: var(--space-3);
+  padding-block-start: var(--space-5);
+  margin-block: var(--space-5) 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--step--1);
+
+  & dt {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--gold-deep);
+    font-weight: var(--weight-semibold);
+  }
+
+  & dd {
+    margin: var(--space-1) 0 0;
+    color: var(--muted);
+  }
+}
+
+.accordions {
+  margin-block-start: var(--space-6);
+  border-top: 1px solid var(--line);
+}
+
+.spec {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+
+  & div {
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  & dt {
+    min-width: 9rem;
+    color: var(--ink);
+    font-weight: var(--weight-medium);
+  }
+
+  & dd {
+    margin: 0;
+  }
+}
+
+.size-chart {
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+
+  & th,
+  & td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--line);
+  }
+
+  & thead th {
+    background: var(--cream-deep);
+    font-size: var(--step--2);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+}
+
+.size-chart__unit {
+  margin-block-start: var(--space-3);
+  color: var(--muted);
+  font-size: var(--step--2);
+}

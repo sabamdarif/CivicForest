@@ -1,0 +1,18 @@
+{# Server-rendered feedback for a form that posts and redirects (P6): the only way a page with
+   no JavaScript can say what happened. The toast component is the JavaScript counterpart. #}
+{% from "_macros/icon.html" import icon %}
+
+{% macro notice(text, variant="") -%}
+  <p class="notice{{ ' notice--' ~ variant if variant else '' }}" role="status">
+    {%- if variant == "success" %}{{ icon("check-circle", 18) }}
+    {%- elif variant == "error" %}{{ icon("alert", 18) }}{% endif %}
+    <span>{{ text }}</span>
+  </p>
+{%- endmacro %}
+
+{# Django's message tags are debug/info/success/warning/error; only two have a look here. #}
+{% macro notices(request) -%}
+  {%- for message in get_messages(request) %}
+    {{ notice(message, "error" if message.level_tag in ("error", "warning") else "success") }}
+  {%- endfor %}
+{%- endmacro %}

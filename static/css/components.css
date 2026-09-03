@@ -799,6 +799,28 @@ select.field__control {
   }
 }
 
+/* ── Inline notice: the no-JavaScript counterpart to a toast ──────────────── */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--cream-deep);
+  font-size: var(--step--1);
+}
+
+.notice--success {
+  border-left-color: var(--success);
+  color: var(--success);
+}
+
+.notice--error {
+  border-left-color: var(--danger);
+  color: var(--danger);
+}
+
 /* ── Empty state ──────────────────────────────────────────────────────────── */
 .empty {
   padding-block: var(--space-8);
@@ -869,6 +891,23 @@ select.field__control {
 }
 
 /* ── Section furniture ────────────────────────────────────────────────────── */
+.band {
+  padding-block: var(--space-8);
+}
+
+/* A heading with something on the far end of its row, like a "view all" link. */
+.band__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+
+  & .section-head {
+    margin-bottom: var(--space-5);
+  }
+}
+
 .eyebrow {
   margin-bottom: var(--space-2);
   color: var(--gold-deep);

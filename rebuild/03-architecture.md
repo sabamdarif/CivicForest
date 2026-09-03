@@ -340,7 +340,7 @@ static/css/
 ├── layout.css      header, nav, footer, announcement bar
 ├── home.css        hero band, category tiles, the Just Landed row, values strip
 ├── shop.css        grid, filters, sort, pagination, collection cards
-├── product.css     gallery, buy panel, accordions, size chart
+├── product.css     gallery, buy panel and picker, accordions, size chart
 ├── cart.css        cart page and drawer
 ├── checkout.css    checkout and thank-you
 ├── account.css     account area and auth pages (shared with the DTL allauth templates)

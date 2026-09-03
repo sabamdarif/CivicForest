@@ -129,10 +129,13 @@ Tasks:
 5. [x] Shop page: grid, sidebar filters with counts, sort select, numbered pagination, mobile filter
    drawer, active-filter chips with individual removal, empty state.
 6. [x] Collections index and detail.
-7. Product detail: gallery with hover zoom and lightbox, colour swatches that swap images, size
+7. [x] Product detail: gallery with hover zoom and lightbox, colour swatches that swap images, size
    buttons with out-of-stock struck through, price with MRP and percentage off, wishlist heart,
    quantity stepper, add-to-cart, accordions (description / fabric and care / shipping and returns),
    size-chart modal, pincode delivery estimate, trust strip, related products, breadcrumbs.
+   The size chart is in the size-guide accordion, not a modal (C11 amended: a `<dialog>` needs
+   JavaScript). The pincode estimate defers to M6, which needs the same pincode data for H5;
+   until then the page prints the shop's own dispatch and delivery commitment.
 8. JSON-LD: `Product` + `Offer` + `AggregateRating` on detail, `BreadcrumbList` on all,
    `Organization` + `WebSite` on home.
 9. `static/js/`: `filters.js`, `gallery.js`, `variant-picker.js`, `wishlist.js`, `pincode.js`,

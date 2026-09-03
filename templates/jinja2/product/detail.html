@@ -1,0 +1,38 @@
+{# The product page. Everything a customer needs before committing is on it, server-rendered:
+   the gallery, the picker, the price with its tax note, the delivery and return promise, the
+   country of origin (L9), and one form that posts to /cart/add/.
+
+   Nothing here needs JavaScript. Task 9's modules add the pointer zoom, the lightbox, instant
+   colour swapping and the recently-viewed cookie on top of markup that already works. #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+
+{% block title %}{{ product.meta_title or product.name ~ " | CivicForest Clothing" }}{% endblock %}
+{% block description %}{{ product.meta_description or product.description|truncate(160) }}{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/product.css') }}">{% endblock %}
+
+{% block content %}
+  <div class="container">
+    {{ breadcrumbs(trail, current) }}
+  </div>
+
+  <div class="container product">
+    <div class="product__media">
+      {% include "product/_gallery.html" %}
+    </div>
+    <div class="product__panel">
+      {% include "product/_buy_panel.html" %}
+      {% include "product/_accordions.html" %}
+    </div>
+  </div>
+
+  {% with products = related, heading = "You may also like" %}
+    {% include "product/_related.html" %}
+  {% endwith %}
+
+  {% with products = recent, heading = "Recently viewed" %}
+    {% include "product/_related.html" %}
+  {% endwith %}
+
+  {% include "_partials/trust_strip.html" %}
+{% endblock %}
