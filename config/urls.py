@@ -52,12 +52,13 @@ def _health_authorized(request) -> bool:
 urlpatterns = [
     path("", home, name="home"),
     path("", include("apps.catalog.urls")),
+    path("", include("apps.cart.urls")),
     path("healthz/", healthz, name="healthz"),
     # Staff-only, and the regression surface for every stylesheet.
     path("styleguide/", styleguide, name="styleguide"),
     path(settings.ADMIN_URL, admin.site.urls),
     path("api/v1/", include("apps.accounts.urls")),
-    path("api/v1/", include("apps.cart.urls")),
+    path("api/v1/", include("apps.cart.api_urls")),
     path("api/v1/", include("apps.orders.urls")),
     path("api/v1/", include("apps.payments.urls")),
     path("api/v1/", include("apps.custom_orders.urls")),

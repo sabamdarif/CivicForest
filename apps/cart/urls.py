@@ -1,20 +1,13 @@
+"""The cart's storefront routes, mounted at the root.
+
+Just the add-to-cart form target for now. The cart page and its drawer are M4's; until then
+`/cart/` 404s exactly as the header's cart link already does.
+"""
+
 from django.urls import path
 
-from .views import (
-    CartCouponView,
-    CartItemDetailView,
-    CartItemsView,
-    CartView,
-    WishlistItemView,
-    WishlistView,
-)
+from . import views
 
-# Slash-optional, matching the rest of the API and the typed frontend client.
 urlpatterns = [
-    path("cart", CartView.as_view(), name="cart"),
-    path("cart/items", CartItemsView.as_view(), name="cart-items"),
-    path("cart/items/<uuid:variant_id>", CartItemDetailView.as_view(), name="cart-item-detail"),
-    path("cart/coupon", CartCouponView.as_view(), name="cart-coupon"),
-    path("wishlist", WishlistView.as_view(), name="wishlist"),
-    path("wishlist/<uuid:product_id>", WishlistItemView.as_view(), name="wishlist-item"),
+    path("cart/add/", views.add_to_cart, name="cart-add"),
 ]

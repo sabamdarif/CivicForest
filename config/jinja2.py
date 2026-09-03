@@ -5,6 +5,7 @@ here. Django's backend already injects ``request``, ``csrf_input`` and ``csrf_to
 when a template is rendered with a request, so those are deliberately absent.
 """
 
+from django.contrib.messages import get_messages
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
@@ -56,6 +57,10 @@ def environment(**options):
             "now": timezone.localtime,
             "announcement": announcement,
             "nav_categories": nav_categories,
+            # Jinja2 has no context processors, so a template asks for the request's messages
+            # by hand. A form that posts and redirects is how feedback reaches a page with no
+            # JavaScript (P6), so every such page renders these.
+            "get_messages": get_messages,
         }
     )
     env.filters.update(
