@@ -128,7 +128,7 @@ Tasks:
    band, newsletter: sections ordered and toggled by the `HomeSection` model.
 5. [x] Shop page: grid, sidebar filters with counts, sort select, numbered pagination, mobile filter
    drawer, active-filter chips with individual removal, empty state.
-6. Collections index and detail.
+6. [x] Collections index and detail.
 7. Product detail: gallery with hover zoom and lightbox, colour swatches that swap images, size
    buttons with out-of-stock struck through, price with MRP and percentage off, wishlist heart,
    quantity stepper, add-to-cart, accordions (description / fabric and care / shipping and returns),

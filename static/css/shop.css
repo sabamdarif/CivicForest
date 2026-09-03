@@ -7,6 +7,11 @@
   padding-block: var(--space-6) var(--space-5);
 }
 
+/* The collection hero already carries the heading, so its region only needs top air. */
+.shop__region {
+  padding-block: var(--space-7);
+}
+
 .shop__layout {
   display: grid;
   gap: var(--space-6);
@@ -252,4 +257,8 @@
   padding-block: var(--space-8);
   background: var(--ink);
   color: var(--cream);
+
+  & .breadcrumbs {
+    margin-bottom: var(--space-5);
+  }
 }

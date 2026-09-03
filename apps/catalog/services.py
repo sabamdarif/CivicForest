@@ -147,6 +147,21 @@ def collection_by_slug(slug: str) -> Collection | None:
     return active_collections().filter(slug=slug).first()
 
 
+def listed_collections() -> QuerySet[Collection]:
+    """Active collections with how many live products each holds, for the index tiles.
+
+    The ordering is repeated explicitly because an ``annotate`` puts the model's default
+    ordering into the GROUP BY and the rows come back in whatever order the aggregate left.
+    """
+    return (
+        active_collections()
+        .annotate(
+            product_count=Count("products", filter=Q(products__is_active=True), distinct=True)
+        )
+        .order_by("display_order", "name")
+    )
+
+
 def _listable() -> QuerySet[Product]:
     """The lean base for counting. No prefetches: an aggregate never reads them."""
     return Product.objects.filter(is_active=True)
