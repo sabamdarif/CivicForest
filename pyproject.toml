@@ -8,7 +8,6 @@ dependencies = [
     "djangorestframework>=3.17.2",
     "django-allauth[socialaccount,mfa]==65.19.1",
     "django-environ>=0.11",
-    "django-filter>=24.3",
     "argon2-cffi>=23.1",
     "psycopg[binary]>=3.2",
     "jinja2>=3.1",

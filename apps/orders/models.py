@@ -36,6 +36,15 @@ class Order(UUIDTimestampedModel):
         CANCELLED = "cancelled", "Cancelled"
         REFUNDED = "refunded", "Refunded"
 
+    # The statuses that mean money was taken, as a set a queryset can filter on: the
+    # popularity sort counts units sold across exactly these.
+    PAID_STATUSES = (
+        Status.PAID,
+        Status.PROCESSING,
+        Status.SHIPPED,
+        Status.DELIVERED,
+    )
+
     order_number = models.CharField(
         max_length=16, unique=True, default=generate_order_number, editable=False
     )
@@ -78,12 +87,7 @@ class Order(UUIDTimestampedModel):
 
     @property
     def is_paid(self) -> bool:
-        return self.status in {
-            self.Status.PAID,
-            self.Status.PROCESSING,
-            self.Status.SHIPPED,
-            self.Status.DELIVERED,
-        }
+        return self.status in set(self.PAID_STATUSES)
 
 
 class OrderItem(UUIDTimestampedModel):

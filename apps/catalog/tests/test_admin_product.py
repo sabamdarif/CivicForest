@@ -16,6 +16,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 from rest_framework.test import APIClient
 
+from apps.catalog import services
 from apps.catalog.models import Color, Product, Size
 from apps.common.factories import CategoryFactory, StaffUserFactory
 
@@ -110,9 +111,10 @@ def test_staff_publishes_a_dress_and_it_appears_on_the_storefront(staff_client, 
     image = product.images.get()
     assert image.alt_text == product.name
     assert image.image.name.startswith("products/")
+    assert sorted(image.width_variants) == ["40"], "srcset widths generated on upload"
 
-    listed = APIClient().get("/api/v1/catalog/products").json()["results"]
-    assert product.slug in {row["slug"] for row in listed}
+    # The storefront reads through this queryset, so being in it is what "live" means.
+    assert product in services.active_products()
 
 
 def test_a_product_cannot_be_published_without_its_hsn_code(staff_client, settings, tmp_path):

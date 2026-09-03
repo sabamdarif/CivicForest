@@ -56,7 +56,6 @@ urlpatterns = [
     # Staff-only, and the regression surface for every stylesheet.
     path("styleguide/", styleguide, name="styleguide"),
     path(settings.ADMIN_URL, admin.site.urls),
-    path("api/v1/", include("apps.catalog.urls")),
     path("api/v1/", include("apps.accounts.urls")),
     path("api/v1/", include("apps.cart.urls")),
     path("api/v1/", include("apps.orders.urls")),

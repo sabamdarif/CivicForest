@@ -122,7 +122,7 @@ Tasks:
    `gsm`, `weight_grams`, `length_cm`/`width_cm`/`height_cm`. Add `Product.collections` M2M.
 2. [x] Add `ProductImage` variants: store the R2 key plus generated widths; `alt_text` becomes required
    at the form level.
-3. Services: `product_list(filters, sort, page)` returning products, facet counts and total in one
+3. [x] Services: `product_list(filters, sort, page)` returning products, facet counts and total in one
    query pass; `facet_counts(queryset)`; `related_products(product)`; `price_display(variant)`.
 4. Home page: hero, four-icon trust strip, shop-by-category tiles, "Just Landed" row, brand values
    band, newsletter: sections ordered and toggled by the `HomeSection` model.

@@ -43,7 +43,6 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "rest_framework",
-    "django_filters",
     "allauth",
     "allauth.account",
     "allauth.mfa",
@@ -209,10 +208,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "apps.common.pagination.StandardResultsPagination",
     "PAGE_SIZE": 12,
-    "DEFAULT_FILTER_BACKENDS": [
-        "django_filters.rest_framework.DjangoFilterBackend",
-        "rest_framework.filters.OrderingFilter",
-    ],
+    "DEFAULT_FILTER_BACKENDS": ["rest_framework.filters.OrderingFilter"],
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
