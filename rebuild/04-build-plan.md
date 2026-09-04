@@ -145,7 +145,10 @@ Tasks:
    and `pincode.js` for M6 with the rest of the estimate.
 10. [x] `seed_catalog` command rewritten for the new fields, using the brand imagery in
     `frontend/public/brand/`: copy those PNGs to `static/img/seed/` before deleting `frontend/`.
-11. Sitemap covering products, categories, collections and static pages.
+11. [x] Sitemap covering products, categories, collections and static pages. `robots.txt` stays
+    with M9 task 10's SEO pass. The Site row's domain is set by a `post_migrate` receiver in
+    `apps/common/apps.py`, because `django.contrib.sites` creates that row from the same signal
+    and a migration would run before it exists.
 
 **Done when:** a visitor can browse from home to a product page and back through every filter and
 sort combination **with JavaScript disabled**, facet counts are correct, LCP on the shop page is

@@ -383,7 +383,7 @@ and tells the customer so if JavaScript is unavailable.
 | Group | Templates |
 |---|---|
 | Shell | `base.html`, `_partials/{header,footer,announcement,icons,search_overlay,cart_drawer,toast,cookie_banner,trust_strip}.html` |
-| Macros | `_macros/{icon,button,field,card,badge,price,swatch,rating,accordion,modal,stepper,empty,breadcrumbs,pagination}.html` |
+| Macros | `_macros/{icon,button,field,card,badge,price,swatch,rating,accordion,modal,stepper,empty,breadcrumbs,pagination,notice,util}.html` |
 | Storefront | `home.html`, `shop/{list,_shop,_grid,_filters,_sort,_filter_drawer}.html`, `collections/{index,detail}.html`, `product/{detail,_gallery,_buy_panel,_accordions,_size_chart,_related}.html`, `search/{results,_zero}.html` |
 | Custom line | `customise/{landing,designer,_blank_card,_upload_panel,_placement_tabs}.html` |
 | Cart & checkout | `cart/{page,_lines,_summary,_coupon,_progress}.html`, `checkout/{page,_address,_summary,complete}.html` |

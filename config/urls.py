@@ -9,9 +9,11 @@ import secrets
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
 from django.http import JsonResponse
 from django.urls import include, path
 
+from apps.common.sitemaps import SITEMAPS
 from apps.common.views import styleguide
 from apps.content.views import home
 
@@ -54,6 +56,7 @@ urlpatterns = [
     path("", include("apps.catalog.urls")),
     path("", include("apps.cart.urls")),
     path("healthz/", healthz, name="healthz"),
+    path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
     # Staff-only, and the regression surface for every stylesheet.
     path("styleguide/", styleguide, name="styleguide"),
     path(settings.ADMIN_URL, admin.site.urls),

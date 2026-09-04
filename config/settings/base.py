@@ -39,6 +39,7 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+    "django.contrib.sitemaps",
 ]
 
 THIRD_PARTY_APPS = [
@@ -134,6 +135,9 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"
 # ─── Auth ────────────────────────────────────────────────────────────────────
 AUTH_USER_MODEL = "accounts.User"
 SITE_ID = 1
+# sitemap.xml builds every URL from the Site row, so this is what stops a deployment
+# advertising example.com. A migration in apps/common seeds it (A16).
+SITE_DOMAIN = env("SITE_DOMAIN", default="civicforest.com")
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
