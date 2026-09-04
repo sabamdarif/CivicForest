@@ -288,6 +288,42 @@ select.field__control {
   accent-color: var(--ink);
 }
 
+/* ── Search bar: the results page's own field, and the overlay's ──────────── */
+/* Shared rather than in shop.css, because the header overlay is on every page. */
+.search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-bar__input {
+  padding-inline: var(--space-8);
+  border-radius: var(--radius-pill);
+}
+
+.search-bar__icon,
+.search-bar__clear {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+.search-bar__icon {
+  inset-inline-start: var(--space-4);
+}
+
+.search-bar__clear {
+  inset-inline-end: var(--space-2);
+  min-height: 2.75rem;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius);
+
+  &:hover {
+    color: var(--ink);
+  }
+}
+
 /* ── Badges ───────────────────────────────────────────────────────────────── */
 .badge {
   display: inline-block;

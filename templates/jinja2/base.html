@@ -36,6 +36,7 @@
 
     {% include "_partials/announcement.html" %}
     {% include "_partials/header.html" %}
+    {% include "_partials/search_overlay.html" %}
 
     <main id="main">
       {% block content %}{% endblock %}
@@ -43,9 +44,11 @@
 
     {% include "_partials/footer.html" %}
 
-    {# Every page has the header, so nav.js is the only module the shell loads. The rest are
-       loaded by the pages that use them, through the scripts block. #}
+    {# Every page has the header, so these two are the only modules the shell loads: the nav and
+       the search overlay, which pulls in modal.js for the <dialog> wiring. The rest are loaded
+       by the pages that use them, through the scripts block. #}
     <script type="module" src="{{ static('js/nav.js') }}"></script>
+    <script type="module" src="{{ static('js/search-overlay.js') }}"></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

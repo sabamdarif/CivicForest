@@ -153,6 +153,15 @@
         </div>
       </div>
     </div>
+
+    {# The results page and the header overlay share this one bar (D7). #}
+    <div class="search-bar" style="margin-top: var(--space-5)">
+      <span class="search-bar__icon" aria-hidden="true">{{ icon("search", 18) }}</span>
+      <label class="sr-only" for="sg-search">Search products</label>
+      <input class="field__control search-bar__input" id="sg-search" type="search"
+        value="hoodie" autocomplete="off">
+      <a class="search-bar__clear" href="#" aria-label="Clear the search">{{ icon("close", 16) }}</a>
+    </div>
   </section>
   <section class="sg-section">
     <h2>Badges, price and rating</h2>

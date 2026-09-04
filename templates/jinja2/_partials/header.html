@@ -53,7 +53,10 @@
     </nav>
 
     <div class="site-header__actions">
-      {{ icon_button("search", "Search", href="/search/") }}
+      {# A link first, an overlay second: search-overlay.js cancels the click and opens the
+         dialog, so with no JavaScript this still navigates to a page with a search form (D7). #}
+      {{ icon_button("search", "Search", href="/search/",
+                     attrs={"data-dialog-open": "search-overlay"}) }}
       {{ icon_button("account", "Your account", href="/account/") }}
       <a class="icon-btn cart-link" href="/cart/"
         aria-label="Cart, {{ cart_count }} item{{ '' if cart_count == 1 else 's' }}">

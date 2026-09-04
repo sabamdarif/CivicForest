@@ -194,8 +194,10 @@ Tasks:
    the header's search icon links to a bare /search/. The suggestion is the last resort it reads
    like: the trigram tier at 0.3 rescues most misspellings before this page is reached, so it
    fires for a term close to a catalogue word but too far from any live document.
-8. `static/js/search-overlay.js`: 250 ms debounce, arrow-key navigation, Escape to close, `aria-live`
-   result count, works as a plain form submit if JS fails.
+8. [x] `static/js/search-overlay.js`: 250 ms debounce, arrow-key navigation, Escape to close, `aria-live`
+   result count, works as a plain form submit if JS fails. A native `<dialog>` reusing `modal.js`, so
+   the focus trap, the inert page, the backdrop, Escape and returning focus to the icon are the
+   element's job. The header icon stays an ordinary link to /search/.
 9. [x] `reindex_search` management command for a full rebuild.
 
 **Done when:** "hoodei" finds hoodies, "tshirt" and "t-shirt" and "tee" all match via synonyms,

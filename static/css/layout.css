@@ -1,4 +1,4 @@
-/* Page chrome: the announcement bar, the header and its nav, and the footer.
+/* Page chrome: the announcement bar, the header and its nav, the search overlay, and the footer.
 
    Everything here appears on every page, so it is the one sheet where a byte costs the
    most. The header is sticky and the mobile panel is a <details>, which is what keeps the
@@ -314,4 +314,81 @@
 .site-footer__policies {
   display: flex;
   gap: var(--space-4);
+}
+
+/* ── Search overlay (D7) ──────────────────────────────────────────────────── */
+/* A .modal, so the backdrop, the entry transition and modal.js's dismissal come free. It sits
+   near the top rather than centred, because the results grow downwards from the field. */
+.search-overlay {
+  width: min(38rem, calc(100vw - var(--space-5)));
+  margin-block: max(var(--space-7), 8vh) auto;
+  padding: var(--space-5);
+}
+
+.search-suggest {
+  max-height: 60vh;
+  margin-block-start: var(--space-4);
+  overflow-y: auto;
+}
+
+.search-suggest__group + .search-suggest__group {
+  margin-block-start: var(--space-4);
+}
+
+.search-suggest__title {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.search-suggest__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-suggest__hit,
+.search-suggest__term {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.75rem;
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cream-deep);
+  }
+}
+
+.search-suggest__thumb {
+  flex: none;
+  width: 3rem;
+  height: 4rem;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.search-suggest__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.search-suggest__price {
+  display: flex;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.search-suggest__none {
+  margin: var(--space-4) 0 0;
+  color: var(--muted);
 }

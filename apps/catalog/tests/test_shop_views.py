@@ -111,7 +111,10 @@ def test_the_mobile_panel_is_a_details_because_a_dialog_needs_javascript(client,
     body = _get(client, "/shop/")
 
     assert '<details class="filter-drawer">' in body
-    assert "<dialog" not in body
+    # The shell's search overlay is the one <dialog> on the page, and it degrades to a plain
+    # link to /search/ (D7). Nothing a filter needs may depend on JavaScript.
+    assert body.count("<dialog") == 1
+    assert 'id="search-overlay"' in body
 
 
 # ── Filtering, sorting and paging through the URL ────────────────────────────

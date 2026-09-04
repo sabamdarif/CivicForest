@@ -13,7 +13,6 @@ from apps.catalog import services as catalog
 from apps.catalog.views import PARTIAL_HEADER, browse_context, render_region
 
 from . import services
-from .models import MAX_QUERY_LENGTH
 from .serializers import SuggestQuerySerializer
 
 ACTION = "/search/"
@@ -41,7 +40,6 @@ def results(request):
         request,
         filters,
         action=ACTION,
-        max_query=MAX_QUERY_LENGTH,
         trail=[("Home", "/")],
         current="Search",
     )

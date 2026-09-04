@@ -14,39 +14,12 @@
   color: var(--gold-deep);
 }
 
-.search-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
+.search__popular {
+  margin-top: var(--space-7);
+}
+
+.search-bar--page {
   margin-bottom: var(--space-6);
-}
-
-.search-bar__icon,
-.search-bar__clear {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  color: var(--muted);
-}
-
-.search-bar__icon {
-  inset-inline-start: var(--space-4);
-}
-
-.search-bar__clear {
-  inset-inline-end: var(--space-2);
-  min-height: 2.75rem;
-  padding-inline: var(--space-3);
-  border-radius: var(--radius);
-
-  &:hover {
-    color: var(--ink);
-  }
-}
-
-.search-bar__input {
-  padding-inline: var(--space-8) var(--space-8);
-  border-radius: var(--radius-pill);
 }
 
 /* The collection hero already carries the heading, so its region only needs top air. */

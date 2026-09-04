@@ -30,11 +30,11 @@
     </header>
 
     {# A new term is a new intent, so this form carries no filters: searching again starts clean. #}
-    <form class="search-bar" method="get" action="{{ action }}" role="search">
+    <form class="search-bar search-bar--page" method="get" action="{{ action }}" role="search">
       <label class="sr-only" for="search-q">Search products</label>
       <span class="search-bar__icon" aria-hidden="true">{{ icon("search", 18) }}</span>
       <input class="field__control search-bar__input" id="search-q" name="q" type="search"
-        value="{{ term or '' }}" maxlength="{{ max_query }}" autocomplete="off"
+        value="{{ term or '' }}" maxlength="{{ search_max_query() }}" autocomplete="off"
         placeholder="Search hoodies, tees, colours">
       {%- if term %}
         <a class="search-bar__clear" href="{{ action }}" aria-label="Clear the search">{{ icon("close", 16) }}</a>

@@ -60,6 +60,14 @@ def card_data(product):
     return build(product)
 
 
+def search_max_query():
+    """The search field's maxlength. The header overlay is in the shell, so no view can pass it,
+    and this is the same constant that caps the term server-side."""
+    from apps.search.models import MAX_QUERY_LENGTH
+
+    return MAX_QUERY_LENGTH
+
+
 def environment(**options):
     # /tmp is the only writable path on Vercel and it survives inside a warm instance,
     # so compiled templates are cached there instead of recompiled per request.
@@ -72,6 +80,7 @@ def environment(**options):
             "now": timezone.localtime,
             "announcement": announcement,
             "nav_categories": nav_categories,
+            "search_max_query": search_max_query,
             # Jinja2 has no context processors, so a template asks for the request's messages
             # by hand. A form that posts and redirects is how feedback reaches a page with no
             # JavaScript (P6), so every such page renders these.

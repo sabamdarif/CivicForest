@@ -33,6 +33,7 @@ def test_staff_get_every_component(client):
     for marker in (
         "btn--gold",
         "field__error",
+        "search-bar__input",
         "badge--sale",
         "product-card",
         "price__mrp",
