@@ -180,8 +180,10 @@ Tasks:
    Word similarity rather than plain similarity, which compares whole strings and cannot find one
    misspelt word inside a document. SQLite has none of this, so it falls back to substring matching
    over the same blob (A10) and the ranking assertions are a Postgres-only test module.
-5. `/api/v1/search/suggest/`: products with thumbnails, matching categories, popular queries. Capped,
-   throttled, cached 60 s.
+5. [x] `/api/v1/search/suggest/`: products with thumbnails, matching categories, popular queries. Capped,
+   throttled, cached 60 s. Capped rather than paginated, so there is no offset to walk: the cap is
+   what stops enumeration, because the cache and the throttle counter are per function instance
+   until M0 task 9 creates A2's cache table.
 6. `/search/` results page reusing the shop grid, filters and sorts, with the query echoed as in the
    screenshot ("You searched for 'hoodie'").
 7. Zero-result page: "did you mean" from trigram, popular products, and the term logged.

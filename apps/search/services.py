@@ -22,20 +22,28 @@ from django.contrib.postgres.search import (
     TrigramSimilarity,
     TrigramWordSimilarity,
 )
+from django.core.cache import cache
 from django.db import connection
-from django.db.models import F, Q, Value
+from django.db.models import Count, F, Q, Value
 from django.utils import timezone
 
 from apps.catalog import services as catalog
 from apps.catalog.models import Material, Tag
+from apps.common.formatting import rupees
 
-from .models import MAX_QUERY_LENGTH, SearchDocument, SearchSynonym
+from .models import MAX_QUERY_LENGTH, SearchDocument, SearchQueryLog, SearchSynonym
 
 CONFIG = "english"  # the stored vector and every query must agree on the dictionary
 TOKEN = re.compile(r"[a-z0-9]+")
 MAX_TOKENS = 8
 SIMILARITY_FLOOR = 0.3  # M3 task 4
 MIN_QUERY_LENGTH = 2  # one letter matches most of the catalogue and helps nobody
+
+# The suggest payload is capped rather than paginated, so there is no offset to walk.
+SUGGEST_TTL = 60
+SUGGEST_PRODUCTS = 6
+SUGGEST_CATEGORIES = 4
+SUGGEST_QUERIES = 5
 
 
 # ── The document (M3.2) ──────────────────────────────────────────────────────
@@ -209,3 +217,77 @@ def did_you_mean(term: str) -> str:
         if row and row[1] > score and row[0].lower() != term.lower():
             best, score = row
     return best
+
+
+# ── Suggest (M3.5) ───────────────────────────────────────────────────────────
+def matching(term: str, limit: int) -> tuple[list, int]:
+    """The best few products for a term and how many there are in total.
+
+    A lean version of the results page: no facets, no filters, no pagination, which is what
+    keeps the autocomplete to two queries.
+    """
+    rank = ranking(term)
+    if rank is None:
+        return [], 0
+    found = catalog.ranked(catalog.active_products(), rank).order_by(
+        *catalog.order_for(catalog.DEFAULT_SORT, rank)
+    )
+    return list(found[:limit]), found.count()
+
+
+def popular_queries(limit: int = SUGGEST_QUERIES) -> list[str]:
+    """The most-searched terms that found something (D7).
+
+    ``order_by()`` first, or the model's own ordering joins the GROUP BY and every row becomes
+    its own group.
+    """
+    rows = (
+        SearchQueryLog.objects.filter(result_count__gt=0)
+        .order_by()
+        .values("query")
+        .annotate(total=Count("id"))
+        .order_by("-total", "query")[:limit]
+    )
+    return [row["query"] for row in rows]
+
+
+def _suggestion_card(product) -> dict:
+    """One suggestion row, read off the one mapping a product card already uses, so a price
+    here can never disagree with the price on a card."""
+    data = catalog.card_data(product)
+    return {
+        "name": data["name"],
+        "url": data["href"],
+        "image": data["image"],
+        "srcset": data["srcset"],
+        "price": rupees(data["amount"]),
+        "mrp": rupees(data["mrp"]) if data["mrp"] else "",
+    }
+
+
+def suggest(term: str) -> dict:
+    """The autocomplete payload (D7), capped and cached for a minute.
+
+    The cache is a latency saving only, and is per function instance until A2's database cache
+    table exists, so nothing about the cap may depend on it being warm.
+    """
+    term = clean(term)
+    if len(term) < MIN_QUERY_LENGTH:
+        return {"products": [], "categories": [], "queries": [], "total": 0}
+
+    key = "search:suggest:" + "-".join(TOKEN.findall(term.lower())[:MAX_TOKENS])
+    payload = cache.get(key)
+    if payload is None:
+        products, total = matching(term, SUGGEST_PRODUCTS)
+        categories = catalog.active_categories().filter(name__icontains=term)[:SUGGEST_CATEGORIES]
+        payload = {
+            "products": [_suggestion_card(product) for product in products],
+            "categories": [
+                {"name": category.name, "url": category.get_absolute_url()}
+                for category in categories
+            ],
+            "queries": popular_queries(),
+            "total": total,
+        }
+        cache.set(key, payload, SUGGEST_TTL)
+    return payload
