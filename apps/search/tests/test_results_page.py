@@ -74,11 +74,6 @@ def test_the_sort_list_is_the_shops_own(client):
         assert label in body
 
 
-def test_relevance_orders_by_the_shop_rule_when_there_is_no_query(client):
-    body = _body(client, "/search/")
-    assert "Graphic Tee" in body  # the bestseller leads, as it does on /shop/
-
-
 def test_a_partial_fetch_returns_the_region_and_nothing_else(client):
     response = client.get("/search/?q=hoodie", headers={"X-Partial": "shop"})
 

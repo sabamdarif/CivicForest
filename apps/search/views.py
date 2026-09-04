@@ -25,10 +25,12 @@ def _is_new_search(request, term: str) -> bool:
 
 
 def results(request):
-    """The results page (M3.6).
+    """The results page (M3.6) and both of its empty states (M3.7).
 
     An empty query is not an error and not a redirect to /shop/: the header's search icon links
-    straight here, so the page has to stand on its own with a prompt and a way forward.
+    straight here, so the page has to stand on its own with a prompt and a way forward. The
+    region is chosen here rather than in the template, so a JavaScript filter swap and a plain
+    reload cannot render different things.
     """
     term = services.clean(request.GET.get("q"))
     filters = catalog.parse_filters(request.GET)
@@ -45,7 +47,13 @@ def results(request):
     )
     if _is_new_search(request, term):
         services.log_query(request, term, context["results"].page.paginator.count)
-    return render_region(request, "search/results.html", "shop/_shop.html", context)
+
+    empty = not (term and context["results"].page.paginator.count)
+    if empty:
+        context["suggestion"] = services.did_you_mean(term)
+        context["popular"] = services.popular_products()
+    context["region"] = "search/_zero.html" if empty else "shop/_shop.html"
+    return render_region(request, "search/results.html", context["region"], context)
 
 
 class SuggestView(APIView):

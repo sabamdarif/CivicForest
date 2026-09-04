@@ -189,7 +189,11 @@ Tasks:
    into every chip, pagination link and hidden input. `noindex,follow`, because an internal search URL
    is thin content and indexing one would fill the query log with terms nobody typed. One log row per
    submitted query (D9): not a paged re-visit, not a JavaScript filter swap, and never from suggest.
-7. Zero-result page: "did you mean" from trigram, popular products, and the term logged.
+7. [x] Zero-result page: "did you mean" from trigram, popular products, and the term logged.
+   The same partial covers a query that found nothing and a query nobody has typed yet, because
+   the header's search icon links to a bare /search/. The suggestion is the last resort it reads
+   like: the trigram tier at 0.3 rescues most misspellings before this page is reached, so it
+   fires for a term close to a catalogue word but too far from any live document.
 8. `static/js/search-overlay.js`: 250 ms debounce, arrow-key navigation, Escape to close, `aria-live`
    result count, works as a plain form submit if JS fails.
 9. [x] `reindex_search` management command for a full rebuild.

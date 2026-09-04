@@ -293,6 +293,15 @@ def suggest(term: str) -> dict:
     return payload
 
 
+def popular_products(limit: int = 4) -> list:
+    """What to offer when there is nothing to show (D8): what sells, or what is newest.
+
+    Never empty on a stocked catalogue, which is what makes a zero-result page a way forward
+    rather than a dead end.
+    """
+    return list(catalog.bestsellers(limit)) or list(catalog.new_arrivals(limit))
+
+
 def log_query(request, term: str, result_count: int) -> None:
     """One row per submitted query (D9).
 

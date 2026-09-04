@@ -11,6 +11,7 @@ from django.db import connection
 from django.http import QueryDict
 
 from apps.catalog import services as catalog
+from apps.catalog.models import Tag
 from apps.search import services
 from apps.search.models import SearchDocument
 
@@ -74,6 +75,18 @@ def test_did_you_mean_is_trigram_output_or_nothing(documents):
     # Nothing invented (J9), and never the word already typed.
     assert services.did_you_mean("zzzzqqq") == ""
     assert services.did_you_mean("hoodies") == ""
+
+
+def test_the_zero_result_page_offers_the_suggestion_as_a_link(client, documents):
+    # A vocabulary word no live product carries is the case that reaches this page at all: the
+    # trigram tier is generous enough that a near-miss usually finds products instead.
+    Tag.objects.create(name="Corduroy")
+
+    body = client.get("/search/?q=cordroy").content.decode()
+
+    assert "No results for" in body
+    assert "Did you mean" in body
+    assert 'href="/search/?q=Corduroy"' in body
 
 
 def test_relevance_falls_back_to_featured_order_without_a_query(documents):
