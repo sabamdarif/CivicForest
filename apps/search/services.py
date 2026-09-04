@@ -1,25 +1,44 @@
-"""Search services: building the document a query will read.
+"""Search services: building the document, and turning a typed query into a result set.
 
 The document is denormalised on purpose: one row per product, so a query never joins across the
 catalogue mid-request. ``text`` is deliberately short, because it is what trigram matching reads
 and ``word_similarity()`` against a whole description would never clear a floor.
 
+The query path is one public function, ``ranking()``, which hands the catalogue a restriction and
+an order rather than a queryset. That keeps one listing implementation in `apps/catalog` and the
+only vendor branch here: Postgres gets the weighted vector and the trigram fallback, SQLite gets
+substring matching so a local development server still answers /search/ (A10).
+
 Money never appears here except through ``catalog.services.card_data``, which is the one place a
 product is mapped for display.
 """
 
-from django.contrib.postgres.search import SearchVector
+import re
+
+from django.contrib.postgres.search import (
+    SearchQuery,
+    SearchRank,
+    SearchVector,
+    TrigramSimilarity,
+    TrigramWordSimilarity,
+)
 from django.db import connection
-from django.db.models import Value
+from django.db.models import F, Q, Value
 from django.utils import timezone
 
 from apps.catalog import services as catalog
+from apps.catalog.models import Material, Tag
 
-from .models import SearchDocument
+from .models import MAX_QUERY_LENGTH, SearchDocument, SearchSynonym
 
 CONFIG = "english"  # the stored vector and every query must agree on the dictionary
+TOKEN = re.compile(r"[a-z0-9]+")
+MAX_TOKENS = 8
+SIMILARITY_FLOOR = 0.3  # M3 task 4
+MIN_QUERY_LENGTH = 2  # one letter matches most of the catalogue and helps nobody
 
 
+# ── The document (M3.2) ──────────────────────────────────────────────────────
 def _parts(product) -> tuple[str, str, str, str]:
     """The four weighted tiers: name A, taxonomy B, tags, material and colours C, body D.
 
@@ -73,3 +92,120 @@ def refresh(product) -> None:
 def indexable():
     """Products a document is built from, with everything ``_parts`` reads prefetched."""
     return catalog.active_products().prefetch_related("collections")
+
+
+# ── Synonyms (decision 6) ────────────────────────────────────────────────────
+def _groups() -> list[set[str]]:
+    """Every active equivalence group, lowercased.
+
+    Symmetric, so one row covers every direction: a query matching the term or any member of
+    the expansion searches for all of them.
+    """
+    rows = SearchSynonym.objects.filter(is_active=True).values_list("term", "expansion")
+    groups = []
+    for term, expansion in rows:
+        members = {part.strip().lower() for part in expansion.split(",") if part.strip()}
+        groups.append(members | {term.strip().lower()})
+    return groups
+
+
+def clean(raw: str | None) -> str:
+    """The query as it is echoed, logged and searched: trimmed, collapsed, capped."""
+    return " ".join((raw or "").split())[:MAX_QUERY_LENGTH]
+
+
+def _expansions(term: str) -> list[list[str]]:
+    """Alternatives per query part, expanded through the synonym table.
+
+    The whole term is looked up first, so a hyphenated spelling like "t-shirt" still finds its
+    group even though it tokenises into two words.
+    """
+    groups = _groups()
+    whole = term.lower()
+    for group in groups:
+        if whole in group:
+            return [sorted(group)]
+
+    parts = []
+    for token in TOKEN.findall(whole)[:MAX_TOKENS]:
+        alternatives = {token}
+        for group in groups:
+            if token in group:
+                alternatives |= group
+        parts.append(sorted(alternatives))
+    return parts
+
+
+# ── The query path (M3.4) ────────────────────────────────────────────────────
+def _tsquery(parts: list[list[str]]) -> str:
+    """Alternatives ORed, parts ANDed, every alternative a prefix match.
+
+    Raw rather than websearch, because prefix matching is what lets a half-typed word find
+    anything. Safe: every token is alnum-only, so the string cannot be malformed or injected.
+    """
+    clauses = []
+    for alternatives in parts:
+        phrases = [" <-> ".join(TOKEN.findall(alternative)) for alternative in alternatives]
+        clauses.append(" | ".join(f"{phrase}:*" for phrase in phrases if phrase))
+    return " & ".join(f"({clause})" for clause in clauses if clause)
+
+
+def _substring_ranking(parts: list[list[str]]) -> catalog.Ranking:
+    """SQLite only: the same alternatives as substrings of the same blob.
+
+    No rank and no typo tolerance, so relevance keeps its no-query meaning. This exists to keep
+    a local development server working (A10); CI and production run the Postgres path.
+    """
+    where = Q()
+    for alternatives in parts:
+        clause = Q()
+        for alternative in alternatives:
+            clause |= Q(search_document__text__icontains=alternative)
+        where &= clause
+    return catalog.Ranking(where=where, aliases={}, order_by=())
+
+
+def ranking(term: str) -> catalog.Ranking | None:
+    """What restricts and orders a search, or None when there is nothing to search for."""
+    term = clean(term)
+    parts = _expansions(term)
+    if not any(parts):
+        return None
+    if connection.vendor != "postgresql":
+        return _substring_ranking(parts)
+
+    query = SearchQuery(_tsquery(parts), search_type="raw", config=CONFIG)
+    return catalog.Ranking(
+        # Word similarity, not plain similarity: the latter compares whole strings and cannot
+        # find one misspelt word inside a multi-word document, which is the entire point.
+        where=Q(search_document__vector=query) | Q(word_sim__gte=SIMILARITY_FLOOR),
+        aliases={
+            "rank": SearchRank(F("search_document__vector"), query),
+            "word_sim": TrigramWordSimilarity(term, "search_document__text"),
+        },
+        order_by=("-rank", "-word_sim"),
+    )
+
+
+def did_you_mean(term: str) -> str:
+    """The closest catalogue word to a query that found nothing, or "".
+
+    Real trigram output or nothing at all: J9 forbids inventing a suggestion. The vocabularies
+    are the source because they are curated and short, where a product name is a sentence.
+    """
+    term = clean(term)
+    if not term or connection.vendor != "postgresql":
+        return ""
+
+    best, score = "", 0.0
+    for queryset in (catalog.active_categories(), Tag.objects.all(), Material.objects.all()):
+        row = (
+            queryset.annotate(sim=TrigramSimilarity("name", term))
+            .filter(sim__gte=SIMILARITY_FLOOR)
+            .order_by("-sim")
+            .values_list("name", "sim")
+            .first()
+        )
+        if row and row[1] > score and row[0].lower() != term.lower():
+            best, score = row
+    return best

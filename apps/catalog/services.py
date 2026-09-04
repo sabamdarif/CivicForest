@@ -51,7 +51,7 @@ IMAGE_WIDTHS = (400, 800, 1600)
 SLUG = re.compile(r"^[-a-z0-9]{1,90}$")
 
 # Relevance on a page with no search query means featured order: what the shop chose to push,
-# then what is newest. M3's results page overrides it with a real rank.
+# then what is newest. With a query, ``order_for`` puts the search rank in front of it.
 SORTS = {
     "relevance": ("-is_bestseller", "-created_at"),
     "newest": ("-created_at",),
@@ -70,6 +70,20 @@ SORT_LABELS = {
 
 FILTER_GROUPS = ("category", "size", "color", "material", "collection", "badge", "availability")
 BADGE_LABELS = {"new": "New", "sale": "On sale", "bestseller": "Bestseller"}
+
+
+@dataclass(frozen=True)
+class Ranking:
+    """A search's restriction and order, built by `apps/search` and applied here.
+
+    Handed in as data rather than a queryset so the catalogue keeps one listing implementation
+    and the Postgres-only expressions stay in one module (M3.4). ``aliases`` are aliased and
+    never annotated: a selected expression would land in the facet queries' GROUP BY.
+    """
+
+    where: Q
+    aliases: dict
+    order_by: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -224,15 +238,31 @@ def _badge_q(values: list[str]) -> Q:
     return query
 
 
+def ranked(queryset: QuerySet[Product], ranking: Ranking) -> QuerySet[Product]:
+    """A search's aliases, then its restriction. Both the listing and every facet count go
+    through here, which is what scopes the sidebar counts to the query for free."""
+    return queryset.alias(**ranking.aliases).filter(ranking.where)
+
+
+def order_for(sort: str, ranking: Ranking | None) -> tuple[str, ...]:
+    """The order_by for a sort. A search rank leads relevance; featured order breaks the tie."""
+    if ranking and sort == "relevance":
+        return ranking.order_by + SORTS[sort]
+    return SORTS[sort]
+
+
 def _apply(
     queryset: QuerySet[Product], filters: dict, skip: str | None = None
 ) -> QuerySet[Product]:
     """Every filter except the group named in ``skip``.
 
     Lifting one group is what lets its own facet counts answer "and how many if I ticked this
-    one instead", which is the only reading of D3 that is any use while choosing.
+    one instead", which is the only reading of D3 that is any use while choosing. A search's
+    ``Ranking`` is never lifted: unticking a size must not escape the query.
     """
     queryset = with_price(queryset)
+    if filters.get("ranking"):
+        queryset = ranked(queryset, filters["ranking"])
     chosen = {group: filters.get(group) or [] for group in FILTER_GROUPS if group != skip}
 
     if chosen.get("category"):
@@ -303,6 +333,11 @@ def parse_filters(params) -> dict:
     Unknown keys, junk values and unparseable numbers are dropped rather than rejected: a
     stale or hand-edited URL should widen the result set, never 400. Checkbox groups arrive as
     repeated parameters because that is what a plain form posts.
+
+    Two keys are not read from here and are added by the search view instead: ``q``, the term
+    every URL this module builds carries, and ``ranking``, which restricts and orders the
+    result set. They are absent on /shop/, where a search term would be a parameter that
+    survives navigation without doing anything.
     """
     filters: dict = {}
     for group in FILTER_GROUPS:
@@ -336,9 +371,11 @@ def filter_pairs(filters: dict) -> list[tuple[str, str]]:
     """The selected filters as form pairs.
 
     The sort form posts these back as hidden inputs, which is what stops choosing a sort from
-    clearing the filters when there is no JavaScript to keep them.
+    clearing the filters when there is no JavaScript to keep them. A search term leads, so one
+    ``q`` reaches every chip, every pagination link and both forms on the results page.
     """
-    pairs = [(group, value) for group in FILTER_GROUPS for value in (filters.get(group) or [])]
+    pairs = [("q", filters["q"])] if filters.get("q") else []
+    pairs += [(group, value) for group in FILTER_GROUPS for value in (filters.get(group) or [])]
     pairs += [
         (key, filters[key]) for key in ("min_price", "max_price") if filters.get(key) is not None
     ]
@@ -515,7 +552,7 @@ def product_list(filters: dict, sort: str = DEFAULT_SORT, page=1) -> Results:
     if sort == "popularity":
         queryset = _units_sold(queryset)
 
-    paginator = Paginator(queryset.order_by(*SORTS[sort]), PAGE_SIZE)
+    paginator = Paginator(queryset.order_by(*order_for(sort, filters.get("ranking"))), PAGE_SIZE)
     facets = facet_counts(filters)
     return Results(
         page=paginator.get_page(page),

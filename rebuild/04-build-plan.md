@@ -174,8 +174,12 @@ Tasks:
    then the admin save path refreshes the one product a staff member just edited, which is a staff
    request and never a customer's. The three vocabularies mark on `pre_delete`, because once the row
    is gone so are the relations that find its products.
-4. Query path: exact prefix → full-text rank → trigram similarity fallback at 0.3, unioned and
-   deduplicated. Synonyms expanded before the query is built.
+4. [x] Query path: exact prefix → full-text rank → trigram similarity fallback at 0.3, unioned and
+   deduplicated. Synonyms expanded before the query is built. One document row per product keeps the
+   union deduplicated, and `-rank` then `-word_sim` is what puts an exact match above a fuzzy one.
+   Word similarity rather than plain similarity, which compares whole strings and cannot find one
+   misspelt word inside a document. SQLite has none of this, so it falls back to substring matching
+   over the same blob (A10) and the ranking assertions are a Postgres-only test module.
 5. `/api/v1/search/suggest/`: products with thumbnails, matching categories, popular queries. Capped,
    throttled, cached 60 s.
 6. `/search/` results page reusing the shop grid, filters and sorts, with the query echoed as in the
