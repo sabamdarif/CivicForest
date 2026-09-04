@@ -28,7 +28,7 @@ from django.db.models import Count, F, Q, Value
 from django.utils import timezone
 
 from apps.catalog import services as catalog
-from apps.catalog.models import Material, Tag
+from apps.catalog.models import Material, Product, Tag
 from apps.common.formatting import rupees
 
 from .models import MAX_QUERY_LENGTH, SearchDocument, SearchQueryLog, SearchSynonym
@@ -183,16 +183,18 @@ def ranking(term: str) -> catalog.Ranking | None:
         return _substring_ranking(parts)
 
     query = SearchQuery(_tsquery(parts), search_type="raw", config=CONFIG)
-    return catalog.Ranking(
+    where = Q(search_document__vector=query)
+    aliases = {
+        "rank": SearchRank(F("search_document__vector"), query),
         # Word similarity, not plain similarity: the latter compares whole strings and cannot
         # find one misspelt word inside a multi-word document, which is the entire point.
-        where=Q(search_document__vector=query) | Q(word_sim__gte=SIMILARITY_FLOOR),
-        aliases={
-            "rank": SearchRank(F("search_document__vector"), query),
-            "word_sim": TrigramWordSimilarity(term, "search_document__text"),
-        },
-        order_by=("-rank", "-word_sim"),
-    )
+        "word_sim": TrigramWordSimilarity(term, "search_document__text"),
+    }
+    # A fallback, not a permanent union: widening every query would let "black hoodie" pick up
+    # everything loosely similar to the whole phrase. One indexed EXISTS decides it.
+    if not Product.objects.filter(is_active=True).filter(where).exists():
+        where |= Q(word_sim__gte=SIMILARITY_FLOOR)
+    return catalog.Ranking(where=where, aliases=aliases, order_by=("-rank", "-word_sim"))
 
 
 def did_you_mean(term: str) -> str:

@@ -177,7 +177,9 @@ Tasks:
 4. [x] Query path: exact prefix → full-text rank → trigram similarity fallback at 0.3, unioned and
    deduplicated. Synonyms expanded before the query is built. One document row per product keeps the
    union deduplicated, and `-rank` then `-word_sim` is what puts an exact match above a fuzzy one.
-   Word similarity rather than plain similarity, which compares whole strings and cannot find one
+   The trigram tier is a **fallback**, joined in only when the words as typed match nothing: unioning
+   it always made "black hoodie" return everything loosely similar to the whole phrase. Word
+   similarity rather than plain similarity, which compares whole strings and cannot find one
    misspelt word inside a document. SQLite has none of this, so it falls back to substring matching
    over the same blob (A10) and the ranking assertions are a Postgres-only test module.
 5. [x] `/api/v1/search/suggest/`: products with thumbnails, matching categories, popular queries. Capped,

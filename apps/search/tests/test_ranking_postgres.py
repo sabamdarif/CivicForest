@@ -49,6 +49,16 @@ def test_a_half_typed_word_matches_as_a_prefix(documents):
     assert "Green Hoodie" in _matches("hood")
 
 
+def test_the_fuzzy_tier_stays_out_when_the_words_as_typed_match(documents):
+    # Both words are in one document and nowhere else. If the trigram tier were unioned in
+    # rather than held back, the tees would ride along on their similarity to the whole phrase.
+    assert _matches("black hoodie") == ["Green Hoodie"]
+
+
+def test_the_fuzzy_tier_rescues_a_query_that_would_otherwise_be_empty(documents):
+    assert _matches("hoodie") == _matches("hoodei")
+
+
 def test_the_name_outranks_the_description_and_the_bestseller_flag(documents):
     bestseller = documents["printed"]
     assert bestseller.is_bestseller
