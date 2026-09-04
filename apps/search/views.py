@@ -43,10 +43,11 @@ def results(request):
         trail=[("Home", "/")],
         current="Search",
     )
+    found = context["results"].page.paginator.count
     if _is_new_search(request, term):
-        services.log_query(request, term, context["results"].page.paginator.count)
+        services.log_query(request, term, found)
 
-    empty = not (term and context["results"].page.paginator.count)
+    empty = not (term and found)
     if empty:
         context["suggestion"] = services.did_you_mean(term)
         context["popular"] = services.popular_products()

@@ -198,7 +198,7 @@ def ranking(term: str) -> catalog.Ranking | None:
 
 
 def did_you_mean(term: str) -> str:
-    """The closest catalogue word to a query that found nothing, or "".
+    """The closest catalogue word to a term, for a page that found nothing, or "".
 
     Real trigram output or nothing at all: J9 forbids inventing a suggestion. The vocabularies
     are the source because they are curated and short, where a product name is a sentence.
@@ -222,11 +222,11 @@ def did_you_mean(term: str) -> str:
 
 
 # ── Suggest (M3.5) ───────────────────────────────────────────────────────────
-def matching(term: str, limit: int) -> tuple[list, int]:
+def _matched(term: str, limit: int) -> tuple[list, int]:
     """The best few products for a term and how many there are in total.
 
-    A lean version of the results page: no facets, no filters, no pagination, which is what
-    keeps the autocomplete to two queries.
+    A lean version of the results page: no facets, no filters, no pagination, which is what keeps
+    the autocomplete to a handful of queries rather than the dozen a full listing costs.
     """
     rank = ranking(term)
     if rank is None:
@@ -280,7 +280,7 @@ def suggest(term: str) -> dict:
     key = "search:suggest:" + "-".join(TOKEN.findall(term.lower())[:MAX_TOKENS])
     payload = cache.get(key)
     if payload is None:
-        products, total = matching(term, SUGGEST_PRODUCTS)
+        products, total = _matched(term, SUGGEST_PRODUCTS)
         categories = catalog.active_categories().filter(name__icontains=term)[:SUGGEST_CATEGORIES]
         payload = {
             "products": [_suggestion_card(product) for product in products],
