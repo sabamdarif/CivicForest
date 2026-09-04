@@ -20,16 +20,24 @@ PARTIAL_HEADER = "X-Partial"
 BROWSE_ACTION = "/shop/"
 
 
-def _render(request, whole: str, region: str, context: dict):
-    """The swap region on a JavaScript fetch, the whole page otherwise."""
+def render_region(request, whole: str, region: str, context: dict):
+    """The swap region on a JavaScript fetch, the whole page otherwise.
+
+    Public because `apps/search` renders the same region: one implementation is what stops the
+    two paths ever disagreeing about what matches (D2, P6).
+    """
     template = region if request.headers.get(PARTIAL_HEADER) else whole
     response = render(request, template, context)
     response["Vary"] = PARTIAL_HEADER
     return response
 
 
-def _browse(request, filters: dict, **extra) -> dict:
-    """The context `shop/_shop.html` needs, whichever page is wrapping it."""
+def browse_context(request, filters: dict, **extra) -> dict:
+    """The context `shop/_shop.html` needs, whichever page is wrapping it.
+
+    ``extra`` overrides, so a page that posts its filter form somewhere other than /shop/ passes
+    its own ``action``: that is all `apps/search` needs to reuse the whole region.
+    """
     results = services.product_list(
         filters, services.parse_sort(request.GET.get("sort")), request.GET.get("page")
     )
@@ -61,7 +69,7 @@ def shop(request, category: str = ""):
             raise Http404
         filters["category"] = [scoped.slug]
 
-    context = _browse(
+    context = browse_context(
         request,
         filters,
         category=scoped,
@@ -70,7 +78,7 @@ def shop(request, category: str = ""):
         trail=[("Home", "/"), ("Shop", "/shop/")] if scoped else [("Home", "/")],
         current=scoped.name if scoped else "Shop",
     )
-    return _render(request, "shop/list.html", "shop/_shop.html", context)
+    return render_region(request, "shop/list.html", "shop/_shop.html", context)
 
 
 def collection_index(request):
@@ -95,7 +103,7 @@ def collection_detail(request, slug: str):
 
     filters = services.parse_filters(request.GET)
     filters["collection"] = [collection.slug]
-    context = _browse(
+    context = browse_context(
         request,
         filters,
         collection=collection,
@@ -104,7 +112,7 @@ def collection_detail(request, slug: str):
         trail=[("Home", "/"), ("Collections", "/collections/")],
         current=collection.name,
     )
-    return _render(request, "collections/detail.html", "shop/_shop.html", context)
+    return render_region(request, "collections/detail.html", "shop/_shop.html", context)
 
 
 def product_detail(request, slug: str):

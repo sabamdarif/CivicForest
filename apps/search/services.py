@@ -291,3 +291,17 @@ def suggest(term: str) -> dict:
         }
         cache.set(key, payload, SUGGEST_TTL)
     return payload
+
+
+def log_query(request, term: str, result_count: int) -> None:
+    """One row per submitted query (D9).
+
+    The caller decides when: only a full first-page render, so paging through results and a
+    JavaScript filter swap cannot inflate a term's count, and the suggest endpoint never logs.
+    M8 reads the zero-result rows (O1, O13) and ``popular_queries`` reads the rest.
+    """
+    SearchQueryLog.objects.create(
+        query=term,
+        result_count=result_count,
+        session_key=request.session.session_key or "",
+    )

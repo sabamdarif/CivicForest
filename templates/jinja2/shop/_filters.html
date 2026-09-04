@@ -25,10 +25,12 @@
     {%- if enhance %} data-filters{% endif %}>
     {# The sort travels with the filters, or applying one would reset the other. #}
     <input type="hidden" name="sort" value="{{ sort }}">
+    {# And so does the search term: filtering results is not the same as leaving the search. #}
+    {%- if filters.get("q") %}<input type="hidden" name="q" value="{{ filters.q }}">{% endif %}
 
     <div class="filters__head">
       <h2 class="filters__title">Filters</h2>
-      <a class="btn btn--ghost" href="{{ action }}"><span>Clear all</span></a>
+      <a class="btn btn--ghost" href="{{ action }}{{ '?q=' ~ filters.q|urlencode if filters.get('q') else '' }}"><span>Clear all</span></a>
     </div>
 
     {%- for group, label in groups %}

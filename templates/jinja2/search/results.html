@@ -1,0 +1,56 @@
+{# The search results page: the query echoed, then the shop's own browse region.
+
+   Nothing about filters, counts, sorting or pagination is reimplemented here. The region is the
+   same partial /shop/ renders, so with JavaScript off this page behaves exactly like the shop
+   and filters.js swaps the same markup when JavaScript is on (D2, P6).
+
+   noindex because an internal search URL is thin content, and indexing one would also fill the
+   query log with terms nobody typed. #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/icon.html" import icon %}
+
+{% set term = filters.get("q") %}
+
+{% block title %}{{ 'Search results for "' ~ term ~ '"' if term else "Search" }} | CivicForest Clothing{% endblock %}
+{% block description %}Search premium menswear at CivicForest: tees, hoodies, sweatshirts and polos, all prices inclusive of GST.{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/shop.css') }}">{% endblock %}
+{% block head %}<meta name="robots" content="noindex,follow">{% endblock %}
+
+{% block content %}
+  <div class="container">
+    {{ breadcrumbs(trail, current) }}
+    <header class="section-head shop__head">
+      {%- if term %}
+        <h1>You searched for <span class="search__term">&ldquo;{{ term }}&rdquo;</span></h1>
+      {%- else %}
+        <h1>Search</h1>
+        <p>Look for a garment, a colour or a category.</p>
+      {%- endif %}
+    </header>
+
+    {# A new term is a new intent, so this form carries no filters: searching again starts clean. #}
+    <form class="search-bar" method="get" action="{{ action }}" role="search">
+      <label class="sr-only" for="search-q">Search products</label>
+      <span class="search-bar__icon" aria-hidden="true">{{ icon("search", 18) }}</span>
+      <input class="field__control search-bar__input" id="search-q" name="q" type="search"
+        value="{{ term or '' }}" maxlength="{{ max_query }}" autocomplete="off"
+        placeholder="Search hoodies, tees, colours">
+      {%- if term %}
+        <a class="search-bar__clear" href="{{ action }}" aria-label="Clear the search">{{ icon("close", 16) }}</a>
+      {%- endif %}
+      {# The visible design has no button, and implicit submission still needs one to exist. #}
+      <button class="sr-only" type="submit">Search</button>
+    </form>
+  </div>
+
+  <div class="container" data-shop>
+    {% include "shop/_shop.html" %}
+  </div>
+
+  {% include "_partials/trust_strip.html" %}
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ static('js/filters.js') }}"></script>
+{% endblock %}

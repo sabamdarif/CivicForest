@@ -9,6 +9,9 @@
 {% from "_macros/pagination.html" import pagination %}
 
 {% set page = results.page %}
+{% set term = filters.get("q") %}
+{# Clearing the filters must not clear the query: on /search/ that would be a different page. #}
+{% set cleared = action ~ ("?q=" ~ term|urlencode if term else "") %}
 
 <div class="shop__layout">
   <aside class="shop__sidebar">
@@ -19,10 +22,12 @@
     <div class="shop__bar">
       <p class="shop__count" aria-live="polite">
         {%- if page.paginator.count %}
+          {%- set noun = "result" if term else "product" %}
           Showing {{ page.start_index() }}&ndash;{{ page.end_index() }} of
-          {{ page.paginator.count }} product{{ "" if page.paginator.count == 1 else "s" }}
+          {{ page.paginator.count }} {{ noun }}{{ "" if page.paginator.count == 1 else "s" }}
+          {%- if term %} for &ldquo;{{ term }}&rdquo;{% endif %}
         {%- else %}
-          No products match
+          No {{ "results" if term else "products" }} match
         {%- endif %}
       </p>
       <div class="shop__controls">
@@ -52,7 +57,7 @@
       {{ pagination(page.number, page.paginator.num_pages, results.query) }}
     {%- else %}
       {% call empty("Nothing matches those filters", "Try widening the price range or removing a filter.", icon_name="filter") %}
-        <a class="btn btn--secondary" href="{{ action }}"><span>Clear all filters</span></a>
+        <a class="btn btn--secondary" href="{{ cleared }}"><span>Clear all filters</span></a>
       {% endcall %}
     {%- endif %}
   </div>

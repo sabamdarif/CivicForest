@@ -1,10 +1,52 @@
-/* The browse pages: the shop grid with its filter panel, and the collection cards.
+/* The browse pages: the shop grid with its filter panel, the collection cards, and the search
+   results page, which is the same grid with a query on top.
 
    The panel is a sidebar above 60rem and a <details> panel below it, and only one of the two
    is ever in the layout, which is why both copies of the form need their own input ids. */
 
 .shop__head {
   padding-block: var(--space-6) var(--space-5);
+}
+
+/* ── The search results page (M3.6) ──────────────────────────────────────── */
+/* Gold on cream needs the deep tone: #c9a227 is 2.2:1 and would fail SC 1.4.3. */
+.search__term {
+  color: var(--gold-deep);
+}
+
+.search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-6);
+}
+
+.search-bar__icon,
+.search-bar__clear {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+.search-bar__icon {
+  inset-inline-start: var(--space-4);
+}
+
+.search-bar__clear {
+  inset-inline-end: var(--space-2);
+  min-height: 2.75rem;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius);
+
+  &:hover {
+    color: var(--ink);
+  }
+}
+
+.search-bar__input {
+  padding-inline: var(--space-8) var(--space-8);
+  border-radius: var(--radius-pill);
 }
 
 /* The collection hero already carries the heading, so its region only needs top air. */

@@ -184,8 +184,11 @@ Tasks:
    throttled, cached 60 s. Capped rather than paginated, so there is no offset to walk: the cap is
    what stops enumeration, because the cache and the throttle counter are per function instance
    until M0 task 9 creates A2's cache table.
-6. `/search/` results page reusing the shop grid, filters and sorts, with the query echoed as in the
-   screenshot ("You searched for 'hoodie'").
+6. [x] `/search/` results page reusing the shop grid, filters and sorts, with the query echoed as in the
+   screenshot ("You searched for 'hoodie'"). The term rides in `filter_pairs`, so one change carries it
+   into every chip, pagination link and hidden input. `noindex,follow`, because an internal search URL
+   is thin content and indexing one would fill the query log with terms nobody typed. One log row per
+   submitted query (D9): not a paged re-visit, not a JavaScript filter swap, and never from suggest.
 7. Zero-result page: "did you mean" from trigram, popular products, and the term logged.
 8. `static/js/search-overlay.js`: 250 ms debounce, arrow-key navigation, Escape to close, `aria-live`
    result count, works as a plain form submit if JS fails.
