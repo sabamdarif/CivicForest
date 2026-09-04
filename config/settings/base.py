@@ -40,6 +40,9 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     "django.contrib.sitemaps",
+    # Registers the trigram lookups the search query path uses. Harmless on SQLite: its
+    # connection hook checks the vendor and returns.
+    "django.contrib.postgres",
 ]
 
 THIRD_PARTY_APPS = [
@@ -61,6 +64,7 @@ LOCAL_APPS = [
     "apps.payments",
     "apps.custom_orders",
     "apps.content",
+    "apps.search",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

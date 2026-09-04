@@ -113,6 +113,7 @@ change until the milestone that builds them begins.
 | D12 | Compare | Out | |
 | D13 | Navigation | Simple nav, dropdown on SHOP only, plus the CUSTOMISE item | Six items; no mega menu at this catalogue size |
 | D14 | Announcement bar | Admin-editable text, link and on/off toggle | Currently "FREE SHIPPING ON ALL ORDERS ABOVE ₹999" |
+| D15 | What search matches | Product name, then category and collections, then tags, material and **variant colours**, then the description at the lowest weight | "black hoodie" is an ordinary query and a colour exists only on a variant. Sizes are excluded: `M` and `L` as search tokens are noise. Prefix matching, synonyms and a trigram fallback all read this one document (decision 6) |
 
 ### E: Product page
 

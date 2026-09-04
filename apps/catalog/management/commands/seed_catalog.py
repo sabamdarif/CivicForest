@@ -12,6 +12,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.files import File
+from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils.text import slugify
@@ -193,6 +194,10 @@ class Command(BaseCommand):
             self._variants(product, colours, offset)
             self._collect(product, collections, category, offset)
             self._image(product, PRODUCT_IMAGES.get(category, ""))
+
+        # Nothing is findable until a document exists, and the sweep that would build them is
+        # M8's cron endpoint, so the seed builds its own.
+        call_command("reindex_search", stale=True, batch=Product.objects.count())
 
         self.stdout.write(
             self.style.SUCCESS(

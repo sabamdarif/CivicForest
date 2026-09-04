@@ -162,12 +162,18 @@ under 2.5 s on a throttled connection, and Rich Results Test validates the produ
 
 Tasks:
 
-1. Rebuild `apps/search` with no Meilisearch: `SearchDocument` (one row per product, `SearchVectorField`
+1. [x] Rebuild `apps/search` with no Meilisearch: `SearchDocument` (one row per product, `SearchVectorField`
    with a GIN index, plus a plain text blob for trigram), `SearchSynonym` (admin-editable term →
    expansion), keep `SearchQueryLog`.
-2. Weighted document: name `A`, category and collection `B`, tags and material `C`, description `D`.
-3. Rebuild triggers: `post_save`/`post_delete` on Product, Variant, Category, Collection, Tag mark the
+2. [x] Weighted document: name `A`, category and collection `B`, tags and material `C`, description `D`.
+   Variant colours join `C`: "black hoodie" is an ordinary query and a colour exists only on a
+   variant, which is also why task 3 lists `ProductVariant`.
+3. [x] Rebuild triggers: `post_save`/`post_delete` on Product, Variant, Category, Collection, Tag mark the
    document stale; a cron sweep refreshes stale rows in batches. Never rebuild inline in a request.
+   The sweep is `reindex_search --stale`; M8 adds the `/internal/cron/` trigger for it (§7). Until
+   then the admin save path refreshes the one product a staff member just edited, which is a staff
+   request and never a customer's. The three vocabularies mark on `pre_delete`, because once the row
+   is gone so are the relations that find its products.
 4. Query path: exact prefix → full-text rank → trigram similarity fallback at 0.3, unioned and
    deduplicated. Synonyms expanded before the query is built.
 5. `/api/v1/search/suggest/`: products with thumbnails, matching categories, popular queries. Capped,
@@ -177,7 +183,7 @@ Tasks:
 7. Zero-result page: "did you mean" from trigram, popular products, and the term logged.
 8. `static/js/search-overlay.js`: 250 ms debounce, arrow-key navigation, Escape to close, `aria-live`
    result count, works as a plain form submit if JS fails.
-9. `reindex_search` management command for a full rebuild.
+9. [x] `reindex_search` management command for a full rebuild.
 
 **Done when:** "hoodei" finds hoodies, "tshirt" and "t-shirt" and "tee" all match via synonyms,
 suggestions return in under 150 ms warm, and the results page is identical in behaviour to the shop
