@@ -62,6 +62,12 @@ uv run python manage.py runserver           # http://127.0.0.1:8000
 and no credentials. Email prints to the console. Payments and Qikink are unconfigured and
 their endpoints report that plainly rather than failing obscurely.
 
+Search is the one feature SQLite cannot serve in full: ranking, prefix matching and typo
+tolerance are Postgres, so on `USE_SQLITE=1` the query path degrades to substring matching over
+the same document and `/search/` still answers. `seed_catalog` builds the search documents itself;
+after editing the catalogue outside the admin, rebuild them with
+`uv run python manage.py reindex_search` (`--stale` for only what changed).
+
 To run the app the way Vercel will, once the project exists:
 
 ```bash
@@ -194,7 +200,7 @@ CivicForest/
 │   └── jinja2.py                  # the Jinja2 environment: globals and filters
 ├── apps/
 │   ├── common/                    # base models, pagination, throttles, email, middleware
-│   ├── accounts/ catalog/ cart/ orders/ payments/ custom_orders/
+│   ├── accounts/ catalog/ cart/ orders/ payments/ custom_orders/ search/
 │   └── …                          # each: models · services · serializers · views · admin · tests
 ├── templates/
 │   ├── jinja2/                    # every page CivicForest owns
@@ -225,7 +231,8 @@ Release, with the migration step deliberately manual:
 2. CI must be green, and the preview must look right.
 3. `vercel env pull`, then `uv run python manage.py migrate` against production from a
    local shell. Migrations stay backward compatible, so the live function keeps working
-   during the window.
+   during the window. The search migration issues `CREATE EXTENSION pg_trgm`, so the
+   database role needs the rights for it; on any other backend that operation is a no-op.
 4. Promote the deployment.
 5. Check `/healthz/`, place a Razorpay test order, read the jobs panel.
 
