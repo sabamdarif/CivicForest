@@ -249,10 +249,11 @@ and every coupon rule has a test.
 
 Tasks:
 
-1. Install `django-allauth[socialaccount,mfa]==65.19.1` from PyPI; delete the vendored checkout.
-2. Configure: email-only login, mandatory verification by link, Argon2, rate limits, Google provider,
+1. [x] Install `django-allauth[socialaccount,mfa]==65.19.1` from PyPI; delete the vendored checkout.
+2. [x] Configure: email-only login, mandatory verification by link, Argon2, rate limits, Google provider,
    `MFA_SUPPORTED_TYPES = ["recovery_codes", "totp"]`, `MFA_TOTP_ISSUER = "CivicForest"`,
-   `MFA_TRUST_ENABLED = True` with a 14-day cookie.
+   `MFA_TRUST_ENABLED = True` with a 14-day cookie. `allauth.usersessions` is installed too, because
+   it is what the security page's session list and "sign out other sessions" button are.
 3. Override `templates/django/allauth/layouts/base.html` once so every allauth page inherits the site
    chrome, then style the specific pages: login, signup, logout, password reset and change, email
    management, 2FA activate/deactivate/authenticate, recovery codes, social signup.

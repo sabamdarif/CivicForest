@@ -56,6 +56,10 @@ urlpatterns = [
     path("", include("apps.catalog.urls")),
     path("", include("apps.cart.urls")),
     path("", include("apps.search.urls")),
+    # allauth owns login, signup, logout, email verification, passwords, 2FA, the session
+    # list and the Google flow. Its pages are Django Template Language, rendered from
+    # templates/django/ (rebuild/03-architecture.md §3).
+    path("accounts/", include("allauth.urls")),
     path("healthz/", healthz, name="healthz"),
     path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
     # Staff-only, and the regression surface for every stylesheet.

@@ -52,6 +52,9 @@ THIRD_PARTY_APPS = [
     "allauth.mfa",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
+    # The account area's session list and its "sign out other sessions" button. A row is
+    # written by allauth's own user_logged_in receiver, so no middleware is needed.
+    "allauth.usersessions",
     "auditlog",
 ]
 
@@ -167,6 +170,14 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # ─── allauth ─────────────────────────────────────────────────────────────────
+# Every allauth page is mounted under /accounts/, and LOGIN_URL is a literal path rather
+# than a route name because StaffAdminMiddleware redirects to it and its test compares the
+# Location header against this value.
+LOGIN_URL = "/accounts/login/"
+# Django's default is /accounts/profile/, which is not a route here: a login with no
+# ?next= lands on the account dashboard instead of a 404.
+LOGIN_REDIRECT_URL = "/account/"
+
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 # The custom User model has no username field. Without this, allauth's signup form
@@ -174,7 +185,6 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 # One email per account; changing it stages the new address until verified.
 ACCOUNT_CHANGE_EMAIL = True
-ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED = True
 # "mandatory": allauth's email-enumeration prevention only fully works in this mode.
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_UNIQUE_EMAIL = True
@@ -191,7 +201,14 @@ ACCOUNT_SESSION_REMEMBER = None  # honour the "remember me" checkbox
 
 MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
 MFA_TOTP_ISSUER = "CivicForest"
+# "Trust this browser?" after a 2FA challenge (B6), on a signed cookie that expires in 14
+# days and inherits the session cookie's domain, secure and samesite flags.
+MFA_TRUST_ENABLED = True
 
+# Two defaults worth naming because they are security decisions, not oversights:
+# SOCIALACCOUNT_EMAIL_AUTHENTICATION stays False, so a Google login whose address already
+# belongs to a local account cannot silently take it over; SOCIALACCOUNT_LOGIN_ON_GET stays
+# False, and the login page posts a form to the provider URL so there is no extra page.
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {
