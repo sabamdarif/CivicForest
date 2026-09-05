@@ -220,7 +220,7 @@ Tasks:
 2. [x] Extend `Coupon` with `per_user_limit`, scope fields, `first_order_only`, `exclude_sale_items`,
    `starts_at`, `free_shipping`. Add redemption counting per user. **This closes a real abuse hole in
    the current model, which counts only global uses.**
-3. Cart page: line rows with image, variant, price, stepper, remove, move-to-wishlist; order summary
+3. [x] Cart page: line rows with image, variant, price, stepper, remove, move-to-wishlist; order summary
    with the breakdown; coupon field with inline validation; free-shipping progress bar with the exact
    shortfall; cross-sell row; empty state.
 4. Cart drawer, opened by add-to-cart and by the header button, sharing one partial with the page.
@@ -231,7 +231,7 @@ Tasks:
    `01-decisions.md`.
 7. `static/js/cart.js`: optimistic quantity updates that reconcile against the server response,
    drawer rendering, toast on add, header count sync.
-8. Stock revalidation on cart view with a message naming the affected line.
+8. [x] Stock revalidation on cart view with a message naming the affected line.
 9. Cron: abandoned-cart sweep, cart expiry sweep.
 
 **Done when:** prices, discounts, tax and shipping are computed only server-side; a tampered payload

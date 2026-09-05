@@ -18,6 +18,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 
 from apps.catalog.models import ProductVariant
@@ -128,6 +129,40 @@ def set_item_quantity(cart: Cart, variant_id: str, quantity: int) -> CartItem | 
 
 def remove_item(cart: Cart, variant_id: str) -> None:
     cart.items.filter(variant_id=variant_id).delete()
+
+
+def clear(cart: Cart) -> None:
+    """Empty the cart, coupon included: a coupon held against nothing is not a cart state."""
+    cart.items.all().delete()
+    remove_coupon(cart)
+
+
+def revalidate(cart: Cart) -> list[str]:
+    """Bring a cart back in line with live stock, returning one message per line changed (G9).
+
+    Called on every cart view, before pricing, so a customer is never shown a total they
+    cannot pay. It writes during a read deliberately: the alternative is quoting a price for
+    a quantity that no longer exists, and it only writes when something has actually moved.
+    """
+    changed: list[str] = []
+    for item in list(_items_qs(cart)):
+        variant = item.variant
+        name = f"{variant.product.name}, {variant.size} in {variant.color}"
+        if not (variant.is_active and variant.product.is_active):
+            item.delete()
+            changed.append(f"{name} is no longer available, so we removed it from your cart.")
+            continue
+        available = min(variant.stock_quantity, MAX_LINE_QUANTITY)
+        if item.quantity <= available:
+            continue
+        if available == 0:
+            item.delete()
+            changed.append(f"{name} has sold out, so we removed it from your cart.")
+        else:
+            item.quantity = available
+            item.save(update_fields=["quantity", "updated_at"])
+            changed.append(f"Only {available} of {name} left, so we reduced your quantity.")
+    return changed
 
 
 # ─── Coupons ─────────────────────────────────────────────────────────────────
@@ -245,9 +280,11 @@ class PricedCart:
 
 
 def _items_qs(cart: Cart):
-    return cart.items.select_related(
-        "variant", "variant__product", "variant__product__category"
-    ).all()
+    return (
+        cart.items.select_related("variant", "variant__product", "variant__product__category")
+        .prefetch_related("variant__product__images")
+        .all()
+    )
 
 
 def _apportion(amount: Decimal, weights: list[Decimal]) -> list[Decimal]:
@@ -286,7 +323,7 @@ def _extract_tax(lines: list[PricedLine], discount: Decimal, shipping: Decimal) 
 
 def price_cart(cart: Cart) -> PricedCart:
     """Recompute the full monetary breakdown from the database. Never trust a
-    client-supplied total — this recomputation is what makes tampering pointless."""
+    client-supplied total: this recomputation is what makes tampering pointless."""
     lines: list[PricedLine] = []
     subtotal = Decimal("0")
     item_count = 0
@@ -335,6 +372,45 @@ def price_cart(cart: Cart) -> PricedCart:
         coupon_code=coupon_code,
         item_count=item_count,
     )
+
+
+# ─── What the header and the free-shipping bar print ─────────────────────────
+def item_count(request) -> int:
+    """Units in the caller's cart, for the header badge on every page.
+
+    Zero without a query when the visitor has neither an account nor a session, which is most
+    crawler and first-visit traffic. Tolerates a bare ``RequestFactory`` request, because the
+    shell is rendered directly in template tests and on the styleguide.
+    """
+    user = getattr(request, "user", None)
+    if user is not None and user.is_authenticated:
+        where = {"cart__user": user}
+    else:
+        session = getattr(request, "session", None)
+        key = session.session_key if session is not None else None
+        if not key:
+            return 0
+        where = {"cart__user__isnull": True, "cart__session_key": key}
+    return CartItem.objects.filter(**where).aggregate(units=Sum("quantity"))["units"] or 0
+
+
+def shipping_progress(priced: PricedCart) -> dict | None:
+    """What the free-shipping bar prints: the real shortfall, never a fabricated one (G2, J9).
+
+    ``None`` for an empty cart, and a zero shortfall once the fee is already waived, whether
+    the cart crossed the threshold or a coupon waived it.
+    """
+    threshold = _free_shipping_threshold()
+    if priced.item_count == 0 or threshold <= 0:
+        return None
+    if priced.shipping == 0:
+        return {"threshold": threshold, "shortfall": Decimal("0.00"), "percent": 100}
+    reached = priced.subtotal - priced.discount
+    return {
+        "threshold": threshold,
+        "shortfall": (threshold - reached).quantize(TWO_PLACES),
+        "percent": min(int(reached / threshold * 100), 100),
+    }
 
 
 # ─── Login merge ─────────────────────────────────────────────────────────────

@@ -293,6 +293,25 @@
       {{ stepper(value=4, submit=False) }}
       {{ stepper(value=10, submit=False) }}
     </div>
+    <p class="sg-note">The cart uses the default <code>submit=True</code>, where each button posts
+      <code>op=dec</code> or <code>op=inc</code> and the row re-renders. The endpoints disable
+      themselves, so the ceiling is the live stock or ten, whichever is lower (G7).</p>
+    <div class="sg-row">
+      {{ stepper(value=1) }}
+      {{ stepper(value=3, max=3) }}
+    </div>
+    <h3>Free-shipping progress (G2)</h3>
+    <p class="sg-note">The shortfall is always the real one, computed from the same post-discount
+      amount the cart charges shipping on. There is no bar at all for an empty cart.</p>
+    {% with progress = {"threshold": 999, "shortfall": 999, "percent": 0} %}
+      {% include "cart/_progress.html" %}
+    {% endwith %}
+    {% with progress = {"threshold": 999, "shortfall": 349, "percent": 65} %}
+      {% include "cart/_progress.html" %}
+    {% endwith %}
+    {% with progress = {"threshold": 999, "shortfall": 0, "percent": 100} %}
+      {% include "cart/_progress.html" %}
+    {% endwith %}
     <h3>Empty state</h3>
     {% call empty("Your cart is empty", "Nothing added yet. Have a look at what just landed.") %}
       {{ button("Start shopping", href="/shop/", icon_end="arrow-right") }}

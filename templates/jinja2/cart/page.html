@@ -1,0 +1,67 @@
+{# The cart page (G2, G4, G8). Stock is revalidated before anything is priced, so the totals
+   here are always payable, and every action on it is a form that posts and re-renders (P6).
+
+   The drawer renders the same _lines and _summary partials, so the two cannot drift. #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/empty.html" import empty %}
+{% from "_macros/icon.html" import icon %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Your cart | CivicForest Clothing{% endblock %}
+{% block description %}Review your cart, apply a coupon and see every charge before you pay. Prices are inclusive of GST.{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/cart.css') }}">{% endblock %}
+
+{% block content %}
+  <section class="cart__head on-dark">
+    <div class="container">
+      {{ breadcrumbs([("Home", "/")], "Your cart") }}
+      <h1 class="cart__title">
+        Your <span class="cart__title-accent">cart</span>
+        {%- if priced.item_count %} <span class="cart__count">({{ priced.item_count }})</span>{% endif %}
+      </h1>
+      {%- if progress %}
+        <p class="cart__lede">
+          {{- "Almost there. Add a little more for free shipping." if progress.shortfall
+              else "Nice work. Shipping is on us." -}}
+        </p>
+        {% include "cart/_progress.html" %}
+      {%- endif %}
+    </div>
+  </section>
+
+  <div class="container">
+    {{ notices(request) }}
+
+    {%- if priced.lines %}
+      <div class="cart__layout">
+        <div class="cart__main">
+          {% include "cart/_lines.html" %}
+          <div class="cart__actions">
+            {{ button("Continue shopping", variant="secondary", href="/shop/", icon_start="arrow-left") }}
+            <form method="post" action="/cart/clear/">
+              {{ csrf_input }}
+              <button class="btn btn--ghost" type="submit">
+                {{ icon("trash", 18) }}<span>Clear cart</span>
+              </button>
+            </form>
+          </div>
+        </div>
+        <aside class="cart__aside" aria-label="Order summary">
+          {% include "cart/_summary.html" %}
+        </aside>
+      </div>
+    {%- else %}
+      {% call empty("Your cart is empty", "Nothing added yet. Have a look at what just landed.") %}
+        {{ button("Start shopping", href="/shop/", icon_end="arrow-right") }}
+      {% endcall %}
+    {%- endif %}
+  </div>
+
+  {% include "_partials/trust_strip.html" %}
+
+  {% with products = cross_sell, heading = "You may also like" %}
+    {% include "product/_related.html" %}
+  {% endwith %}
+{% endblock %}

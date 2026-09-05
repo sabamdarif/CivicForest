@@ -44,6 +44,12 @@
 
     {% include "_partials/footer.html" %}
 
+    {# The header opens the cart drawer on every page, so the dialog lives in the shell. priced
+       is cleared on the way in: the cart page has one in context, and rendering its lines twice
+       would put the whole cart in the page's accessibility tree a second time. cart.js swaps in
+       the server-rendered cart on first open. #}
+    {% with priced = none %}{% include "cart/_drawer.html" %}{% endwith %}
+
     {# Every page has the header, so these two are the only modules the shell loads: the nav and
        the search overlay, which pulls in modal.js for the <dialog> wiring. The rest are loaded
        by the pages that use them, through the scripts block. #}

@@ -889,6 +889,284 @@ select.field__control {
   }
 }
 
+/* ── Free-shipping progress (G2) ───────────────────────────────────────────── */
+.ship-progress {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 32rem;
+}
+
+.ship-progress__text {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.ship-progress__prize {
+  color: var(--gold);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* The native element carries the fill, so nothing here fakes a bar with two divs. */
+.ship-progress__bar {
+  appearance: none;
+  inline-size: 100%;
+  block-size: 0.5rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+  color: var(--gold);
+
+  &::-webkit-progress-bar {
+    border-radius: var(--radius-pill);
+    background: var(--line);
+  }
+
+  &::-webkit-progress-value {
+    border-radius: var(--radius-pill);
+    background: var(--gold);
+    transition: inline-size var(--motion) var(--ease);
+  }
+
+  &::-moz-progress-bar {
+    border-radius: var(--radius-pill);
+    background: var(--gold);
+  }
+}
+
+/* ── Cart lines, summary and coupon (G3, G4) ───────────────────────────────── */
+/* In the shell rather than cart.css, because the drawer puts all three on every page. */
+.cart-lines {
+  --cart-cols: minmax(0, 1fr) 6rem 8.5rem 6rem 2.5rem;
+}
+
+.cart-lines__head {
+  display: none;
+}
+
+.cart-lines__list {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.cart-line {
+  padding-block-end: var(--space-5);
+  border-block-end: 1px solid var(--line);
+}
+
+.cart-line__form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.cart-line__product {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.cart-line__media img {
+  inline-size: 5rem;
+  block-size: auto;
+  border-radius: var(--radius-sm);
+  background: var(--cream-deep);
+  object-fit: cover;
+}
+
+.cart-line__body {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+}
+
+.cart-line__name {
+  font-size: var(--step-0);
+  line-height: var(--leading-snug);
+}
+
+.cart-line__meta {
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.cart-line__sep {
+  color: var(--line-strong);
+}
+
+.cart-line__wish {
+  margin-block-start: var(--space-1);
+}
+
+.cart-line__figures {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cart-line__total {
+  font-weight: var(--weight-semibold);
+}
+
+.cart-line__remove {
+  justify-self: end;
+  color: var(--muted);
+
+  &:hover {
+    color: var(--danger);
+  }
+}
+
+@media (min-width: 52rem) {
+  .cart-lines__head {
+    display: grid;
+    grid-template-columns: var(--cart-cols);
+    gap: var(--space-4);
+    padding-block-end: var(--space-3);
+    border-block-end: 1px solid var(--line);
+    color: var(--muted);
+    font-size: var(--step--2);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wider);
+  }
+
+  .cart-line__form {
+    grid-template-columns: var(--cart-cols);
+    gap: var(--space-4);
+    align-items: center;
+  }
+
+  /* The wrapper stops being a box so its three children sit in the row's own tracks. */
+  .cart-line__figures {
+    display: contents;
+  }
+
+  .cart-line__total {
+    text-align: right;
+  }
+}
+
+.summary {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.summary__title {
+  font-family: var(--font-body);
+  font-size: var(--step--1);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.summary__rows {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.summary__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--step--1);
+}
+
+.summary__row--credit {
+  color: var(--success);
+}
+
+.summary__note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.summary__note--good {
+  color: var(--success);
+}
+
+.summary__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+}
+
+/* C3: the tax is inside the total, so this reports it rather than adding a charge. */
+.summary__tax {
+  margin-block-start: calc(var(--space-2) * -1);
+  color: var(--muted);
+  font-size: var(--step--2);
+  text-align: right;
+}
+
+.summary__trust {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--step--2);
+}
+
+.coupon {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.coupon__field {
+  flex: 1;
+}
+
+.coupon--applied {
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--cream-deep);
+}
+
+.coupon__code {
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.drawer-cart__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+}
+
+.drawer-cart__tax {
+  margin-block: var(--space-1) var(--space-3);
+  color: var(--muted);
+  font-size: var(--step--2);
+}
+
+.drawer-cart__link {
+  display: block;
+  margin-block-start: var(--space-3);
+  color: var(--muted);
+  font-size: var(--step--1);
+  text-align: center;
+}
+
 /* ── Trust strip (E8) ─────────────────────────────────────────────────────── */
 .trust-strip {
   padding-block: var(--space-6);

@@ -45,11 +45,21 @@ def test_the_header_marks_the_page_you_are_on(rf):
 
 
 @pytest.mark.django_db
-def test_the_cart_badge_stays_off_until_there_is_something_in_the_cart(rf):
-    empty = get_template("_partials/header.html").render({}, rf.get("/"))
-    filled = get_template("_partials/header.html").render({"cart_count": 3}, rf.get("/"))
+def test_the_cart_badge_counts_what_is_really_in_the_cart(catalogue):
+    """The header reads the cart itself, through a Jinja2 global, because no view can pass a
+    variable into the shell."""
+    client = Client()
+    empty = client.get("/").content.decode()
 
     assert "cart-link__count" not in empty
     assert 'aria-label="Cart, 0 items"' in empty
+
+    variant = catalogue["plain"].variants.get(size="M", color="Black")
+    client.post(
+        "/cart/add/",
+        {"product": "plain-tee", "size": variant.size, "color": variant.color, "quantity": "3"},
+    )
+    filled = client.get("/").content.decode()
+
     assert 'aria-label="Cart, 3 items"' in filled
     assert ">3</span>" in filled

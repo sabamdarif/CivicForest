@@ -1,0 +1,25 @@
+{# The coupon field, or the applied code with a way to drop it (G3). The client sends a code and
+   nothing else: the discount is computed server-side and read back off the summary.
+
+   Context: priced. #}
+{% from "_macros/icon.html" import icon %}
+
+{%- if priced.coupon_code %}
+  <form class="coupon coupon--applied" method="post" action="/cart/coupon/">
+    {{ csrf_input }}
+    <input type="hidden" name="op" value="remove">
+    <span class="coupon__code">{{ priced.coupon_code }}</span>
+    <button class="icon-btn icon-btn--sm" type="submit"
+      aria-label="Remove coupon {{ priced.coupon_code }}">{{ icon("close", 16) }}</button>
+  </form>
+{%- else %}
+  <form class="coupon" method="post" action="/cart/coupon/">
+    {{ csrf_input }}
+    <label class="coupon__field">
+      <span class="sr-only">Coupon code</span>
+      <input class="field__control" type="text" name="code" maxlength="40" autocomplete="off"
+        placeholder="Coupon code" spellcheck="false">
+    </label>
+    <button class="btn btn--secondary" type="submit"><span>Apply</span></button>
+  </form>
+{%- endif %}

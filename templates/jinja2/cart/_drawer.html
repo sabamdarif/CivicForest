@@ -1,0 +1,51 @@
+{# The cart drawer (G4, task 4): the same _lines and _summary partials the cart page renders.
+
+   Two states from one template. The shell includes it with ``priced`` cleared, so it starts as a
+   skeleton that nobody sees until cart.js opens it. A cart form posted with an X-Partial header
+   renders it again *with* a priced cart, and cart.js swaps this dialog's contents for those: the
+   drawer is the answer to the action that opened it, not a second request.
+
+   It renders the notices only in that second state, where it is the whole response. In the
+   shell the page has already printed them.
+
+   Context: priced (None in the shell), progress, max_quantity. #}
+{% from "_macros/button.html" import button %}
+{% from "_macros/empty.html" import empty %}
+{% from "_macros/modal.html" import drawer with context %}
+{% from "_macros/notice.html" import notices %}
+
+{% set ready = priced|default(none) is not none %}
+
+{%- set foot %}
+  {%- if ready and priced.lines %}
+    <div class="drawer-cart__total">
+      <span>Total</span>
+      <strong>{{ priced.total|rupees }}</strong>
+    </div>
+    <p class="drawer-cart__tax">Includes GST of {{ priced.tax|rupees }}</p>
+    {{ button("Proceed to checkout", href="/checkout/", block=True, icon_end="arrow-right") }}
+    <a class="drawer-cart__link" href="/cart/">View the full cart</a>
+  {%- endif %}
+{% endset %}
+
+{% call drawer("cart-drawer", "Your cart", foot=foot) %}
+  <div class="drawer-cart" data-cart-drawer>
+    {%- if not ready %}
+      <div class="sg-skeletons">
+        <div class="skeleton" style="height: 5rem"></div>
+        <div class="skeleton" style="height: 5rem"></div>
+        <div class="skeleton" style="height: 2rem"></div>
+      </div>
+    {%- elif priced.lines %}
+      {{ notices(request) }}
+      {% include "cart/_progress.html" %}
+      {% include "cart/_lines.html" %}
+      {% include "cart/_coupon.html" %}
+    {%- else %}
+      {{ notices(request) }}
+      {% call empty("Your cart is empty", "Nothing added yet.") %}
+        {{ button("Start shopping", href="/shop/", icon_end="arrow-right") }}
+      {% endcall %}
+    {%- endif %}
+  </div>
+{% endcall %}

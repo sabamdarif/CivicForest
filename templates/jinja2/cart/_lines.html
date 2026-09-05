@@ -1,0 +1,69 @@
+{# One row per cart line: the image, what it is, the stepper, the line total, and the three
+   actions G4 asks for. Every action is a submit button inside the row's own form, so the cart
+   works with no JavaScript and cart.js only has to intercept the submit.
+
+   The figures wrapper is display:contents on wide screens, so one markup gives a stacked card
+   on a phone and a row aligned under the column headings on a desktop.
+
+   Context: priced, max_quantity. #}
+{% from "_macros/icon.html" import icon %}
+{% from "_macros/price.html" import price %}
+{% from "_macros/stepper.html" import stepper %}
+
+<div class="cart-lines">
+  <div class="cart-lines__head" aria-hidden="true">
+    <span>Product</span>
+    <span>Price</span>
+    <span>Quantity</span>
+    <span>Total</span>
+    <span></span>
+  </div>
+
+  <ul class="cart-lines__list">
+    {%- for line in priced.lines %}
+      {%- set variant = line.variant %}
+      {%- set product = variant.product %}
+      {%- set image = product.images.all()|first|default(none) %}
+      <li class="cart-line">
+        <form class="cart-line__form" method="post" action="/cart/line/">
+          {{ csrf_input }}
+          <input type="hidden" name="variant" value="{{ variant.id }}">
+
+          <div class="cart-line__product">
+            {%- if image %}
+              {# The name beside it is the link that matters, so the thumbnail is decorative. #}
+              <a class="cart-line__media" href="{{ product.get_absolute_url() }}" tabindex="-1" aria-hidden="true">
+                <img src="{{ image.image.url }}" alt="" width="120" height="160" loading="lazy">
+              </a>
+            {%- endif %}
+            <div class="cart-line__body">
+              <h3 class="cart-line__name">
+                <a href="{{ product.get_absolute_url() }}">{{ product.name }}</a>
+              </h3>
+              <p class="cart-line__meta">
+                Color: {{ variant.color }}
+                <span class="cart-line__sep" aria-hidden="true">|</span>
+                Size: {{ variant.size }}
+              </p>
+              <button class="btn btn--ghost btn--sm cart-line__wish" type="submit" name="op" value="wishlist">
+                {{ icon("heart", 16) }}<span>Move to wishlist</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="cart-line__figures">
+            <div class="cart-line__price">{{ price(line.unit_price) }}</div>
+            <div class="cart-line__qty">
+              {{ stepper(value=line.quantity, max=[variant.stock_quantity, max_quantity]|min,
+                         label="Quantity of " ~ product.name) }}
+            </div>
+            <p class="cart-line__total">{{ line.line_total|rupees }}</p>
+          </div>
+
+          <button class="icon-btn cart-line__remove" type="submit" name="op" value="remove"
+            aria-label="Remove {{ product.name }} from your cart">{{ icon("close", 18) }}</button>
+        </form>
+      </li>
+    {%- endfor %}
+  </ul>
+</div>

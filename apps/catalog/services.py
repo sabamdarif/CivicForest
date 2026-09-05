@@ -583,6 +583,25 @@ def related_products(product: Product, limit: int = 4) -> QuerySet[Product]:
     )
 
 
+def cross_sell(products, limit: int = 4) -> QuerySet[Product]:
+    """Products to suggest beside a set the customer already has (C13, G8).
+
+    The cart's "You may also like" row. Same top-level family rather than the exact category,
+    so a cart holding a plain tee can suggest a graphic one, and nothing already in the cart.
+    The manual override list is M8's, as it is for ``related_products``.
+    """
+    products = list(products)
+    if not products:
+        return active_products().order_by("-is_bestseller", "-created_at")[:limit]
+    families = {product.category.parent_id or product.category_id for product in products}
+    return (
+        active_products()
+        .filter(Q(category_id__in=families) | Q(category__parent_id__in=families))
+        .exclude(pk__in=[product.pk for product in products])
+        .order_by("-is_bestseller", "-created_at")[:limit]
+    )
+
+
 def size_chart_for(product: Product):
     """The chart for the product's category, falling back to its parent's (C11)."""
     category = product.category

@@ -45,6 +45,7 @@ def test_staff_get_every_component(client):
         "breadcrumbs__list",
         "pagination__list",
         "stepper__input",
+        "ship-progress__bar",
         "empty__title",
         "skeleton",
     ):

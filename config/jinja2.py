@@ -68,6 +68,14 @@ def search_max_query():
     return MAX_QUERY_LENGTH
 
 
+def cart_count(request):
+    """Units in the caller's cart, for the header badge. The header is in the shell, so no view
+    can pass it. Same deferred import as ``announcement``, and the same one indexed query."""
+    from apps.cart.services import item_count
+
+    return item_count(request)
+
+
 def environment(**options):
     # /tmp is the only writable path on Vercel and it survives inside a warm instance,
     # so compiled templates are cached there instead of recompiled per request.
@@ -81,6 +89,7 @@ def environment(**options):
             "announcement": announcement,
             "nav_categories": nav_categories,
             "search_max_query": search_max_query,
+            "cart_count": cart_count,
             # Jinja2 has no context processors, so a template asks for the request's messages
             # by hand. A form that posts and redirects is how feedback reaches a page with no
             # JavaScript (P6), so every such page renders these.
