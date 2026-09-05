@@ -185,15 +185,20 @@ def _eligible_lines(coupon: Coupon, lines: list[PricedLine]) -> list[PricedLine]
     """
     categories = {category.id for category in coupon.scope_categories.all()}
     products = {product.id for product in coupon.scope_products.all()}
+    scoped = bool(categories or products)
     eligible = []
     for line in lines:
         product = line.variant.product
-        if categories or products:
-            in_scope = product.id in products or product.category_id in categories
-            if not in_scope and product.category.parent_id not in categories:
-                continue
-        if coupon.exclude_sale_items and price_display(product, line.variant)[1] is not None:
+        if scoped and not (
+            product.id in products
+            or product.category_id in categories
+            or product.category.parent_id in categories
+        ):
             continue
+        if coupon.exclude_sale_items:
+            _, mrp = price_display(product, line.variant)
+            if mrp is not None:
+                continue
         eligible.append(line)
     return eligible
 
@@ -239,7 +244,8 @@ def apply_coupon(cart: Cart, code: str) -> Coupon:
     if coupon is None:
         raise CartError("That coupon code isn't valid.", code="coupon_invalid")
 
-    # Priced without the coupon attached, which is all the rules need: a subtotal and the lines.
+    # Neither the subtotal nor the line totals are touched by whatever coupon is already on the
+    # cart, so this is all the rules need to judge a replacement.
     priced = price_cart(cart)
     reason = check_coupon(coupon, cart, priced.subtotal, priced.lines)
     if reason:
