@@ -29,7 +29,7 @@
 {% endset %}
 
 {% call drawer("cart-drawer", "Your cart", foot=foot) %}
-  <div class="drawer-cart" data-cart-drawer>
+  <div class="drawer-cart" data-cart-drawer data-count="{{ priced.item_count if ready else 0 }}">
     {%- if not ready %}
       <div class="sg-skeletons">
         <div class="skeleton" style="height: 5rem"></div>

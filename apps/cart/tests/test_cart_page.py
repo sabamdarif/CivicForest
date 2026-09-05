@@ -272,8 +272,20 @@ def test_the_shell_carries_an_empty_drawer_for_the_header_to_open(browser):
 
     assert 'id="cart-drawer"' in body
     assert 'data-dialog-open="cart-drawer"' in body
+    assert 'data-count="0"' in body
+    assert "js/cart.js" in body
     # A link first, so the header still works with no JavaScript.
     assert 'class="icon-btn cart-link" href="/cart/"' in body
+
+
+def test_the_cart_page_does_not_offer_a_drawer_of_itself(browser, tee):
+    _add(browser, tee, 1)
+
+    body = browser.get("/cart/").content.decode()
+
+    assert 'data-dialog-open="cart-drawer"' not in body
+    # The dialog is still in the shell, and still empty.
+    assert 'data-count="0"' in body
 
 
 # ─── Stock revalidation reaches the page (G9) ────────────────────────────────

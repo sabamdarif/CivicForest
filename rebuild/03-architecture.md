@@ -361,15 +361,21 @@ markup rather than by script tag:
 
 ```
 static/js/
-├── util.js            fetch wrapper with CSRF, rupee formatter, debounce, focus trap
 ├── nav.js  modal.js  toast.js
 ├── filters.js         URL-param sync, fetch-and-replace grid, chip removal
 ├── search-overlay.js  debounced suggest, keyboard nav, aria-live
 ├── gallery.js  variant-picker.js  pincode.js  recently-viewed.js
-├── cart.js            add/update/remove, drawer render, header count
+├── cart.js            drawer render and swap, header count
 ├── wishlist.js  checkout.js  designer.js
 └── backoffice.js      table filters, bulk select, inline stock edit, sparkline render
 ```
+
+`util.js` was planned here as a fetch-with-CSRF wrapper, a rupee formatter, a debounce and a focus
+trap. It is deliberately **not** built: forms carry `{{ csrf_input }}`, so `FormData` brings the
+token and no wrapper is needed; money is formatted server-side, so a rupee formatter in JavaScript
+would be a second implementation of Indian digit grouping that could drift; the one debounce is
+three inline lines; and the focus trap is the `<dialog>` element's own. Extract it when a second
+module genuinely shares something.
 
 **The contract:** every one of these enhances markup that already works. Filters are a `<form>` that
 submits. Add-to-cart is a `<form>` that posts and redirects. The design tool is the single exception

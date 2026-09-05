@@ -58,13 +58,18 @@
       {{ icon_button("search", "Search", href="/search/",
                      attrs={"data-dialog-open": "search-overlay"}) }}
       {{ icon_button("account", "Your account", href="/account/") }}
-      {# A link first, a drawer second: cart.js cancels the click and opens the dialog, so with
-         no JavaScript this navigates to the cart page instead (P6). #}
-      <a class="icon-btn cart-link" href="/cart/" data-dialog-open="cart-drawer"
+      {# A link first, a drawer second: modal.js cancels the click and opens the dialog, so with
+         no JavaScript this navigates to the cart page instead (P6). No drawer on the cart page
+         itself, where it would only repeat what is already on screen. #}
+      <a class="icon-btn cart-link" href="/cart/"
+        {%- if request.path != "/cart/" %} data-dialog-open="cart-drawer"{% endif %}
         aria-label="Cart, {{ units }} item{{ '' if units == 1 else 's' }}">
         {{ icon("cart") }}
         {%- if units %}<span class="cart-link__count" aria-hidden="true">{{ units }}</span>{% endif %}
       </a>
+      {# Outside the drawer on purpose: a live region has to be in the document before its text
+         changes, and the drawer's contents are replaced wholesale on every cart action. #}
+      <p class="sr-only" data-cart-live aria-live="polite"></p>
 
       {# A <details> panel, so the mobile nav opens, closes and takes the keyboard with no
          JavaScript at all. nav.js only adds Escape and scrim dismissal. #}

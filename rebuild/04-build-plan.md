@@ -223,14 +223,15 @@ Tasks:
 3. [x] Cart page: line rows with image, variant, price, stepper, remove, move-to-wishlist; order summary
    with the breakdown; coupon field with inline validation; free-shipping progress bar with the exact
    shortfall; cross-sell row; empty state.
-4. Cart drawer, opened by add-to-cart and by the header button, sharing one partial with the page.
+4. [x] Cart drawer, opened by add-to-cart and by the header button, sharing one partial with the page.
 5. [x] `/api/v1/cart/` endpoints: add, update quantity, remove, apply coupon, remove coupon, summary.
    Every one re-prices server-side and returns the authoritative totals; the client never sends money.
 6. [x] Wishlist: heart toggle on cards and product pages, `/account/wishlist/` page, move-to-cart. For a
    guest the heart prompts login rather than storing a cookie wishlist. That is an assumed default, flagged in
    `01-decisions.md`.
-7. `static/js/cart.js`: optimistic quantity updates that reconcile against the server response,
-   drawer rendering, toast on add, header count sync.
+7. [x] `static/js/cart.js`: drawer rendering from the server's own partial, header count sync, and a
+   fall-through to a plain submit on any failure. There is no client-side total, and no toast on
+   add: the drawer opening with the line in it is the confirmation.
 8. [x] Stock revalidation on cart view with a message naming the affected line.
 9. Cron: abandoned-cart sweep, cart expiry sweep.
 
