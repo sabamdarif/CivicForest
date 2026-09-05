@@ -203,8 +203,8 @@ change until the milestone that builds them begins.
 
 | ID | Decision | Chosen | Note |
 |---|---|---|---|
-| J1 | Coupon types | Percentage · flat amount · free shipping | No BOGO, no tiered |
-| J2 | Coupon rules | min order · max total uses · **per-user limit** · start and end date · category or product scope · first-order-only · exclude sale items | The per-user limit is new and closes a real abuse hole |
+| J1 | Coupon types | Percentage · flat amount · free shipping | No BOGO, no tiered. Free shipping is a flag on a percentage or flat coupon (§5's `free_shipping`) rather than a third exclusive type, so one code can take an amount off *and* waive the fee |
+| J2 | Coupon rules | min order · max total uses · **per-user limit** · start and end date · category or product scope · first-order-only · exclude sale items | The per-user limit is new and closes a real abuse hole. A use is a **paid order**, recorded as a `cart.CouponRedemption` row, so applying a code and walking away never spends one. A scoped category covers its child categories, and "on sale" is whatever `price_display` calls a genuine discount |
 | J3 | Automatic promotions without a code | Out | |
 | J4 | Scheduled sale pricing | Per variant, with start and end datetimes | Drives the `Sale` badge and the strike-through |
 | J5 | Newsletter + welcome code | In, **double opt-in**, checkbox unticked, one-click unsubscribe | The footer already promises 10% off the first order |

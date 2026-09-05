@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from apps.cart.models import Cart, CartItem
+from apps.cart.models import Cart, CartItem, Coupon, CouponRedemption
 from apps.orders import services
 from apps.orders.models import Order
 
@@ -123,3 +123,51 @@ def test_fulfilment_keeps_same_variant_readded_after_checkout(user, variant):
     services.fulfil_paid_order(order, cart=cart)
 
     assert cart.items.filter(id=replacement.id).exists()
+
+
+# ─── Coupon usage is counted by the paid order, not the applied coupon ────────
+def _paid_with_coupon(user, variant, **coupon_kwargs):
+    coupon = Coupon.objects.create(
+        code="SAVE10", discount_type="percent", value=Decimal("10"), **coupon_kwargs
+    )
+    cart = _cart_with(user, variant, 1)
+    cart.coupon = coupon
+    cart.save(update_fields=["coupon"])
+    order = services.create_order_from_cart(user, cart, SHIPPING)
+    assert order.coupon_code == "SAVE10"
+    return coupon, order
+
+
+def test_a_paid_order_counts_against_the_coupon_and_the_customer(user, variant):
+    coupon, order = _paid_with_coupon(user, variant)
+
+    services.fulfil_paid_order(order)
+
+    coupon.refresh_from_db()
+    assert coupon.used_count == 1
+    redemption = CouponRedemption.objects.get(coupon=coupon, order=order)
+    assert redemption.user_id == user.id
+
+
+def test_counting_the_same_order_twice_records_one_use(user, variant):
+    """The `is_paid` guard stops a replayed webhook, and the unique constraint stops anything
+    that gets past it."""
+    coupon, order = _paid_with_coupon(user, variant)
+
+    services.fulfil_paid_order(order)
+    services._record_coupon_use(order)
+
+    assert CouponRedemption.objects.filter(coupon=coupon, order=order).count() == 1
+
+
+def test_a_coupon_already_at_its_cap_still_records_the_use_it_was_paid_for(user, variant):
+    # Money is captured by the time this runs, so the redemption is recorded either way and
+    # the overrun is a log line for staff rather than a lost order.
+    coupon, order = _paid_with_coupon(user, variant, max_uses=1)
+    Coupon.objects.filter(pk=coupon.pk).update(used_count=1)
+
+    services.fulfil_paid_order(order)
+
+    coupon.refresh_from_db()
+    assert coupon.used_count == 1  # the conditional increment refused to go past the cap
+    assert CouponRedemption.objects.filter(coupon=coupon, order=order).exists()

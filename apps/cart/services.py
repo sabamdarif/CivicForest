@@ -18,10 +18,13 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 from apps.catalog.models import ProductVariant
+from apps.catalog.services import price_display
+from apps.common.formatting import rupees
 
-from .models import Cart, CartItem, Coupon
+from .models import Cart, CartItem, Coupon, CouponRedemption
 
 TWO_PLACES = Decimal("0.01")
 HUNDRED = Decimal("100")
@@ -128,14 +131,81 @@ def remove_item(cart: Cart, variant_id: str) -> None:
 
 
 # ─── Coupons ─────────────────────────────────────────────────────────────────
+def _has_paid_order(user_id) -> bool:
+    # Deferred import: apps.orders imports this module.
+    from apps.orders.models import Order
+
+    return Order.objects.filter(user_id=user_id, status__in=Order.PAID_STATUSES).exists()
+
+
+def _eligible_lines(coupon: Coupon, lines: list[PricedLine]) -> list[PricedLine]:
+    """The lines a coupon covers (J2): its category and product scope, minus anything already
+    discounted when it excludes sale items. A blank scope means the whole catalogue, and a
+    scoped parent category covers its children (C8).
+
+    "On sale" is whatever ``price_display`` calls a genuine discount, so a coupon and the Sale
+    badge can never disagree about which lines those are.
+    """
+    categories = {category.id for category in coupon.scope_categories.all()}
+    products = {product.id for product in coupon.scope_products.all()}
+    eligible = []
+    for line in lines:
+        product = line.variant.product
+        if categories or products:
+            in_scope = product.id in products or product.category_id in categories
+            if not in_scope and product.category.parent_id not in categories:
+                continue
+        if coupon.exclude_sale_items and price_display(product, line.variant)[1] is not None:
+            continue
+        eligible.append(line)
+    return eligible
+
+
+def check_coupon(coupon: Coupon, cart: Cart, subtotal: Decimal, lines: list[PricedLine]) -> str:
+    """Why this coupon does not apply to this cart, or an empty string when it does.
+
+    The per-user limit and the first-order rule need a customer, so a guest cart passes both
+    here and meets them again at checkout, which decision 14 gates behind a login. The global
+    ``used_count`` is likewise advisory: only the payment transaction that writes a
+    ``CouponRedemption`` decides a use, exactly as C5 already treats the last unit of stock.
+    """
+    now = timezone.now()
+    if not coupon.is_active:
+        return "This coupon is no longer active."
+    if coupon.starts_at is not None and coupon.starts_at > now:
+        return "This coupon is not active yet."
+    if coupon.expires_at is not None and coupon.expires_at < now:
+        return "This coupon has expired."
+    if coupon.max_uses is not None and coupon.used_count >= coupon.max_uses:
+        return "This coupon has reached its usage limit."
+    if subtotal < coupon.min_order_value:
+        return f"Spend at least {rupees(coupon.min_order_value, 0)} to use this coupon."
+    if cart.user_id:
+        used = CouponRedemption.objects.filter(coupon=coupon, user_id=cart.user_id).count()
+        if coupon.per_user_limit is not None and used >= coupon.per_user_limit:
+            return "You have already used this coupon."
+        if coupon.first_order_only and _has_paid_order(cart.user_id):
+            return "This coupon is for a first order only."
+    if not _eligible_lines(coupon, lines):
+        return "This coupon does not apply to anything in your cart."
+    return ""
+
+
+def coupon_discount(coupon: Coupon, lines: list[PricedLine]) -> Decimal:
+    """The amount off, taken on the lines the coupon covers rather than the whole cart."""
+    covered = sum((line.line_total for line in _eligible_lines(coupon, lines)), Decimal("0"))
+    return coupon.discount_for(covered)
+
+
 def apply_coupon(cart: Cart, code: str) -> Coupon:
     coupon = Coupon.objects.filter(code__iexact=(code or "").strip()).first()
     if coupon is None:
         raise CartError("That coupon code isn't valid.", code="coupon_invalid")
 
-    subtotal = _subtotal(cart)
-    ok, reason = coupon.validate_for(subtotal)
-    if not ok:
+    # Priced without the coupon attached, which is all the rules need: a subtotal and the lines.
+    priced = price_cart(cart)
+    reason = check_coupon(coupon, cart, priced.subtotal, priced.lines)
+    if reason:
         raise CartError(reason, code="coupon_invalid")
 
     cart.coupon = coupon
@@ -175,14 +245,9 @@ class PricedCart:
 
 
 def _items_qs(cart: Cart):
-    return cart.items.select_related("variant", "variant__product").all()
-
-
-def _subtotal(cart: Cart) -> Decimal:
-    total = Decimal("0")
-    for item in _items_qs(cart):
-        total += item.variant.effective_price * item.quantity
-    return total.quantize(TWO_PLACES)
+    return cart.items.select_related(
+        "variant", "variant__product", "variant__product__category"
+    ).all()
 
 
 def _apportion(amount: Decimal, weights: list[Decimal]) -> list[Decimal]:
@@ -243,16 +308,16 @@ def price_cart(cart: Cart) -> PricedCart:
 
     discount = Decimal("0.00")
     coupon_code = None
-    if cart.coupon_id is not None:
-        ok, _ = cart.coupon.validate_for(subtotal)
-        if ok:
-            discount = cart.coupon.discount_for(subtotal)
-            coupon_code = cart.coupon.code
-        # An invalid coupon (expired since applied, etc.) simply contributes no
-        # discount rather than blocking the whole cart.
+    free_shipping = False
+    if cart.coupon_id is not None and not check_coupon(cart.coupon, cart, subtotal, lines):
+        discount = coupon_discount(cart.coupon, lines)
+        coupon_code = cart.coupon.code
+        free_shipping = cart.coupon.free_shipping
+        # A coupon that has become invalid since it was applied (expired, exhausted, or its
+        # scope emptied out of the cart) contributes no discount rather than blocking the cart.
 
     discounted = subtotal - discount
-    if item_count == 0:
+    if item_count == 0 or free_shipping:
         shipping = Decimal("0.00")
     elif discounted >= _free_shipping_threshold():
         shipping = Decimal("0.00")

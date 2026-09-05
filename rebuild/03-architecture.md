@@ -201,6 +201,7 @@ environment globals above, each a callable that resolves lazily from the request
 | Model | Fields | Purpose |
 |---|---|---|
 | `catalog.Collection` | name, slug, tagline, description, hero image, display order, is_active | C7: curated groups with their own copy |
+| `cart.CouponRedemption` | coupon FK, user FK, order FK, unique on coupon + order | J2's per-user limit. A row is written by the payment transaction, so a use is a paid order and a replayed webhook cannot count twice |
 | `catalog.SizeChart` | category FK, rows JSON, notes, unit | C11 |
 | `orders.Shipment` | order FK, kind (stock/custom), carrier, awb, tracking_url, shipped_at, delivered_at, items M2M | One order, two shipments (decision #10) |
 | `orders.StatusEvent` | order FK, from_status, to_status, actor, note, created_at | Customer timeline and staff audit in one place |

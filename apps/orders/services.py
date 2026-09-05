@@ -6,13 +6,17 @@ mutate ``Order.status`` or stock directly. The state machine rejects illegal jum
 
 from __future__ import annotations
 
+import logging
+
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 
 from apps.cart import services as cart_services
 from apps.catalog.models import ProductVariant
 
 from .models import Order, OrderItem
+
+logger = logging.getLogger("orders")
 
 # Legal forward transitions. Anything not listed raises (plan.md §4 order lifecycle).
 _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
@@ -192,25 +196,7 @@ def fulfil_paid_order(order: Order, cart=None) -> Order | None:
     order.save(update_fields=["status", "updated_at"])
 
     if order.coupon_code:
-        from django.db.models import Q
-
-        from apps.cart.models import Coupon
-
-        # Conditional increment closes the check-then-increment race: N concurrent
-        # checkouts can't collectively exceed max_uses. Exceeding it is
-        # logged, not raised — money is already captured at this point.
-        claimed = Coupon.objects.filter(
-            Q(max_uses__isnull=True) | Q(used_count__lt=F("max_uses")),
-            code=order.coupon_code,
-        ).update(used_count=F("used_count") + 1)
-        if not claimed:
-            import logging
-
-            logging.getLogger("orders").warning(
-                "Coupon %s exceeded max_uses on paid order %s",
-                order.coupon_code,
-                order.order_number,
-            )
+        _record_coupon_use(order)
 
     if cart is not None:
         # Delete only the lines this order snapshotted — anything the customer added
@@ -224,3 +210,30 @@ def fulfil_paid_order(order: Order, cart=None) -> Order | None:
 
     send_order_email(str(order.pk), "confirmation")
     return order
+
+
+def _record_coupon_use(order: Order) -> None:
+    """Count a paid order against its coupon, globally and against the customer (J2).
+
+    A ``CouponRedemption`` row is the per-customer count, unique on coupon and order so a
+    replayed webhook cannot claim a second use. The conditional increment closes the
+    check-then-increment race on ``used_count``: N concurrent checkouts cannot collectively
+    exceed ``max_uses``. Exceeding it is logged rather than raised, because the money is
+    already captured by the time this runs.
+    """
+    from apps.cart.models import Coupon, CouponRedemption
+
+    coupon = Coupon.objects.filter(code=order.coupon_code).first()
+    if coupon is None:
+        return
+
+    claimed = Coupon.objects.filter(
+        Q(max_uses__isnull=True) | Q(used_count__lt=F("max_uses")), pk=coupon.pk
+    ).update(used_count=F("used_count") + 1)
+    if not claimed:
+        logger.warning(
+            "Coupon %s exceeded max_uses on paid order %s", coupon.code, order.order_number
+        )
+    CouponRedemption.objects.get_or_create(
+        coupon=coupon, order=order, defaults={"user_id": order.user_id}
+    )
