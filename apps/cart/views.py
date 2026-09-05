@@ -31,9 +31,6 @@ from .serializers import (
     WishlistToggleSerializer,
 )
 
-# G7: ten per line. The stepper macro already defaults to this maximum.
-MAX_LINE_QUANTITY = 10
-
 
 class GuestCSRFSessionAuthentication(SessionAuthentication):
     """SessionAuthentication only CSRF-checks *authenticated* sessions; guest cart
@@ -218,9 +215,9 @@ def add_to_cart(request):
 
 def _clamp_quantity(raw) -> int:
     """A hand-edited form widens to the allowed range rather than failing (G7 caps a line at
-    ten). M4 task 1 moves the cap into the service, where the cart page needs it too."""
+    ten). The service enforces the same ceiling for anything that does not come through here."""
     try:
         quantity = int(raw)
     except (TypeError, ValueError):
         return 1
-    return max(1, min(quantity, MAX_LINE_QUANTITY))
+    return max(1, min(quantity, services.MAX_LINE_QUANTITY))

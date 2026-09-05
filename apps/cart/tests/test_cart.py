@@ -45,6 +45,33 @@ def test_update_quantity_to_zero_removes_line(client, variant):
     assert resp.data["item_count"] == 0
 
 
+# ─── G7: ten of one item, wherever the request comes from ─────────────────────
+def test_one_request_cannot_ask_for_more_than_ten(client, variant):
+    resp = client.post("/api/v1/cart/items", {"variant_id": str(variant.id), "quantity": 11})
+    assert resp.status_code == 400
+    assert resp.data["error"]["code"] == "validation_error"
+    assert "quantity" in resp.data["error"]["details"]
+
+
+def test_repeated_adds_cannot_walk_past_ten(client, variant):
+    # Stock is not the binding constraint here, the ten-per-line cap is.
+    variant.stock_quantity = 50
+    variant.save(update_fields=["stock_quantity"])
+
+    client.post("/api/v1/cart/items", {"variant_id": str(variant.id), "quantity": 6})
+    resp = client.post("/api/v1/cart/items", {"variant_id": str(variant.id), "quantity": 6})
+
+    assert resp.status_code == 400
+    assert resp.data["error"]["code"] == "max_quantity"
+    assert resp.data["error"]["message"] == "You can order at most 10 of one item."
+
+
+def test_a_negative_quantity_is_refused(client, variant):
+    resp = client.post("/api/v1/cart/items", {"variant_id": str(variant.id), "quantity": -3})
+    assert resp.status_code == 400
+    assert resp.data["error"]["code"] == "validation_error"
+
+
 # ─── Shipping rule ───────────────────────────────────────────────────────────
 # Pinned rather than read from the environment, so the rule is under test and not a
 # developer's .env.

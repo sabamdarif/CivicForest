@@ -64,6 +64,20 @@ def test_merge_drops_out_of_stock_lines():
     assert user_cart.items.count() == 0
 
 
+def test_merge_caps_at_ten_even_when_stock_allows_more():
+    variant = ProductVariantFactory(stock_quantity=50)
+    guest = GuestCartFactory()
+    CartItem.objects.create(cart=guest, variant=variant, quantity=6)
+    user = UserFactory()
+    user_cart = CartFactory(user=user)
+    CartItem.objects.create(cart=user_cart, variant=variant, quantity=6)
+
+    services.merge_guest_cart_into_user(guest.session_key, user)
+
+    # 6 + 6 = 12, and G7 caps a line at ten however the quantity got there.
+    assert user_cart.items.get(variant=variant).quantity == 10
+
+
 def test_merge_coupon_carries_over_only_if_user_cart_has_none():
     coupon_guest = CouponFactory(code="GUEST10")
     coupon_user = CouponFactory(code="USER20")

@@ -6,11 +6,14 @@ path, and the login-merge signal without duplication (plan.md §3, §10).
 
 ``price_cart`` is the single source of truth for a cart's monetary total. The order
 app calls it at checkout; the client is never trusted for any of these numbers.
+
+Prices are tax-inclusive (C3), so GST is **extracted** from a line and never added to it:
+a charge that first appears at checkout is drip pricing under the CCPA guidelines.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 
 from django.conf import settings
@@ -21,6 +24,11 @@ from apps.catalog.models import ProductVariant
 from .models import Cart, CartItem, Coupon
 
 TWO_PLACES = Decimal("0.01")
+HUNDRED = Decimal("100")
+
+# G7: ten of one item per order. Enforced here rather than in a view so the API, the form
+# and the login merge cannot disagree about the ceiling.
+MAX_LINE_QUANTITY = 10
 
 
 class CartError(Exception):
@@ -81,6 +89,10 @@ def add_item(cart: Cart, variant_id: str, quantity: int) -> CartItem:
     desired = current + quantity
     if desired > variant.stock_quantity:
         raise CartError(f"Only {variant.stock_quantity} left in stock.", code="insufficient_stock")
+    if desired > MAX_LINE_QUANTITY:
+        raise CartError(
+            f"You can order at most {MAX_LINE_QUANTITY} of one item.", code="max_quantity"
+        )
 
     if item is None:
         item = CartItem.objects.create(cart=cart, variant=variant, quantity=desired)
@@ -102,6 +114,10 @@ def set_item_quantity(cart: Cart, variant_id: str, quantity: int) -> CartItem | 
         return None
     if quantity > variant.stock_quantity:
         raise CartError(f"Only {variant.stock_quantity} left in stock.", code="insufficient_stock")
+    if quantity > MAX_LINE_QUANTITY:
+        raise CartError(
+            f"You can order at most {MAX_LINE_QUANTITY} of one item.", code="max_quantity"
+        )
     item.quantity = quantity
     item.save(update_fields=["quantity", "updated_at"])
     return item
@@ -141,6 +157,9 @@ class PricedLine:
     quantity: int
     unit_price: Decimal
     line_total: Decimal
+    # Assigned in a second pass, once the cart-wide discount and shipping are known.
+    tax_rate: Decimal = field(default_factory=lambda: Decimal("0.00"))
+    tax: Decimal = field(default_factory=lambda: Decimal("0.00"))
 
 
 @dataclass
@@ -149,6 +168,7 @@ class PricedCart:
     subtotal: Decimal
     discount: Decimal
     shipping: Decimal
+    tax: Decimal
     total: Decimal
     coupon_code: str | None
     item_count: int
@@ -163,6 +183,40 @@ def _subtotal(cart: Cart) -> Decimal:
     for item in _items_qs(cart):
         total += item.variant.effective_price * item.quantity
     return total.quantize(TWO_PLACES)
+
+
+def _apportion(amount: Decimal, weights: list[Decimal]) -> list[Decimal]:
+    """Split an amount across lines pro rata by weight, the remainder on the last line.
+
+    Splitting exactly is what lets the taxable values sum back to the total to the paise,
+    which is the property a GST invoice has to satisfy (H8).
+    """
+    total = sum(weights, Decimal("0"))
+    if not weights or total <= 0:
+        return [Decimal("0.00") for _ in weights]
+    shares = [(amount * weight / total).quantize(TWO_PLACES) for weight in weights]
+    shares[-1] += amount - sum(shares, Decimal("0"))
+    return shares
+
+
+def _extract_tax(lines: list[PricedLine], discount: Decimal, shipping: Decimal) -> Decimal:
+    """Set ``tax_rate`` and ``tax`` on every line and return the cart's GST total.
+
+    The price already includes the tax (C3), so it is extracted: ``amount * r / (100 + r)``.
+    The discount comes off the taxable value (CGST s.15(3)(a)) and freight follows the goods'
+    rate, so both are apportioned across the lines before the rate is applied to each.
+    """
+    weights = [line.line_total for line in lines]
+    less = _apportion(discount, weights)
+    plus = _apportion(shipping, weights)
+    tax = Decimal("0.00")
+    for line, discounted, freight in zip(lines, less, plus, strict=True):
+        rate = line.variant.product.tax_rate
+        net = line.line_total - discounted + freight
+        line.tax_rate = rate
+        line.tax = (net * rate / (HUNDRED + rate)).quantize(TWO_PLACES)
+        tax += line.tax
+    return tax
 
 
 def price_cart(cart: Cart) -> PricedCart:
@@ -211,6 +265,7 @@ def price_cart(cart: Cart) -> PricedCart:
         subtotal=subtotal,
         discount=discount,
         shipping=shipping,
+        tax=_extract_tax(lines, discount, shipping),
         total=total,
         coupon_code=coupon_code,
         item_count=item_count,
@@ -221,8 +276,8 @@ def price_cart(cart: Cart) -> PricedCart:
 @transaction.atomic
 def merge_guest_cart_into_user(session_key: str, user) -> None:
     """Fold a guest's session cart into their user cart on login. Quantities are summed
-    but re-capped at live stock; a coupon carries over only if the user cart has none.
-    The guest cart is then deleted."""
+    but re-capped at live stock and at the ten-per-line ceiling; a coupon carries over only
+    if the user cart has none. The guest cart is then deleted."""
     if not session_key:
         return
     guest = (
@@ -237,7 +292,7 @@ def merge_guest_cart_into_user(session_key: str, user) -> None:
     for item in guest.items.all():
         existing = user_cart.items.filter(variant=item.variant).first()
         current = existing.quantity if existing else 0
-        capped = min(current + item.quantity, item.variant.stock_quantity)
+        capped = min(current + item.quantity, item.variant.stock_quantity, MAX_LINE_QUANTITY)
         if capped <= 0:
             continue
         if existing is None:

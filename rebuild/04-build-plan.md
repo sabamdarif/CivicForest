@@ -214,7 +214,7 @@ grid.
 
 Tasks:
 
-1. Keep `cart/services.py` (`price_cart`, `merge_guest_cart_into_user`, quantity validation) and
+1. [x] Keep `cart/services.py` (`price_cart`, `merge_guest_cart_into_user`, quantity validation) and
    extend `price_cart` to compute tax per line from the product's HSN rate and to return a full
    breakdown (subtotal, discount, shipping, tax, total) rather than a total alone.
 2. Extend `Coupon` with `per_user_limit`, scope fields, `first_order_only`, `exclude_sale_items`,

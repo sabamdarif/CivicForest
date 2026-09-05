@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from apps.catalog.models import Product
 
-from .services import PricedCart, PricedLine
+from .services import MAX_LINE_QUANTITY, PricedCart, PricedLine
 
 
 class CartLineSerializer(serializers.Serializer):
@@ -55,12 +55,14 @@ class CartLineSerializer(serializers.Serializer):
 
 
 class CartSerializer(serializers.Serializer):
-    """Read view of a priced cart."""
+    """Read view of a priced cart. ``tax`` is the GST already inside ``total``, never on top
+    of it (C3), so a client that adds it to the total is wrong."""
 
     lines = CartLineSerializer(many=True, read_only=True)
     subtotal = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     discount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     shipping = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    tax = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     coupon_code = serializers.CharField(read_only=True, allow_null=True)
     item_count = serializers.IntegerField(read_only=True)
@@ -72,11 +74,12 @@ class CartSerializer(serializers.Serializer):
 
 class AddItemSerializer(serializers.Serializer):
     variant_id = serializers.UUIDField()
-    quantity = serializers.IntegerField(min_value=1, max_value=99, default=1)
+    quantity = serializers.IntegerField(min_value=1, max_value=MAX_LINE_QUANTITY, default=1)
 
 
 class UpdateItemSerializer(serializers.Serializer):
-    quantity = serializers.IntegerField(min_value=0, max_value=99)
+    # Zero is how a stepper removes a line, so it is valid input rather than an error.
+    quantity = serializers.IntegerField(min_value=0, max_value=MAX_LINE_QUANTITY)
 
 
 class ApplyCouponSerializer(serializers.Serializer):
