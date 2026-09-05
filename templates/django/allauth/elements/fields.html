@@ -23,7 +23,13 @@ rendered as given. {% endcomment %}
       <label class="field__label" for="{{ field.id_for_label }}">
         {{ field.label }}{% if field.field.required %} <span class="field__required" aria-hidden="true">*</span>{% endif %}
       </label>
-      {{ field|control }}
+      {% if field.field.widget.input_type == "password" %}
+        {# password-toggle.js adds the show/hide control to this wrapper, so every password
+           field on every allauth page gets one from here. #}
+        <div class="field__wrap" data-password-toggle>{{ field|control }}</div>
+      {% else %}
+        {{ field|control }}
+      {% endif %}
     {% endif %}
     {% if field.help_text %}<p class="field__hint" id="{{ field.auto_id }}-hint">{{ field.help_text }}</p>{% endif %}
     {% if field.errors %}

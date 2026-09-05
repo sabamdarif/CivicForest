@@ -45,6 +45,9 @@ default rather than a canonical URL. A multi-line comment has to be {% comment %
     <script type="module" src="{% static 'js/nav.js' %}"></script>
     <script type="module" src="{% static 'js/search-overlay.js' %}"></script>
     <script type="module" src="{% static 'js/cart.js' %}"></script>
+    {# Every page this shell renders may hold a password field, and the module does nothing when
+       none of them asked for a toggle. #}
+    <script type="module" src="{% static 'js/password-toggle.js' %}"></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>
