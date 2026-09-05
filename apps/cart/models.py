@@ -122,6 +122,9 @@ class Cart(UUIDTimestampedModel):
     coupon = models.ForeignKey(
         Coupon, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
+    reminded_at = models.DateTimeField(
+        null=True, blank=True, help_text="When the abandoned-cart reminder went out (G5)."
+    )
 
     class Meta:
         constraints = [

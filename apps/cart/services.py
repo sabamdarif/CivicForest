@@ -14,11 +14,13 @@ a charge that first appears at checkout is drip pricing under the CCPA guideline
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Count, F, Max, Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from apps.catalog.models import ProductVariant
@@ -411,6 +413,54 @@ def shipping_progress(priced: PricedCart) -> dict | None:
         "shortfall": (threshold - reached).quantize(TWO_PLACES),
         "percent": min(int(reached / threshold * 100), 100),
     }
+
+
+# ─── Sweeps (G5, G6) ─────────────────────────────────────────────────────────
+# Policy, not deployment configuration: both numbers are decisions in the register.
+CART_LIFETIME = timedelta(days=30)
+REMINDER_DELAY = timedelta(hours=4)
+
+
+def _with_last_change(queryset):
+    """Annotate the moment a cart really last changed.
+
+    ``Cart.updated_at`` only moves when the row itself is saved, which adding or stepping a line
+    does not do, so the newest of the cart and its lines is the only honest answer.
+    """
+    return queryset.annotate(
+        lines=Count("items"),
+        last_change=Coalesce(Max("items__updated_at"), F("updated_at")),
+    )
+
+
+def dormant_carts():
+    """Carts nobody has touched for the lifetime in G6."""
+    return _with_last_change(Cart.objects.all()).filter(
+        last_change__lt=timezone.now() - CART_LIFETIME
+    )
+
+
+def expire_dormant(limit: int) -> int:
+    """Delete dormant carts, up to ``limit`` of them, and return how many went.
+
+    Deliberately not one transaction: a run that times out half way keeps the rows it already
+    removed, and the next run finishes the job.
+    """
+    ids = list(dormant_carts().values_list("pk", flat=True)[:limit])
+    Cart.objects.filter(pk__in=ids).delete()
+    return len(ids)
+
+
+def carts_awaiting_reminder():
+    """The carts G5 would email: a signed-in customer's, with something in it, untouched for four
+    hours, and not reminded already.
+
+    Guests are excluded because there is no address to write to, and one reminder per cart is the
+    whole of G5: ``reminded_at`` is what makes it one rather than one an hour.
+    """
+    return _with_last_change(
+        Cart.objects.filter(user__isnull=False, reminded_at__isnull=True)
+    ).filter(lines__gt=0, last_change__lt=timezone.now() - REMINDER_DELAY)
 
 
 # ─── Login merge ─────────────────────────────────────────────────────────────

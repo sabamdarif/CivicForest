@@ -233,7 +233,9 @@ Tasks:
    fall-through to a plain submit on any failure. There is no client-side total, and no toast on
    add: the drawer opening with the line in it is the confirmation.
 8. [x] Stock revalidation on cart view with a message naming the affected line.
-9. Cron: abandoned-cart sweep, cart expiry sweep.
+9. [x] Cron: abandoned-cart sweep, cart expiry sweep. `expire_carts` does the work; `cart_reminders`
+   selects and lists, and the send waits for the email subsystem M6 task 13 and M9 task 8 both need,
+   so a one-click unsubscribe is not built twice. M8 mounts the two triggers.
 
 **Done when:** prices, discounts, tax and shipping are computed only server-side; a tampered payload
 cannot change a total; a guest cart survives login with quantities merged rather than overwritten;
