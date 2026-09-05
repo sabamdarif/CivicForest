@@ -26,6 +26,7 @@ from rest_framework.views import APIView
 from apps.catalog import services as catalog_services
 from apps.catalog.models import Product
 from apps.catalog.views import PARTIAL_HEADER
+from apps.common.throttles import CouponThrottle, exceeded
 
 from . import services
 from .models import Wishlist
@@ -122,6 +123,7 @@ class CartCouponView(APIView):
 
     authentication_classes = [GuestCSRFSessionAuthentication]
     permission_classes = [AllowAny]
+    throttle_classes = [CouponThrottle]
 
     def post(self, request):
         serializer = ApplyCouponSerializer(data=request.data)
@@ -302,11 +304,18 @@ def cart_clear(request):
 @require_POST
 def cart_coupon(request):
     """Apply a code or drop the one that is applied (G3). The client sends a code and never an
-    amount, so the discount on the summary is always the server's own arithmetic."""
+    amount, so the discount on the summary is always the server's own arithmetic.
+
+    Throttled like the JSON endpoint, because this form is the door a code guesser would use.
+    """
     cart = services.get_or_create_cart(request)
     if request.POST.get("op") == "remove":
         services.remove_coupon(cart)
         messages.success(request, "Coupon removed.")
+        return _cart_response(request)
+
+    if exceeded(request, CouponThrottle):
+        messages.error(request, "Too many coupon attempts. Try again in a minute.")
         return _cart_response(request)
 
     try:

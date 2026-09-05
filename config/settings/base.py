@@ -227,6 +227,9 @@ REST_FRAMEWORK = {
         "user": "600/min",
         # Auth endpoints are allauth's, rate-limited via ACCOUNT_RATE_LIMITS above.
         "search": "60/min",
+        # A coupon code is short, guessable, and worth money if you land one. The other cart
+        # endpoints are self-limiting and run on anon/user above.
+        "coupon": "20/min",
         "checkout": "10/min",
         "checkout_day": "60/day",
         "custom_order_create": "20/hour",
