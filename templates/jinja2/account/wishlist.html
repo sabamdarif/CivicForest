@@ -1,0 +1,36 @@
+{# The wishlist (task 6): the products a customer has hearted, in the same grid the shop uses.
+
+   The wishlist is product-level, matching the heart on a card, so there is no size or colour to
+   add to a cart from here. The card's own link takes the customer to the product page to pick
+   one, which is the only place that choice can honestly be made. #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/empty.html" import empty %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Your wishlist | CivicForest Clothing{% endblock %}
+{% block description %}The pieces you have saved for later.{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/shop.css') }}">{% endblock %}
+
+{% block content %}
+  <div class="container">
+    {{ breadcrumbs([("Home", "/")], "Your wishlist") }}
+    <h1>Your wishlist</h1>
+    {{ notices(request) }}
+
+    {%- if products %}
+      {% with col_min = "13rem", card_sizes = "(min-width: 64rem) 20vw, (min-width: 40rem) 45vw, 92vw" %}
+        {% include "shop/_grid.html" %}
+      {% endwith %}
+    {%- elif request.user.is_authenticated %}
+      {% call empty("Nothing saved yet", "Tap the heart on anything you want to come back to.", icon_name="heart") %}
+        {{ button("Start shopping", href="/shop/", icon_end="arrow-right") }}
+      {% endcall %}
+    {%- else %}
+      {% call empty("Sign in to see your wishlist", "Saved items live with your account, so they are there on every device.", icon_name="heart") %}
+        {{ button("Keep shopping", href="/shop/", variant="secondary", icon_end="arrow-right") }}
+      {% endcall %}
+    {%- endif %}
+  </div>
+{% endblock %}

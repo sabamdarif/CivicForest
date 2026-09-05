@@ -16,6 +16,7 @@ import uuid
 from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
@@ -325,6 +326,71 @@ def cart_coupon(request):
     else:
         messages.success(request, f"{coupon.code} applied.")
     return _cart_response(request)
+
+
+# ─── Storefront: the wishlist (G4, decision register Part 3) ─────────────────
+def _back_to(request, fallback: str = "/shop/") -> str:
+    """Where a heart posted from. Validated against this host, so the hidden field or the
+    referring page cannot be turned into an open redirect."""
+    candidate = request.POST.get("next") or request.headers.get("Referer", "")
+    if candidate and url_has_allowed_host_and_scheme(candidate, {request.get_host()}):
+        return candidate
+    return fallback
+
+
+def wishlist(request):
+    """The saved-products page, and the target every heart on the site posts to.
+
+    One route for both, because the hearts already rendered on the cards and on the product page
+    point here: a GET lists what is saved, a POST toggles one product and goes back where it came
+    from. A guest sees the page and an invitation to sign in rather than a redirect, because
+    Part 3 of the decision register keeps hearts on accounts, not cookies.
+    """
+    if request.method == "POST":
+        return _toggle_wishlist(request)
+
+    products = []
+    if request.user.is_authenticated:
+        saved = (
+            Wishlist.objects.filter(user=request.user)
+            .select_related("product", "product__category")
+            .prefetch_related("product__images", "product__variants")
+        )
+        products = [entry.product for entry in saved]
+    return render(request, "account/wishlist.html", {"products": products})
+
+
+def _toggle_wishlist(request):
+    """Toggling is what a heart does, so posting the same product twice saves it and unsaves it.
+
+    A guest is asked to sign in in place rather than sent to `/accounts/login/`, which M5 mounts.
+    Prompting login is the default Part 3 takes; a message does it without costing the customer
+    their filters or their place on the page.
+    """
+    target = _back_to(request)
+    if not request.user.is_authenticated:
+        messages.info(request, "Sign in to save items to your wishlist.")
+        return redirect(target)
+
+    product = Product.objects.filter(pk=_posted_product(request), is_active=True).first()
+    if product is None:
+        raise Http404
+
+    entry, created = Wishlist.objects.get_or_create(user=request.user, product=product)
+    if created:
+        messages.success(request, f"{product.name} is saved to your wishlist.")
+    else:
+        entry.delete()
+        messages.success(request, f"{product.name} is off your wishlist.")
+    return redirect(target)
+
+
+def _posted_product(request) -> str:
+    """A hand-edited form must not reach the ORM with a malformed id."""
+    try:
+        return str(uuid.UUID(request.POST.get("product", "")))
+    except ValueError:
+        raise Http404 from None
 
 
 # ─── Storefront: the form the product page posts ─────────────────────────────

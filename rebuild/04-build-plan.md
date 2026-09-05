@@ -226,7 +226,7 @@ Tasks:
 4. Cart drawer, opened by add-to-cart and by the header button, sharing one partial with the page.
 5. [x] `/api/v1/cart/` endpoints: add, update quantity, remove, apply coupon, remove coupon, summary.
    Every one re-prices server-side and returns the authoritative totals; the client never sends money.
-6. Wishlist: heart toggle on cards and product pages, `/account/wishlist/` page, move-to-cart. For a
+6. [x] Wishlist: heart toggle on cards and product pages, `/account/wishlist/` page, move-to-cart. For a
    guest the heart prompts login rather than storing a cookie wishlist. That is an assumed default, flagged in
    `01-decisions.md`.
 7. `static/js/cart.js`: optimistic quantity updates that reconcile against the server response,
