@@ -1,0 +1,36 @@
+{% load allauth dtl %}
+{% comment %} allauth ships form.as_p here. This one override is what gets every auth form to the
+site's field markup and to WCAG 2.2 AA at once: a real label on every control, the hint and the
+error text associated with it, and the form's own errors printed where they can be seen. allauth's
+`unlabeled` hint is ignored on purpose, because a placeholder is not a label.
+
+help_text arrives as safe markup (allauth's password field puts the reset link there), so it is
+rendered as given. {% endcomment %}
+{% for error in attrs.form.non_field_errors %}
+  <p class="notice notice--error" role="alert"><span>{{ error }}</span></p>
+{% endfor %}
+
+{% for field in attrs.form.hidden_fields %}{{ field }}{% endfor %}
+
+{% for field in attrs.form.visible_fields %}
+  <div class="field">
+    {% if field.field.widget.input_type == "checkbox" %}
+      <label class="check" for="{{ field.id_for_label }}">
+        {{ field|control:"check__input" }}
+        <span>{{ field.label }}</span>
+      </label>
+    {% else %}
+      <label class="field__label" for="{{ field.id_for_label }}">
+        {{ field.label }}{% if field.field.required %} <span class="field__required" aria-hidden="true">*</span>{% endif %}
+      </label>
+      {{ field|control }}
+    {% endif %}
+    {% if field.help_text %}<p class="field__hint" id="{{ field.auto_id }}-hint">{{ field.help_text }}</p>{% endif %}
+    {% if field.errors %}
+      <p class="field__error" id="{{ field.auto_id }}-error">
+        <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-alert"></use></svg>
+        {{ field.errors|join:" " }}
+      </p>
+    {% endif %}
+  </div>
+{% endfor %}

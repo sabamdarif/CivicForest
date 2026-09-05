@@ -6,6 +6,10 @@ same-origin and the static host is not settled yet. Line icons come from Lucide,
 brand marks from Simple Icons. To add one, copy its paths from lucide.dev into a new
 `<symbol>` with the same attributes as its neighbours.
 
+`_partials/icons_auth.html` is a second, smaller sprite for the five icons only the auth
+pages use (`mail`, `lock`, `eye`, `eye-off`, `google`), because the first one is inlined
+into every page on the site.
+
 ## Lucide (line icons), ISC
 
 Copyright (c) 2026 Lucide Icons and Contributors
@@ -54,3 +58,10 @@ SOFTWARE.
 under CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/), so no notice is
 required. Brand marks stay the property of their owners and are used only to link to this
 store's own accounts.
+
+## Google's G mark, trademark
+
+`google` in the auth sprite is Google's own four-colour mark, reproduced unaltered because
+their sign-in branding guidelines require exactly that on a "Continue with Google" button.
+It is a trademark, not a licensed asset, and it is used only for that button.
+

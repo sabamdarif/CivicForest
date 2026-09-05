@@ -254,9 +254,11 @@ Tasks:
    `MFA_SUPPORTED_TYPES = ["recovery_codes", "totp"]`, `MFA_TOTP_ISSUER = "CivicForest"`,
    `MFA_TRUST_ENABLED = True` with a 14-day cookie. `allauth.usersessions` is installed too, because
    it is what the security page's session list and "sign out other sessions" button are.
-3. Override `templates/django/allauth/layouts/base.html` once so every allauth page inherits the site
+3. [x] Override `templates/django/allauth/layouts/base.html` once so every allauth page inherits the site
    chrome, then style the specific pages: login, signup, logout, password reset and change, email
-   management, 2FA activate/deactivate/authenticate, recovery codes, social signup.
+   management, 2FA activate/deactivate/authenticate, recovery codes, social signup. The page templates
+   need no override each: three layouts plus eight `allauth/elements/` overrides restyle all of them,
+   and a `{% jinja_partial %}` tag renders the storefront's own chrome partials inside the DTL shell.
 4. Build the login page to match the screenshot: split layout, brand imagery left, form right, email
    and password fields with icons, show/hide password toggle, remember me, forgot-password link,
    "Continue with Google", link to signup, and the four-icon trust strip beneath. Apple is deferred

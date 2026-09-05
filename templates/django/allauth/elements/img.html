@@ -1,0 +1,3 @@
+{% comment %} The TOTP QR code, which is an inline SVG data URI and would otherwise paint at
+whatever size the viewport allowed. {% endcomment %}
+<img class="mfa-qr" src="{{ attrs.src }}" alt="{% if attrs.alt %}{{ attrs.alt }}{% endif %}" width="200" height="200">

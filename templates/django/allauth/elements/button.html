@@ -1,0 +1,16 @@
+{% load allauth %}
+{% comment %} djlint:off
+
+allauth's button, wearing the site's. Its `tags` carry the intent, so they are what picks a variant:
+a decline or a delete is a secondary button of the same size as the accept, never a greyed-out one,
+because J9 requires equal prominence. {% endcomment %}
+{% with tags=attrs.tags|default:"" %}
+<{% if attrs.href %}a href="{{ attrs.href }}"{% else %}button{% endif %}
+  class="btn {% if "link" in tags %}btn--ghost{% elif "secondary" in tags or "outline" in tags or "danger" in tags %}btn--secondary{% else %}btn--primary{% endif %}{% if "prominent" in tags %} btn--block{% endif %}"
+  {% if attrs.type %}type="{{ attrs.type }}"{% endif %}
+  {% if attrs.form %}form="{{ attrs.form }}"{% endif %}
+  {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+  {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+  {% if attrs.value %}value="{{ attrs.value }}"{% endif %}
+><span>{% slot %}{% endslot %}</span></{% if attrs.href %}a{% else %}button{% endif %}>
+{% endwith %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load dtl %}
+{% comment %} The one override every allauth page inherits (M5 task 3). allauth's own base.html
+carries a bare menu and no chrome; this puts its pages inside the site's shell instead.
+
+Blocks match allauth's names (head_title, extra_head, body, content, extra_body) so its templates'
+block.super calls keep working. {% endcomment %}
+
+{% block title %}{% block head_title %}Your account{% endblock %} | CivicForest Clothing{% endblock %}
+
+{% block head %}{% block extra_head %}{% endblock %}{% endblock %}
+
+{% block main %}
+  {% block body %}
+    <div class="container account__plain">
+      {% jinja_partial "_partials/notices.html" %}
+      {% block content %}{% endblock %}
+    </div>
+  {% endblock %}
+{% endblock %}
+
+{% block scripts %}{% block extra_body %}{% endblock %}{% endblock %}

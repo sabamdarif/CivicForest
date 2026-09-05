@@ -27,8 +27,12 @@ def test_home_renders_through_the_jinja2_engine():
     assert "css/home.css" in body
 
 
-def test_the_django_engine_shell_loads_the_same_stylesheets():
-    rendered = get_template("base.html", using="django").render({})
+@pytest.mark.django_db
+def test_the_django_engine_shell_loads_the_same_stylesheets(client):
+    """The DTL shell can no longer be rendered without a request: it pulls the chrome in through
+    the Jinja2 partials, and the footer's newsletter form needs a CSRF token. So this asks a real
+    allauth page for it, which is the only thing that shell renders."""
+    rendered = client.get("/accounts/login/").content.decode()
 
     for sheet in STYLESHEETS:
         assert sheet in rendered

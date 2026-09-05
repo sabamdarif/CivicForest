@@ -1,0 +1,268 @@
+/* The auth pages and the account area, shared with the DTL allauth templates (§10).
+ *
+ * allauth's own markup is styled through the element overrides in
+ * templates/django/allauth/elements/, so the class names here are the ones those files emit:
+ * .auth-form, .account-panel and .field are what every allauth page renders.
+ */
+
+/* ── The entrance split: brand panel and card (the login screenshot) ───────── */
+.auth {
+  display: grid;
+}
+
+.auth__brand {
+  display: grid;
+  padding: var(--space-6) var(--space-5);
+  background: var(--ink) url("../img/seed/hero-black-tee.png") center / cover no-repeat;
+  place-items: center;
+  text-align: center;
+}
+
+/* The photograph is dark already; this only keeps the copy legible on the busiest crops. */
+.auth__brand-inner {
+  max-width: 26rem;
+  padding: var(--space-5);
+  background: rgb(13 13 13 / 62%);
+  border-radius: var(--radius);
+}
+
+.auth__title {
+  margin-block: var(--space-4) var(--space-2);
+  font-size: var(--step-4);
+  line-height: var(--leading-tight);
+}
+
+.auth__tagline {
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: var(--step-3);
+  line-height: var(--leading-tight);
+}
+
+.auth__rule {
+  justify-content: center;
+  margin-block: var(--space-4);
+}
+
+.auth__copy {
+  color: var(--muted-on-dark);
+  margin: 0;
+}
+
+.auth__panel {
+  display: grid;
+  padding: var(--space-6) var(--space-4);
+  background: var(--cream);
+  place-items: center;
+}
+
+.auth__card {
+  width: 100%;
+  max-width: 27rem;
+  padding: var(--space-6) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-1);
+
+  & h1 {
+    font-size: var(--step-3);
+  }
+
+  /* allauth puts a sentence under most headings ("Already have an account?"). */
+  & h1 + p {
+    color: var(--muted);
+    margin-block-end: var(--space-5);
+  }
+}
+
+@media (min-width: 64rem) {
+  .auth {
+    grid-template-columns: 1fr 1fr;
+    min-height: 40rem;
+  }
+
+  .auth__brand {
+    padding: var(--space-8) var(--space-6);
+  }
+
+  .auth__brand-inner {
+    background: none;
+    padding: 0;
+  }
+}
+
+/* ── Auth forms ───────────────────────────────────────────────────────────── */
+.auth-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.auth-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+
+  & .btn {
+    flex: 1 1 auto;
+  }
+}
+
+.auth-form__actions--stacked {
+  flex-direction: column;
+}
+
+/* The right-aligned "Forgot password?" from the screenshot. allauth puts that link in the
+   password field's help text, so this is where it lands on every form that has one. */
+.auth-form .field__hint {
+  text-align: end;
+}
+
+.auth-or {
+  justify-content: center;
+  margin-block: var(--space-5);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.provider {
+  margin-block-start: var(--space-3);
+}
+
+/* The sign-up line under the card's form. */
+.auth__meta {
+  margin-block-start: var(--space-5);
+  color: var(--muted);
+  font-size: var(--step--1);
+  text-align: center;
+}
+
+/* The show/hide control sits inside the field, mirroring .field__icon on the other side. */
+.field__toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  display: grid;
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  translate: 0 -50%;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  place-items: center;
+  cursor: pointer;
+}
+
+.field__wrap:has(.field__toggle) .field__control {
+  padding-inline-end: var(--tap-target);
+}
+
+/* ── The account area: nav beside the page ────────────────────────────────── */
+.account,
+.account__plain {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-6) var(--space-8);
+  align-items: start;
+}
+
+@media (min-width: 60rem) {
+  .account {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    gap: var(--space-7);
+  }
+}
+
+.account-nav__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.account-nav__link {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: var(--step--1);
+  letter-spacing: var(--tracking-wide);
+  text-decoration: none;
+  text-transform: uppercase;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cream-deep);
+    color: var(--ink);
+  }
+
+  &[aria-current="page"] {
+    background: var(--ink);
+    color: var(--cream);
+  }
+}
+
+.account-nav__signout {
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: start;
+}
+
+@media (min-width: 60rem) {
+  .account-nav__list {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}
+
+.account__main {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+
+  & > h1 {
+    font-size: var(--step-3);
+    margin: 0;
+  }
+
+  /* allauth's session list and connected-account list are plain tables, and the element
+     overrides leave them plain, so the account column is where they get their spacing. */
+  & th,
+  & td {
+    padding: var(--space-2) var(--space-3);
+    border-block-end: 1px solid var(--line);
+    font-size: var(--step--1);
+    vertical-align: top;
+  }
+
+  & th {
+    color: var(--muted);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+}
+
+.account-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+}
+
+/* The TOTP QR is an SVG data URI, so it scales to whatever box it is given. */
+.mfa-qr {
+  width: 12.5rem;
+  height: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+
+
+

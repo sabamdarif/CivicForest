@@ -1,0 +1,38 @@
+{% extends "allauth/layouts/base.html" %}
+{% load dtl %}
+{% comment %} Every page you can reach without being signed in: login, signup, password reset, the
+2FA challenge and the trust-this-browser prompt. The split layout is the login screenshot's
+(designs/IMG-20260703-WA0023.jpg), so all five inherit it from one file.
+
+The brand copy is three blocks because it is page-specific: the defaults suit the whole set, and
+login and signup say something better. {% endcomment %}
+
+{% block body %}
+  {% jinja_partial "_partials/icons_auth.html" %}
+  <div class="auth">
+    <section class="auth__brand on-dark">
+      <div class="auth__brand-inner">
+        <p class="wordmark">CivicForest <span class="wordmark__sub">Clothing</span></p>
+        <h2 class="auth__title">{% block brand_title %}Crafted for life{% endblock %}</h2>
+        <p class="auth__tagline">{% block brand_tagline %}Premium menswear, made for India.{% endblock %}</p>
+        <p class="divider auth__rule" aria-hidden="true">
+          <svg class="icon" width="18" height="18" aria-hidden="true" focusable="false"><use href="#i-leaf"></use></svg>
+        </p>
+        <p class="auth__copy">
+          {% block brand_copy %}
+            Your cart, your saved pieces and your order history, in one place on every device.
+          {% endblock %}
+        </p>
+      </div>
+    </section>
+
+    <div class="auth__panel">
+      <div class="auth__card">
+        {% jinja_partial "_partials/notices.html" %}
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+
+  {% jinja_partial "_partials/trust_strip.html" %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{# The account area's own navigation, rendered by the Jinja2 account pages and by the DTL
+   allauth manage layout through {% jinja_partial %}, so both wear the same one.
+
+   Paths are literal from the URL map in rebuild/03-architecture.md §4, for the reason
+   _partials/header.html gives: url() raises for a route a later milestone has not mounted.
+   Text only, because none of these seven has an icon in the sprite worth adding one for. #}
+{% set items = [
+  ("Overview", "/account/"),
+  ("Orders", "/account/orders/"),
+  ("Wishlist", "/account/wishlist/"),
+  ("Addresses", "/account/addresses/"),
+  ("Profile", "/account/profile/"),
+  ("Security", "/account/security/"),
+  ("Your data", "/account/data/"),
+] %}
+{% set path = request.path %}
+{# Every allauth manage page (email, password, 2FA, recovery codes, sessions) is reached from
+   Security, so that is what stays marked while the customer is on one. #}
+{% set on_allauth = path.startswith("/accounts/") %}
+
+<nav class="account-nav" aria-label="Your account">
+  <ul class="account-nav__list">
+    {%- for label, href in items %}
+      {%- set current = (path == href) if href == "/account/" else path.startswith(href) %}
+      <li>
+        <a class="account-nav__link" href="{{ href }}"
+          {%- if current or (on_allauth and href == "/account/security/") %} aria-current="page"{% endif %}>{{ label }}</a>
+      </li>
+    {%- endfor %}
+    <li>
+      {# A form, not a link: allauth answers a GET with a confirmation page and a POST by
+         signing out, and this works with no JavaScript either way. #}
+      <form action="/accounts/logout/" method="post">
+        {{ csrf_input }}
+        <button class="account-nav__link account-nav__signout" type="submit">Sign out</button>
+      </form>
+    </li>
+  </ul>
+</nav>

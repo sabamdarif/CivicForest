@@ -40,6 +40,8 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     "django.contrib.sitemaps",
+    # naturaltime, for the "signed in 3 hours ago" column on allauth's session list.
+    "django.contrib.humanize",
     # Registers the trigram lookups the search query path uses. Harmless on SQLite: its
     # connection hook checks the vendor and returns.
     "django.contrib.postgres",
