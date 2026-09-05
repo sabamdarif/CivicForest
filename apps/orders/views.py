@@ -1,22 +1,27 @@
-"""Order + checkout API.
+"""Order + checkout API, and the storefront's checkout page.
 
-- ``GET /orders`` / ``GET /orders/<order_number>`` — the caller's own orders only,
+- ``GET /orders`` / ``GET /orders/<order_number>``: the caller's own orders only,
   looked up by the non-guessable public order number (ownership-scoped, no IDOR).
-- ``POST /checkout`` — snapshot the cart into an order and create a Razorpay order,
+- ``POST /checkout``: snapshot the cart into an order and create a Razorpay order,
   computing the amount server-side. Returns what the browser needs to open Razorpay's
-  hosted checkout."""
+  hosted checkout.
+- ``GET /checkout/``: the login-gated page, which M6 task 3 fills in.
+"""
 
 from __future__ import annotations
 
 import re
 
+from allauth.account.decorators import verified_email_required
 from django.conf import settings
+from django.shortcuts import render
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.cart import services as cart_services
+from apps.cart.views import cart_context
 from apps.common.throttles import CheckoutDayThrottle, CheckoutMinuteThrottle
 from apps.payments import gateway as payment_gateway
 from apps.payments import services as payment_services
@@ -26,6 +31,19 @@ from .models import Order
 from .serializers import CheckoutSerializer, OrderSerializer
 
 _CHECKOUT_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
+
+
+# ─── Storefront: the login wall at checkout ──────────────────────────────────
+@verified_email_required
+def checkout_page(request):
+    """The gate decision 14 puts in front of checkout, with the cart behind it.
+
+    allauth's decorator is ``login_required`` plus B2's verified-email check, so an unverified
+    account is stopped here and sent to verify rather than into a payment it cannot complete.
+    ``cart_context`` is what revalidates stock before anything is priced (G9), which checkout
+    has to do as well as the cart page. M6 task 3 fills the page in; the gate is what is real.
+    """
+    return render(request, "checkout/page.html", cart_context(request))
 
 
 class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):

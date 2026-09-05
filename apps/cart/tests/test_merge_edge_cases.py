@@ -1,4 +1,4 @@
-"""Guest→user cart merge edge cases (plan.md §6) — beyond the happy path in test_cart."""
+"""Guest to user cart merge edge cases (plan.md §6), beyond the happy path in test_cart."""
 
 from __future__ import annotations
 
@@ -21,16 +21,35 @@ from apps.common.factories import (
 pytestmark = pytest.mark.django_db
 
 
-def test_login_rotates_guest_session_key():
+def test_the_receiver_merges_the_cart_the_stash_names_not_the_current_session():
+    """Django's ``login()`` rotates the session key before allauth sends ``user_logged_in``, so a
+    receiver reading ``request.session.session_key`` would look for a cart under a key no cart has
+    ever had. The stash written by ``get_or_create_cart`` is what survives the rotation."""
     request = RequestFactory().get("/")
     SessionMiddleware(lambda req: None).process_request(request)
     request.session.save()
-    old_key = request.session.session_key
+    guest = GuestCartFactory(session_key=request.session.session_key)
+    CartItemFactory(cart=guest, quantity=2)
+    request.session[services.GUEST_CART_KEY] = guest.session_key
+    request.session.cycle_key()  # exactly what logging in does
     user = UserFactory()
 
     merge_cart_on_login(sender=None, request=request, user=user)
 
-    assert request.session.session_key != old_key
+    assert Cart.objects.get(user=user).items.get().quantity == 2
+    assert not Cart.objects.filter(pk=guest.pk).exists()
+    assert services.GUEST_CART_KEY not in request.session
+
+
+def test_a_login_with_no_guest_cart_stashed_merges_nothing():
+    request = RequestFactory().get("/")
+    SessionMiddleware(lambda req: None).process_request(request)
+    request.session.save()
+    user = UserFactory()
+
+    merge_cart_on_login(sender=None, request=request, user=user)
+
+    assert not Cart.objects.filter(user=user).exists()
 
 
 def test_merge_no_guest_cart_is_a_noop():

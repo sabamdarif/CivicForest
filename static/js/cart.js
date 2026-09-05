@@ -52,10 +52,18 @@ const swap = (html) => {
   syncCount(Number(drawer.querySelector("[data-cart-drawer]")?.dataset.count ?? 0));
 };
 
+/* Returns false when the server sent us somewhere else instead of a drawer, so the caller stops
+   rather than opening one. A guest hearting a line is answered with a redirect to the login page,
+   and that page carries a drawer of its own, so the empty one would otherwise be swapped in. */
 const load = async (url, options) => {
   const response = await fetch(url, { headers: PARTIAL, ...options });
   if (!response.ok) throw new Error(response.status);
+  if (response.redirected) {
+    window.location.assign(response.url);
+    return false;
+  }
   swap(await response.text());
+  return true;
 };
 
 /* The control that was clicked is gone with the markup around it, so a keyboard user has to be
@@ -92,7 +100,7 @@ if (drawer) {
     if (event.submitter?.name) body.append(event.submitter.name, event.submitter.value);
 
     try {
-      await load(form.action, { method: "POST", body });
+      if (!(await load(form.action, { method: "POST", body }))) return;
     } catch {
       form.dataset.fallback = "1";
       form.requestSubmit(event.submitter);

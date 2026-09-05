@@ -29,10 +29,10 @@ def _messages(response) -> list[str]:
 
 
 # ─── The page ────────────────────────────────────────────────────────────────
-def test_a_guest_is_invited_to_sign_in_rather_than_redirected(browser):
-    body = browser.get(URL).content.decode()
+def test_a_guest_is_sent_to_sign_in_and_brought_back(browser):
+    resp = browser.get(URL)
 
-    assert "Sign in to see your wishlist" in body
+    assert resp["Location"] == f"/accounts/login/?next={URL}"
 
 
 def test_a_signed_in_customer_with_nothing_saved_is_told_how_to_save(browser):
@@ -87,11 +87,18 @@ def test_hearting_the_same_product_twice_takes_it_off_again(browser, catalogue):
     assert "Plain Tee is off your wishlist." in _messages(resp)
 
 
-def test_a_guest_is_asked_to_sign_in_and_nothing_is_saved(browser, catalogue):
-    resp = browser.post(URL, {"product": str(catalogue["plain"].pk)}, follow=True)
+def test_a_guest_hearting_a_product_is_sent_to_sign_in_with_the_grid_to_return_to(
+    browser, catalogue
+):
+    resp = browser.post(
+        URL,
+        {"product": str(catalogue["plain"].pk)},
+        headers={"Referer": "/shop/?size=M&page=2"},
+    )
 
     assert Wishlist.objects.count() == 0
-    assert "Sign in to save items to your wishlist." in _messages(resp)
+    # The filters and the page number survive the round trip; only the scroll position is lost.
+    assert resp["Location"] == "/accounts/login/?next=/shop/%3Fsize%3DM%26page%3D2"
 
 
 def test_the_heart_sends_the_customer_back_where_they_came_from(browser, catalogue):

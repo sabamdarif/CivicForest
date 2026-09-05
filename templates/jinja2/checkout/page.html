@@ -1,0 +1,33 @@
+{# The checkout page as M5 leaves it: the gate is real, the payment is M6 task 3.
+
+   It prints the summary the customer arrived with, so the login wall can be seen to have kept the
+   cart intact, and nothing here promises a step that does not exist yet. #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/empty.html" import empty %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Checkout | CivicForest Clothing{% endblock %}
+{% block description %}Complete your CivicForest order.{% endblock %}
+
+{% block content %}
+  <div class="container account__plain">
+    {{ breadcrumbs([("Home", "/"), ("Cart", "/cart/")], "Checkout") }}
+    <h1>Checkout</h1>
+    {{ notices(request) }}
+
+    {%- if priced.lines %}
+      {% with cta = false %}{% include "cart/_summary.html" %}{% endwith %}
+      <p>
+        Payment opens with the next release. Your cart is saved to your account, so it will be
+        here when it does.
+      </p>
+      {{ button("Back to the cart", href="/cart/", variant="secondary") }}
+    {%- else %}
+      {% call empty("Your cart is empty", "There is nothing to check out yet.") %}
+        {{ button("Start shopping", href="/shop/", icon_end="arrow-right") }}
+      {% endcall %}
+    {%- endif %}
+  </div>
+{% endblock %}

@@ -263,8 +263,11 @@ Tasks:
    and password fields with icons, show/hide password toggle, remember me, forgot-password link,
    "Continue with Google", link to signup, and the four-icon trust strip beneath. Apple is deferred
    (B4): the button is not rendered rather than rendered dead.
-5. Checkout gate: `/checkout/` requires login and redirects with `?next=`, and the login page shows a
-   contextual line explaining why. On success, merge the guest cart and continue to checkout.
+5. [x] Checkout gate: `/checkout/` requires login and redirects with `?next=`, and the login page shows a
+   contextual line explaining why. On success, merge the guest cart and continue to checkout. The page
+   itself is M6 task 3; what M5 mounts is the gate (allauth's `verified_email_required`, so B2 blocks
+   checkout too) and the fix the merge needed: Django rotates the session key before allauth sends
+   `user_logged_in`, so the key the guest cart is filed under is stashed in the session's data.
 6. Account area: dashboard, orders list and detail, invoice view, addresses CRUD with a default,
    profile with marketing opt-in (unticked), security page (2FA setup with QR, recovery codes,
    active sessions), saved designs, data export/deletion request.

@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import uuid
 
+from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.views import redirect_to_login
 from django.http import Http404
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -276,13 +278,12 @@ def cart_line(request):
 def _move_to_wishlist(request, cart, variant_id: str):
     """Save the line for later and take it out of the cart (G4).
 
-    A guest is asked to sign in rather than sent to a login page that M5 has not mounted yet.
-    Part 3 of the decision register defaults the heart to prompting login, and a message does
-    that without costing the customer their place on the page.
+    A guest is sent to the login page with ``?next=`` back to where they were, which is what
+    Part 3 of the decision register means by the heart prompting login. ``cart.js`` follows the
+    redirect rather than swapping it into the drawer.
     """
     if not request.user.is_authenticated:
-        messages.info(request, "Sign in to save items to your wishlist.")
-        return _cart_response(request)
+        return redirect_to_login(_back_to(request, "/cart/"), settings.LOGIN_URL)
 
     item = cart.items.select_related("variant__product").filter(variant_id=variant_id).first()
     if item is None:
@@ -343,34 +344,34 @@ def wishlist(request):
 
     One route for both, because the hearts already rendered on the cards and on the product page
     point here: a GET lists what is saved, a POST toggles one product and goes back where it came
-    from. A guest sees the page and an invitation to sign in rather than a redirect, because
-    Part 3 of the decision register keeps hearts on accounts, not cookies.
+    from. Both send a guest to the login page, but with a different ``next``: the page asks to come
+    back to itself, the heart asks to come back to the grid it was posted from.
     """
     if request.method == "POST":
         return _toggle_wishlist(request)
 
-    products = []
-    if request.user.is_authenticated:
-        saved = (
-            Wishlist.objects.filter(user=request.user)
-            .select_related("product", "product__category")
-            .prefetch_related("product__images", "product__variants")
-        )
-        products = [entry.product for entry in saved]
-    return render(request, "account/wishlist.html", {"products": products})
+    if not request.user.is_authenticated:
+        return redirect_to_login(request.get_full_path(), settings.LOGIN_URL)
+
+    saved = (
+        Wishlist.objects.filter(user=request.user)
+        .select_related("product", "product__category")
+        .prefetch_related("product__images", "product__variants")
+    )
+    return render(request, "account/wishlist.html", {"products": [e.product for e in saved]})
 
 
 def _toggle_wishlist(request):
     """Toggling is what a heart does, so posting the same product twice saves it and unsaves it.
 
-    A guest is asked to sign in in place rather than sent to `/accounts/login/`, which M5 mounts.
-    Prompting login is the default Part 3 takes; a message does it without costing the customer
-    their filters or their place on the page.
+    A guest goes to the login page with ``?next=`` set to where they came from, so their filters
+    and their page number survive the round trip and only the scroll position is lost. Part 3 of
+    the decision register keeps hearts on accounts rather than cookies, so there is nothing to
+    save for them until they are signed in.
     """
     target = _back_to(request)
     if not request.user.is_authenticated:
-        messages.info(request, "Sign in to save items to your wishlist.")
-        return redirect(target)
+        return redirect_to_login(target, settings.LOGIN_URL)
 
     product = Product.objects.filter(pk=_posted_product(request), is_active=True).first()
     if product is None:

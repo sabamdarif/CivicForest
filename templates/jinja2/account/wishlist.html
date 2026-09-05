@@ -23,13 +23,9 @@
       {% with col_min = "13rem", card_sizes = "(min-width: 64rem) 20vw, (min-width: 40rem) 45vw, 92vw" %}
         {% include "shop/_grid.html" %}
       {% endwith %}
-    {%- elif request.user.is_authenticated %}
+    {%- else %}
       {% call empty("Nothing saved yet", "Tap the heart on anything you want to come back to.", icon_name="heart") %}
         {{ button("Start shopping", href="/shop/", icon_end="arrow-right") }}
-      {% endcall %}
-    {%- else %}
-      {% call empty("Sign in to see your wishlist", "Saved items live with your account, so they are there on every device.", icon_name="heart") %}
-        {{ button("Keep shopping", href="/shop/", variant="secondary", icon_end="arrow-right") }}
       {% endcall %}
     {%- endif %}
   </div>

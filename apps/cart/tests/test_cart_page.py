@@ -169,12 +169,12 @@ def test_a_bad_coupon_code_says_why_and_changes_nothing(browser, tee):
 
 
 # ─── Move to wishlist (G4) ───────────────────────────────────────────────────
-def test_a_guest_is_asked_to_sign_in_rather_than_sent_to_a_page_that_does_not_exist(browser, tee):
+def test_a_guest_moving_a_line_to_the_wishlist_is_sent_to_sign_in(browser, tee):
     _add(browser, tee, 1)
 
-    resp = browser.post("/cart/line/", {"variant": str(tee.id), "op": "wishlist"}, follow=True)
+    resp = browser.post("/cart/line/", {"variant": str(tee.id), "op": "wishlist"})
 
-    assert "Sign in to save items to your wishlist." in _messages(resp)
+    assert resp["Location"] == "/accounts/login/?next=/cart/"
     assert Wishlist.objects.count() == 0
     assert _cart(browser).items.count() == 1  # still in the cart
 

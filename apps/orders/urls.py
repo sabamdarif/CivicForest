@@ -1,12 +1,14 @@
-from django.urls import include, path
-from rest_framework.routers import DefaultRouter
+"""The orders app's storefront routes, mounted at the root.
 
-from .views import CheckoutView, OrderViewSet
+`/checkout/` is here rather than in a checkout app because `apps/orders` owns the Order the page
+creates. The JSON routes are in `api_urls.py`, and the names are distinct from theirs: `checkout`
+already belongs to the JSON endpoint.
+"""
 
-router = DefaultRouter(trailing_slash=False)
-router.register("orders", OrderViewSet, basename="order")
+from django.urls import path
+
+from . import views
 
 urlpatterns = [
-    path("checkout", CheckoutView.as_view(), name="checkout"),
-    path("", include(router.urls)),
+    path("checkout/", views.checkout_page, name="checkout-page"),
 ]

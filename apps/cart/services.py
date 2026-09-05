@@ -58,6 +58,11 @@ def _free_shipping_threshold() -> Decimal:
 
 
 # ─── Cart resolution ─────────────────────────────────────────────────────────
+# Where a guest cart's session key is kept so the login merge can still find it. Session
+# *data* survives Django's key rotation at login; the key itself does not (see signals.py).
+GUEST_CART_KEY = "guest_cart_key"
+
+
 def get_or_create_cart(request) -> Cart:
     """Resolve the caller's cart: the user's cart when authenticated, otherwise a
     guest cart bound to the (server-issued) session key. Guest carts are never
@@ -69,6 +74,8 @@ def get_or_create_cart(request) -> Cart:
     if not request.session.session_key:
         request.session.save()
     session_key = request.session.session_key
+    if request.session.get(GUEST_CART_KEY) != session_key:
+        request.session[GUEST_CART_KEY] = session_key
     cart, _ = Cart.objects.get_or_create(user=None, session_key=session_key)
     return cart
 
