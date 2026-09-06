@@ -12,7 +12,7 @@
     "postinstall": "node patch-ts.js"
   },
   "dependencies": {
-    "@sentry/nextjs": "^10.71.0",
+    "@sentry/nextjs": "^10.73.0",
     "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8"
