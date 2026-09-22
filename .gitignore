@@ -39,3 +39,6 @@ Thumbs.db
 
 # Working files for the current plan (see CLAUDE.md, Spec-driven workflow)
 /progress.md
+
+# django-allauth source checkout, reference material only, never imported or staged
+/django-allauth
