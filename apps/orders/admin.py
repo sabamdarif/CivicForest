@@ -122,3 +122,8 @@ class ShipmentAdmin(admin.ModelAdmin):
     # Carrier and AWB are typed in here (O3); order status is recomputed from shipments.
     fields = ["order", "kind", "carrier", "awb", "tracking_url", "shipped_at", "delivered_at"]
     readonly_fields = ["order", "kind"]
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # A shipped/delivered date entered here drives the order status, never a hand-set field.
+        services.recompute_order_status_from_shipments(obj.order, actor=request.user)

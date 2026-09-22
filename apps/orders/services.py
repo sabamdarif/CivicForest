@@ -10,24 +10,27 @@ import logging
 
 from django.db import transaction
 from django.db.models import F, Q
+from django.utils import timezone
 
 from apps.cart import services as cart_services
 from apps.catalog.models import ProductVariant
 
-from .models import Order, OrderItem
+from .models import Order, OrderItem, Shipment, StatusEvent
 
 logger = logging.getLogger("orders")
 
 # Legal forward transitions. Anything not listed raises (plan.md §4 order lifecycle).
+_S = Order.Status
 _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
-    Order.Status.CREATED: {Order.Status.PAYMENT_PENDING, Order.Status.CANCELLED},
-    Order.Status.PAYMENT_PENDING: {Order.Status.PAID, Order.Status.CANCELLED},
-    Order.Status.PAID: {Order.Status.PROCESSING, Order.Status.CANCELLED, Order.Status.REFUNDED},
-    Order.Status.PROCESSING: {Order.Status.SHIPPED, Order.Status.CANCELLED, Order.Status.REFUNDED},
-    Order.Status.SHIPPED: {Order.Status.DELIVERED, Order.Status.REFUNDED},
-    Order.Status.DELIVERED: {Order.Status.REFUNDED},
-    Order.Status.CANCELLED: set(),
-    Order.Status.REFUNDED: set(),
+    _S.CREATED: {_S.PAYMENT_PENDING, _S.CANCELLED},
+    _S.PAYMENT_PENDING: {_S.PAID, _S.CANCELLED},
+    _S.PAID: {_S.PROCESSING, _S.PARTIALLY_SHIPPED, _S.SHIPPED, _S.CANCELLED, _S.REFUNDED},
+    _S.PROCESSING: {_S.PARTIALLY_SHIPPED, _S.SHIPPED, _S.CANCELLED, _S.REFUNDED},
+    _S.PARTIALLY_SHIPPED: {_S.SHIPPED, _S.DELIVERED, _S.CANCELLED, _S.REFUNDED},
+    _S.SHIPPED: {_S.PARTIALLY_SHIPPED, _S.DELIVERED, _S.REFUNDED},
+    _S.DELIVERED: {_S.REFUNDED},
+    _S.CANCELLED: set(),
+    _S.REFUNDED: set(),
 }
 
 
@@ -44,10 +47,11 @@ class InsufficientStock(OrderError):
 
 
 @transaction.atomic
-def transition(order: Order, to_status: str) -> Order:
+def transition(order: Order, to_status: str, *, actor=None, note: str = "") -> Order:
     """Move an order to ``to_status`` if the jump is legal, else raise. Idempotent when
     already in the target state. The row is re-read under lock so concurrent callers
-    validate against the current database state rather than a stale model instance."""
+    validate against the current database state rather than a stale model instance. Every
+    real move writes a ``StatusEvent`` (the customer timeline and staff audit trail)."""
     order = Order.objects.select_for_update().get(pk=order.pk)
     if order.status == to_status:
         return order
@@ -57,17 +61,62 @@ def transition(order: Order, to_status: str) -> Order:
             f"Cannot move order from {order.status} to {to_status}.",
             code="illegal_transition",
         )
+    from_status = order.status
     order.status = to_status
-    order.save(update_fields=["status", "updated_at"])
+    fields = ["status", "updated_at"]
+    if to_status == Order.Status.CANCELLED:
+        order.cancelled_at = timezone.now()
+        order.cancel_reason = note[:200]
+        fields += ["cancelled_at", "cancel_reason"]
+    order.save(update_fields=fields)
+    _log_event(order, from_status, to_status, actor, note)
 
     # Notify on the transitions the customer cares about. A send failure is swallowed
     # inside send_order_email, so a slow mail server cannot fail the caller.
-    kind = {Order.Status.SHIPPED: "shipped", Order.Status.DELIVERED: "delivered"}.get(to_status)
+    kind = {
+        Order.Status.SHIPPED: "shipped",
+        Order.Status.DELIVERED: "delivered",
+        Order.Status.CANCELLED: "cancelled",
+    }.get(to_status)
     if kind:
         from apps.common.email import send_order_email
 
         send_order_email(str(order.pk), kind)
     return order
+
+
+def _log_event(order: Order, from_status: str, to_status: str, actor, note: str) -> None:
+    StatusEvent.objects.create(
+        order=order, from_status=from_status, to_status=to_status, actor=actor, note=note[:200]
+    )
+
+
+def recompute_order_status_from_shipments(order: Order, *, actor=None) -> Order:
+    """Derive order status from its shipments (architecture §6): any shipped and any not →
+    ``partially_shipped``; all shipped → ``shipped``; all delivered → ``delivered``. A no-op
+    for an order with no shipments or one not yet past ``paid``, so it can never pull an order
+    backwards out of a manual state. Writes a ``StatusEvent`` through ``transition``."""
+    shipments = list(order.shipments.all())
+    if not shipments or order.status not in {
+        Order.Status.PAID,
+        Order.Status.PROCESSING,
+        Order.Status.PARTIALLY_SHIPPED,
+        Order.Status.SHIPPED,
+    }:
+        return order
+
+    if all(s.delivered_at for s in shipments):
+        target = Order.Status.DELIVERED
+    elif all(s.shipped_at for s in shipments):
+        target = Order.Status.SHIPPED
+    elif any(s.shipped_at for s in shipments):
+        target = Order.Status.PARTIALLY_SHIPPED
+    else:
+        return order
+
+    if target == order.status:
+        return order
+    return transition(order, target, actor=actor, note="derived from shipments")
 
 
 @transaction.atomic
@@ -203,12 +252,14 @@ def fulfil_paid_order(order: Order, cart=None) -> Order | None:
     reserve_stock(order)
     order.status = Order.Status.PAID
     order.save(update_fields=["status", "updated_at"])
+    _log_event(order, Order.Status.PAYMENT_PENDING, Order.Status.PAID, None, "payment verified")
+    _create_shipments(order)
 
     if order.coupon_code:
         _record_coupon_use(order)
 
     if cart is not None:
-        # Delete only the lines this order snapshotted — anything the customer added
+        # Delete only the lines this order snapshotted: anything the customer added
         # after checkout stays in the cart.
         ordered_cart_item_ids = [i.cart_item_id for i in order.items.all() if i.cart_item_id]
         cart.items.filter(id__in=ordered_cart_item_ids).delete()
@@ -219,6 +270,23 @@ def fulfil_paid_order(order: Order, cart=None) -> Order | None:
 
     send_order_email(str(order.pk), "confirmation")
     return order
+
+
+def _create_shipments(order: Order) -> None:
+    """Fan a paid order out into shipments: one for its stock lines (CivicForest packs and
+    ships) and one for its custom lines (Qikink prints and dropships). A stock-only order gets
+    one stock shipment, a mixed order gets both (architecture §6). Idempotent via the unique
+    (order, kind) constraint, so a second fulfilment attempt adds nothing."""
+    items = list(order.items.all())
+    by_kind = {
+        Shipment.Kind.STOCK: [i for i in items if not i.is_custom],
+        Shipment.Kind.CUSTOM: [i for i in items if i.is_custom],
+    }
+    for kind, kind_items in by_kind.items():
+        if not kind_items or order.shipments.filter(kind=kind).exists():
+            continue
+        shipment = Shipment.objects.create(order=order, kind=kind)
+        shipment.items.set(kind_items)
 
 
 def _record_coupon_use(order: Order) -> None:

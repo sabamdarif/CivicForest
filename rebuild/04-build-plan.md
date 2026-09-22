@@ -301,10 +301,10 @@ Tasks:
    transition the order. Keep `RAZORPAY_FAKE_MODE` for tests.
 5. Webhook at `/hooks/razorpay/`: verify HMAC, dedupe on `WebhookEvent`, and treat it as the
    **authoritative** confirmation: the browser callback is a convenience, not proof.
-6. On payment verified, in one transaction: decrement stock with `select_for_update`, create shipments,
+6. [x] On payment verified, in one transaction: decrement stock with `select_for_update`, create shipments,
    increment coupon usage, mark the cart converted, enqueue the confirmation email and any Qikink
    submissions.
-7. Order status machine with allowed transitions only, every change writing a `StatusEvent`.
+7. [x] Order status machine with allowed transitions only, every change writing a `StatusEvent`.
 8. Failed payment: retry from order detail for 24 h, then a job cancels and releases stock.
 9. [x] Thank-you page keyed on order number, idempotent, safe to reload or bookmark.
 10. Invoice: GST-compliant HTML at `/account/orders/<n>/invoice/`, sequential numbering per financial
