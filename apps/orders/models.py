@@ -1,3 +1,8 @@
+"""Order records and their fulfilment: the immutable ``Order``/``OrderItem`` snapshot, the
+per-dispatch ``Shipment`` (one order can fan out into a stock and a custom shipment), and the
+``StatusEvent`` audit trail. Totals and the address are snapshotted at creation and never
+recomputed from live catalogue data; order status is derived from shipments, not set by hand."""
+
 from __future__ import annotations
 
 import secrets
@@ -31,16 +36,23 @@ class Order(UUIDTimestampedModel):
         PAYMENT_PENDING = "payment_pending", "Payment pending"
         PAID = "paid", "Paid"
         PROCESSING = "processing", "Processing"
+        PARTIALLY_SHIPPED = "partially_shipped", "Partially shipped"
         SHIPPED = "shipped", "Shipped"
         DELIVERED = "delivered", "Delivered"
         CANCELLED = "cancelled", "Cancelled"
         REFUNDED = "refunded", "Refunded"
+
+    class Fulfilment(models.TextChoices):
+        STOCK = "stock", "Stock"
+        CUSTOM = "custom", "Custom"
+        MIXED = "mixed", "Mixed"
 
     # The statuses that mean money was taken, as a set a queryset can filter on: the
     # popularity sort counts units sold across exactly these.
     PAID_STATUSES = (
         Status.PAID,
         Status.PROCESSING,
+        Status.PARTIALLY_SHIPPED,
         Status.SHIPPED,
         Status.DELIVERED,
     )
@@ -78,6 +90,16 @@ class Order(UUIDTimestampedModel):
     coupon_code = models.CharField(max_length=40, blank=True)
 
     has_custom_items = models.BooleanField(default=False)
+    fulfilment_kind = models.CharField(
+        max_length=8, choices=Fulfilment.choices, default=Fulfilment.STOCK
+    )
+
+    # Consent record for "no dark patterns": the exact terms text the customer ticked at
+    # checkout, snapshotted so a later wording change can't rewrite what they agreed to.
+    rights_ack_text = models.TextField(blank=True)
+
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancel_reason = models.CharField(max_length=200, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -113,3 +135,50 @@ class OrderItem(UUIDTimestampedModel):
 
     def __str__(self):
         return f"{self.quantity} × {self.product_name} ({self.variant_sku})"
+
+
+class Shipment(UUIDTimestampedModel):
+    """One physical dispatch. A mixed order fans out into two: the stock shipment CivicForest
+    packs, and the custom shipment Qikink prints and dropships, each with its own carrier, AWB
+    and dates (architecture §6). Order status is derived from these, never set by hand."""
+
+    class Kind(models.TextChoices):
+        STOCK = "stock", "Stock"
+        CUSTOM = "custom", "Custom"
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="shipments")
+    kind = models.CharField(max_length=8, choices=Kind.choices)
+    items = models.ManyToManyField(OrderItem, related_name="shipments")
+    carrier = models.CharField(max_length=60, blank=True)
+    awb = models.CharField(max_length=64, blank=True)
+    tracking_url = models.URLField(blank=True)
+    shipped_at = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["order", "kind"], name="uniq_order_shipment_kind")
+        ]
+
+    def __str__(self):
+        return f"{self.order.order_number} {self.kind} shipment"
+
+
+class StatusEvent(UUIDTimestampedModel):
+    """One row per status change: the customer's timeline and the staff audit trail in one
+    place (architecture §5). Written by ``services.transition``, never edited."""
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="status_events")
+    from_status = models.CharField(max_length=20, blank=True)
+    to_status = models.CharField(max_length=20)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    note = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.order.order_number}: {self.from_status}→{self.to_status}"

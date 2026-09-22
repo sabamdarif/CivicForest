@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 
 from . import services
-from .models import Order, OrderItem
+from .models import Order, OrderItem, Shipment, StatusEvent
 
 
 class OrderItemInline(admin.TabularInline):
@@ -24,14 +24,26 @@ class OrderItemInline(admin.TabularInline):
         return False
 
 
+class StatusEventInline(admin.TabularInline):
+    model = StatusEvent
+    extra = 0
+    can_delete = False
+    readonly_fields = ["from_status", "to_status", "actor", "note", "created_at"]
+    fields = readonly_fields
+    ordering = ["created_at"]
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ["order_number", "user", "status", "total", "currency", "created_at"]
-    list_filter = ["status", "currency", "has_custom_items"]
+    list_display = ["order_number", "user", "status", "fulfilment_kind", "total", "created_at"]
+    list_filter = ["status", "fulfilment_kind", "currency", "has_custom_items"]
     search_fields = ["order_number", "user__email", "ship_full_name"]
     date_hierarchy = "created_at"
     raw_id_fields = ["user"]
-    inlines = [OrderItemInline]
+    inlines = [OrderItemInline, StatusEventInline]
     actions = [
         "mark_processing",
         "mark_shipped",
@@ -61,6 +73,11 @@ class OrderAdmin(admin.ModelAdmin):
         "shipping_fee",
         "total",
         "coupon_code",
+        "fulfilment_kind",
+        "has_custom_items",
+        "rights_ack_text",
+        "cancelled_at",
+        "cancel_reason",
         "created_at",
     ]
 
@@ -94,3 +111,14 @@ class OrderAdmin(admin.ModelAdmin):
     @admin.action(description="Mark refunded")
     def mark_refunded(self, request, queryset):
         self._transition(request, queryset, Order.Status.REFUNDED)
+
+
+@admin.register(Shipment)
+class ShipmentAdmin(admin.ModelAdmin):
+    list_display = ["order", "kind", "carrier", "awb", "shipped_at", "delivered_at"]
+    list_filter = ["kind"]
+    search_fields = ["order__order_number", "awb"]
+    raw_id_fields = ["order"]
+    # Carrier and AWB are typed in here (O3); order status is recomputed from shipments.
+    fields = ["order", "kind", "carrier", "awb", "tracking_url", "shipped_at", "delivered_at"]
+    readonly_fields = ["order", "kind"]
