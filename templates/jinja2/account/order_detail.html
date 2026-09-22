@@ -1,0 +1,36 @@
+{% extends "account/base.html" %}
+{% from "_macros/card.html" import card %}
+
+{% block title %}Order {{ order.order_number }} | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>Order {{ order.order_number }}</h1>
+  <p>{{ order.created_at.strftime("%d %B %Y") }} · {{ order.get_status_display() }}</p>
+  {% call card("Items") %}
+    <ul class="account-lines">
+      {%- for item in order.items.all() %}
+        <li>
+          <span>{{ item.product_name }}{% if item.size %}, {{ item.size }}{% endif %}{% if item.color %}, {{ item.color }}{% endif %} × {{ item.quantity }}</span>
+          <strong>{{ item.line_total|rupees }}</strong>
+        </li>
+      {%- endfor %}
+    </ul>
+  {% endcall %}
+  {% call card("Order total") %}
+    <dl class="account-totals">
+      <div><dt>Subtotal</dt><dd>{{ order.subtotal|rupees }}</dd></div>
+      <div><dt>Discount</dt><dd>{{ order.discount|rupees }}</dd></div>
+      <div><dt>Shipping</dt><dd>{{ order.shipping_fee|rupees }}</dd></div>
+      <div><dt>Total</dt><dd><strong>{{ order.total|rupees }}</strong></dd></div>
+    </dl>
+  {% endcall %}
+  {% call card("Delivery details") %}
+    <p>{{ order.email }}{% if order.phone %}<br>{{ order.phone }}{% endif %}</p>
+    <address>
+      {{ order.ship_full_name }}<br>
+      {{ order.ship_line1 }}{% if order.ship_line2 %}, {{ order.ship_line2 }}{% endif %}<br>
+      {{ order.ship_city }}, {{ order.ship_state }} {{ order.ship_postal_code }}<br>
+      {{ order.ship_country }}
+    </address>
+  {% endcall %}
+{% endblock %}

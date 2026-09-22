@@ -1,0 +1,25 @@
+{% extends "account/base.html" %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/card.html" import card %}
+{% from "_macros/empty.html" import empty %}
+
+{% block title %}Orders | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>Orders</h1>
+  {%- if orders %}
+    <div class="account-grid">
+      {%- for order in orders %}
+        {% call card(order.order_number) %}
+          <p>{{ order.created_at.strftime("%d %B %Y") }} · {{ order.get_status_display() }}</p>
+          <p><strong>{{ order.total|rupees }}</strong> · {{ order.items.all()|length }} item{{ "" if order.items.all()|length == 1 else "s" }}</p>
+          {{ button("View order", href="/account/orders/" ~ order.order_number ~ "/") }}
+        {% endcall %}
+      {%- endfor %}
+    </div>
+  {%- else %}
+    {% call empty("No orders yet", "Orders appear here after checkout.", icon_name="bag") %}
+      {{ button("Start shopping", href="/shop/") }}
+    {% endcall %}
+  {%- endif %}
+{% endblock %}

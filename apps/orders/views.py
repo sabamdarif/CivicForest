@@ -14,7 +14,8 @@ import re
 
 from allauth.account.decorators import verified_email_required
 from django.conf import settings
-from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, render
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -44,6 +45,21 @@ def checkout_page(request):
     has to do as well as the cart page. M6 task 3 fills the page in; the gate is what is real.
     """
     return render(request, "checkout/page.html", cart_context(request))
+
+
+@login_required
+def account_orders(request):
+    orders = Order.objects.filter(user=request.user).prefetch_related("items")
+    return render(request, "account/orders.html", {"orders": orders})
+
+
+@login_required
+def account_order_detail(request, order_number):
+    order = get_object_or_404(
+        Order.objects.filter(user=request.user).prefetch_related("items"),
+        order_number=order_number,
+    )
+    return render(request, "account/order_detail.html", {"order": order})
 
 
 class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
