@@ -268,10 +268,10 @@ Tasks:
    itself is M6 task 3; what M5 mounts is the gate (allauth's `verified_email_required`, so B2 blocks
    checkout too) and the fix the merge needed: Django rotates the session key before allauth sends
    `user_logged_in`, so the key the guest cart is filed under is stashed in the session's data.
-6. Account area: dashboard, orders list and detail, invoice view, addresses CRUD with a default,
+6. [x] Account area: dashboard, orders list and detail, invoice view, addresses CRUD with a default,
    profile with marketing opt-in (unticked), security page (2FA setup with QR, recovery codes,
    active sessions), saved designs, data export/deletion request.
-7. Staff gate: mandatory TOTP for `is_staff`, 1 h session, obscure admin path. **Remove the DEBUG
+7. [x] Staff gate: mandatory TOTP for `is_staff`, 1 h session, obscure admin path. **Remove the DEBUG
    bypass currently in `StaffAdminMiddleware`.** Add a real TOTP setup page so the first superuser no
    longer needs a shell snippet: this is a documented pain point in the current README.
 8. [x] Emails: welcome, verification, password reset, email change, 2FA enabled/disabled. Branded
