@@ -77,15 +77,13 @@ class StaffAdminMiddleware:
             # allauth's MFA step, so it is never served. Staff sign in through the site.
             if request.path == self.admin_prefix + "login/":
                 return redirect(settings.LOGIN_URL)
-            # Dev convenience: a seeded admin can use the panel without TOTP enrolment.
-            # DEBUG is always False in production settings, so the gate holds there.
-            if is_staff and not settings.DEBUG and not self._session_used_mfa(request):
+            if is_staff and not self._session_used_mfa(request):
                 return self._deny(request)
         return self.get_response(request)
 
     @staticmethod
     def _session_used_mfa(request) -> bool:
-        """True only if *this session* completed an MFA step — enrollment alone isn't
+        """True only if *this session* completed an MFA step. Enrollment alone isn't
         enough, since a session created without MFA (e.g. before enrollment, or via a
         non-allauth login path) would otherwise ride in on a phished password."""
         from allauth.account.authentication import get_authentication_records

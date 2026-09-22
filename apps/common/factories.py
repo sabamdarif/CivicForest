@@ -1,7 +1,7 @@
-"""Shared factory_boy factories for tests (plan.md §12 — testing breadth).
+"""Shared factory_boy factories for tests, plus a staff-admin login helper.
 
 One place for object-graph construction so new tests don't re-write the same
-Category→Product→Variant boilerplate. Import from any app's tests:
+Category->Product->Variant boilerplate. Import from any app's tests:
 
     from apps.common.factories import UserFactory, ProductVariantFactory
 """
@@ -11,6 +11,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 import factory
+from allauth.account.internal.flows.login import AUTHENTICATION_METHODS_SESSION_KEY
 from django.contrib.auth import get_user_model
 from factory.django import DjangoModelFactory
 
@@ -31,6 +32,21 @@ class UserFactory(DjangoModelFactory):
 class StaffUserFactory(UserFactory):
     email = factory.Sequence(lambda n: f"staff{n}@example.com")
     is_staff = True
+
+
+def login_staff_with_mfa(client, user=None):
+    """Sign a staff user in past StaffAdminMiddleware for tests that are not testing the gate.
+
+    The gate only lets a session through when it carries an allauth "mfa" authentication record.
+    A real login plus TOTP enrolment leaves one; here it is written directly so a test about the
+    admin's *contents* need not walk that flow. test_middleware.py owns the real thing.
+    """
+    user = user or StaffUserFactory(is_superuser=True)
+    client.force_login(user)
+    session = client.session
+    session[AUTHENTICATION_METHODS_SESSION_KEY] = [{"method": "mfa"}]
+    session.save()
+    return user
 
 
 class CategoryFactory(DjangoModelFactory):

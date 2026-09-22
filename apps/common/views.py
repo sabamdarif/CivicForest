@@ -13,8 +13,8 @@ def styleguide(request):
     """Every component in every state, staff only.
 
     A 404 rather than a redirect, matching ``StaffAdminMiddleware``: a page you may not see
-    should not confirm that it exists. DEBUG opens it because nothing can sign in through a
-    browser until M5 mounts allauth, and the production settings force DEBUG off.
+    should not confirm that it exists. DEBUG opens it so a developer reaches it without staff
+    credentials; it is only markup with no data behind it, and production forces DEBUG off.
     """
     if not (settings.DEBUG or (request.user.is_authenticated and request.user.is_staff)):
         raise Http404

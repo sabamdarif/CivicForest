@@ -397,6 +397,8 @@ Tasks:
 15. Django admin hardening underneath: obscure URL from env, TOTP required, 1 h session,
     `django-auditlog` on every model, read-only fields for money, no bulk delete on orders.
 16. A real TOTP enrolment page so bootstrapping the first staff account needs no shell.
+    (Delivered in M5: allauth's `mfa/totp/activate_form.html` is mounted and styled at
+    `/accounts/2fa/totp/activate/`, and M5 task 7 removed the staff gate's DEBUG bypass.)
 
 **Done when:** a non-developer can take an order from paid to delivered, add a product with variants
 and images, issue a refund, review a design, fix a policy page and read yesterday's revenue without

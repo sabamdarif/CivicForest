@@ -18,7 +18,7 @@ from rest_framework.test import APIClient
 
 from apps.catalog import services
 from apps.catalog.models import Color, Product, Size
-from apps.common.factories import CategoryFactory, StaffUserFactory
+from apps.common.factories import CategoryFactory, login_staff_with_mfa
 
 pytestmark = pytest.mark.django_db
 
@@ -38,10 +38,8 @@ def staff_client(settings):
         **settings.STORAGES,
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     }
-    # DEBUG bypasses the per-session MFA gate (StaffAdminMiddleware), same as local dev.
-    settings.DEBUG = True
     client = APIClient()
-    client.force_login(StaffUserFactory(is_superuser=True))
+    login_staff_with_mfa(client)
     return client
 
 

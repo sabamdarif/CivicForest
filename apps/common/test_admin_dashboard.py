@@ -24,15 +24,12 @@ def test_dashboard_counts_only_captured_revenue():
 
 
 @pytest.mark.django_db
-def test_admin_index_shows_dashboard(client, settings):
-    from django.contrib.auth import get_user_model
+def test_admin_index_shows_dashboard(client):
     from django.urls import reverse
 
-    settings.DEBUG = True  # dev convenience path: skips the staff-MFA gate
-    admin_user = get_user_model().objects.create_superuser(
-        email="admin@example.com", password="pw-1234567!"
-    )
-    client.force_login(admin_user)
+    from apps.common.factories import login_staff_with_mfa
+
+    login_staff_with_mfa(client)
 
     resp = client.get(reverse("admin:index"))
 

@@ -1,7 +1,7 @@
 """The styleguide answers staff and nobody else.
 
-A 404 rather than a redirect is the point: allauth is unmounted until M5, so there is
-nowhere to redirect to, and a page you may not see should not confirm that it exists.
+A 404 rather than a redirect is the point: a page you may not see should not confirm that it
+exists. DEBUG opens it so a developer reaches it without staff credentials.
 """
 
 import pytest
@@ -53,8 +53,7 @@ def test_staff_get_every_component(client):
 
 
 def test_debug_opens_it_for_local_css_work(client, settings):
-    # Nothing can sign in through a browser until M5 mounts allauth, and the production
-    # settings force DEBUG off.
+    # The styleguide is markup with no data behind it; production forces DEBUG off.
     settings.DEBUG = True
 
     assert client.get(URL).status_code == 200
