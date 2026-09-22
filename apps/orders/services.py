@@ -71,12 +71,15 @@ def transition(order: Order, to_status: str) -> Order:
 
 
 @transaction.atomic
-def create_order_from_cart(user, cart, shipping, *, checkout_key: str | None = None) -> Order:
+def create_order_from_cart(
+    user, cart, shipping, *, checkout_key: str | None = None, rights_ack_text: str = ""
+) -> Order:
     """Snapshot a priced cart into a new ``payment_pending`` order.
 
-    ``shipping`` is a validated dict of address fields. The cart is left intact until
-    payment is confirmed, so an abandoned payment doesn't lose the customer's cart —
-    the cart is cleared in ``fulfil_paid_order``."""
+    ``shipping`` is a validated dict of address fields. ``rights_ack_text`` is the exact
+    terms wording the customer ticked, stored as the consent record. The cart is left
+    intact until payment is confirmed, so an abandoned payment doesn't lose the customer's
+    cart: the cart is cleared in ``fulfil_paid_order``."""
     priced = cart_services.price_cart(cart)
     if priced.item_count == 0:
         raise OrderError("Your cart is empty.", code="empty_cart")
@@ -107,6 +110,7 @@ def create_order_from_cart(user, cart, shipping, *, checkout_key: str | None = N
         shipping_fee=priced.shipping,
         total=priced.total,
         coupon_code=priced.coupon_code or "",
+        rights_ack_text=rights_ack_text,
     )
     OrderItem.objects.bulk_create(
         [
@@ -144,12 +148,17 @@ def _attach_custom_designs(user, order: Order, variant_ids: list) -> None:
         submit_status=CustomDesignOrder.SubmitStatus.PENDING_PAYMENT,
         variant_id__in=variant_ids,
     ).update(order=order)
-    if linked:
-        order.items.filter(variant_id__in=order.custom_designs.values("variant_id")).update(
-            is_custom=True
-        )
-        order.has_custom_items = True
-        order.save(update_fields=["has_custom_items", "updated_at"])
+    if not linked:
+        return
+
+    order.items.filter(variant_id__in=order.custom_designs.values("variant_id")).update(
+        is_custom=True
+    )
+    # mixed if any stock line remains alongside the custom ones, else all-custom.
+    has_stock = order.items.filter(is_custom=False).exists()
+    order.has_custom_items = True
+    order.fulfilment_kind = Order.Fulfilment.MIXED if has_stock else Order.Fulfilment.CUSTOM
+    order.save(update_fields=["has_custom_items", "fulfilment_kind", "updated_at"])
 
 
 @transaction.atomic

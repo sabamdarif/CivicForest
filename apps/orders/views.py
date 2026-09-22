@@ -129,7 +129,11 @@ class CheckoutView(APIView):
         cart = cart_services.get_or_create_cart(request)
         try:
             order = services.create_order_from_cart(
-                request.user, cart, shipping, checkout_key=checkout_key
+                request.user,
+                cart,
+                shipping,
+                checkout_key=checkout_key,
+                rights_ack_text=settings.CHECKOUT_TERMS_TEXT,
             )
         except services.OrderError as exc:
             return Response(

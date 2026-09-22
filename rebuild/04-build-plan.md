@@ -291,7 +291,7 @@ intact; and no staff user can reach the admin without TOTP.
 Tasks:
 
 1. [x] Extend `Order`, `OrderItem` per `03-architecture.md` §5. Add `Shipment` and `StatusEvent`.
-2. Rewrite `orders/services.py`: `create_order_from_cart` re-prices from scratch, snapshots every
+2. [x] Rewrite `orders/services.py`: `create_order_from_cart` re-prices from scratch, snapshots every
    line with unit price, MRP, tax rate, tax amount and HSN, computes place of supply from the shipping
    state, and takes an immutable address copy: all inside one transaction.
 3. Checkout page: contact, shipping address (saved-address picker plus new-address form), pincode

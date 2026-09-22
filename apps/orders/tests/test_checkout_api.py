@@ -44,7 +44,11 @@ def test_checkout_creates_order_and_gateway_order(auth_client, user, variant, mo
     monkeypatch.setattr(gateway, "create_order", lambda amount, **kw: {"id": "order_TEST123"})
     monkeypatch.setattr("django.conf.settings.RAZORPAY_KEY_ID", "rzp_test_key", raising=False)
 
-    resp = auth_client.post("/api/v1/checkout", {"shipping_address": SHIPPING}, format="json")
+    resp = auth_client.post(
+        "/api/v1/checkout",
+        {"shipping_address": SHIPPING, "accept_terms": True},
+        format="json",
+    )
     assert resp.status_code == 201
     assert resp.data["razorpay_order_id"] == "order_TEST123"
     assert Decimal(resp.data["amount"]) == Decimal("1600.00")
@@ -68,12 +72,9 @@ def test_checkout_replays_existing_payment_for_same_key(auth_client, variant, mo
     monkeypatch.setattr("django.conf.settings.RAZORPAY_KEY_ID", "rzp_test_key", raising=False)
     headers = {"HTTP_X_IDEMPOTENCY_KEY": "checkout_key_123"}
 
-    first = auth_client.post(
-        "/api/v1/checkout", {"shipping_address": SHIPPING}, format="json", **headers
-    )
-    second = auth_client.post(
-        "/api/v1/checkout", {"shipping_address": SHIPPING}, format="json", **headers
-    )
+    payload = {"shipping_address": SHIPPING, "accept_terms": True}
+    first = auth_client.post("/api/v1/checkout", payload, format="json", **headers)
+    second = auth_client.post("/api/v1/checkout", payload, format="json", **headers)
 
     assert first.status_code == 201
     assert second.status_code == 200
@@ -98,6 +99,18 @@ def test_checkout_rejects_invalid_idempotency_key(auth_client, key):
     assert Order.objects.count() == 0
 
 
+@pytest.mark.parametrize("payload", [{}, {"accept_terms": False}])
+def test_checkout_requires_accepting_terms(auth_client, variant, payload):
+    auth_client.post("/api/v1/cart/items", {"variant_id": str(variant.id), "quantity": 1})
+    response = auth_client.post(
+        "/api/v1/checkout",
+        {"shipping_address": SHIPPING, **payload},
+        format="json",
+    )
+    assert response.status_code == 400
+    assert Order.objects.count() == 0
+
+
 @override_settings(
     REST_FRAMEWORK={
         "DEFAULT_THROTTLE_RATES": {
@@ -109,17 +122,12 @@ def test_checkout_rejects_invalid_idempotency_key(auth_client, key):
 def test_checkout_throttles_eleventh_request(auth_client):
     cache.clear()
     try:
+        payload = {"shipping_address": SHIPPING, "accept_terms": True}
         for _ in range(10):
-            response = auth_client.post(
-                "/api/v1/checkout",
-                {"shipping_address": SHIPPING},
-                format="json",
-            )
+            response = auth_client.post("/api/v1/checkout", payload, format="json")
             assert response.status_code == 400  # empty cart, but request still consumed quota
 
-        response = auth_client.post(
-            "/api/v1/checkout", {"shipping_address": SHIPPING}, format="json"
-        )
+        response = auth_client.post("/api/v1/checkout", payload, format="json")
         assert response.status_code == 429
     finally:
         cache.clear()

@@ -71,7 +71,14 @@ class ShippingAddressSerializer(serializers.Serializer):
 
 
 class CheckoutSerializer(serializers.Serializer):
-    """Checkout input: a shipping address, plus an optional flag to save it."""
+    """Checkout input: a shipping address, the terms acknowledgement (must be ticked), plus
+    an optional flag to save the address."""
 
     shipping_address = ShippingAddressSerializer()
     save_address = serializers.BooleanField(required=False, default=False)
+    accept_terms = serializers.BooleanField()
+
+    def validate_accept_terms(self, value):
+        if not value:
+            raise serializers.ValidationError("You must accept the terms to place an order.")
+        return value

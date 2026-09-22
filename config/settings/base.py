@@ -322,6 +322,12 @@ STAFF_SESSION_AGE = env.int("STAFF_SESSION_AGE", default=60 * 60)
 SHIPPING_FLAT_RATE = env("SHIPPING_FLAT_RATE", default="79.00")
 FREE_SHIPPING_THRESHOLD = env("FREE_SHIPPING_THRESHOLD", default="999.00")
 CURRENCY = env("CURRENCY", default="INR")
+# The exact wording the checkout terms checkbox shows and the order snapshots as the
+# consent record. Not pre-ticked, and its text is frozen per order (no dark patterns).
+CHECKOUT_TERMS_TEXT = (
+    "I have read and accept the Terms of Service, Privacy Policy, "
+    "and the Returns and Refunds policy."
+)
 
 # ─── Catalogue display ───────────────────────────────────────────────────────
 # The only number that turns a real stock level into a "only N left" line (E4). Nothing
