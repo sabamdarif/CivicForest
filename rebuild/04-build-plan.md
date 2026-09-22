@@ -294,10 +294,10 @@ Tasks:
 2. [x] Rewrite `orders/services.py`: `create_order_from_cart` re-prices from scratch, snapshots every
    line with unit price, MRP, tax rate, tax amount and HSN, computes place of supply from the shipping
    state, and takes an immutable address copy: all inside one transaction.
-3. Checkout page: contact, shipping address (saved-address picker plus new-address form), pincode
+3. [x] Checkout page: contact, shipping address (saved-address picker plus new-address form), pincode
    autofill and estimate, billing-address toggle, order summary with the full breakdown, coupon field,
    terms checkbox, pay button.
-4. Razorpay: create gateway order → open the Standard Checkout modal → verify signature server-side →
+4. [x] Razorpay: create gateway order → open the Standard Checkout modal → verify signature server-side →
    transition the order. Keep `RAZORPAY_FAKE_MODE` for tests.
 5. Webhook at `/hooks/razorpay/`: verify HMAC, dedupe on `WebhookEvent`, and treat it as the
    **authoritative** confirmation: the browser callback is a convenience, not proof.
@@ -306,7 +306,7 @@ Tasks:
    submissions.
 7. Order status machine with allowed transitions only, every change writing a `StatusEvent`.
 8. Failed payment: retry from order detail for 24 h, then a job cancels and releases stock.
-9. Thank-you page keyed on order number, idempotent, safe to reload or bookmark.
+9. [x] Thank-you page keyed on order number, idempotent, safe to reload or bookmark.
 10. Invoice: GST-compliant HTML at `/account/orders/<n>/invoice/`, sequential numbering per financial
     year, print stylesheet, HSN and rate per line, tax summary, place of supply, seller identity.
 11. Order history and detail with two timelines, per-shipment tracking, and cancel where allowed.

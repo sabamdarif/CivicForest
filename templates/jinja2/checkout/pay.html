@@ -1,0 +1,44 @@
+{# The Razorpay handoff. The order is already created and its gateway order opened; this page
+   launches the hosted checkout modal. Payment is the one documented JavaScript exception: with
+   scripting off, the customer sees the pending order and a note to enable it. The verify callback
+   is advisory; the webhook is what actually marks the order paid. #}
+{% extends "base.html" %}
+{% from "_macros/button.html" import button %}
+
+{% block title %}Pay for order {{ order.order_number }} | CivicForest Clothing{% endblock %}
+
+{% block content %}
+  <div class="container account__plain checkout-pay"
+       data-checkout-pay
+       data-key="{{ razorpay_key_id }}"
+       data-order-id="{{ razorpay_order_id }}"
+       data-amount="{{ amount_paise }}"
+       data-order-number="{{ order.order_number }}"
+       data-name="{{ order.ship_full_name }}"
+       data-email="{{ order.email }}"
+       data-contact="{{ order.phone }}">
+    {{ csrf_input }}
+    <h1>Complete your payment</h1>
+    <p>Order <strong>{{ order.order_number }}</strong> · {{ order.total|rupees }}</p>
+
+    <div data-pay-live>
+      <button class="btn btn--primary btn--lg" type="button" data-pay-now>
+        <span>Pay {{ order.total|rupees }}</span>
+      </button>
+    </div>
+
+    <noscript>
+      <p class="field__error">Payment needs JavaScript enabled. Your order is saved; turn on
+        JavaScript and reload this page to pay.</p>
+    </noscript>
+
+    <p class="checkout-pay__cancel">
+      Changed your mind? {{ button("Back to cart", href="/cart/", variant="ghost") }}
+    </p>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script type="module" src="{{ static('js/checkout-pay.js') }}"></script>
+{% endblock %}

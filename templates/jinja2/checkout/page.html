@@ -1,33 +1,97 @@
-{# The checkout page as M5 leaves it: the gate is real, the payment is M6 task 3.
-
-   It prints the summary the customer arrived with, so the login wall can be seen to have kept the
-   cart intact, and nothing here promises a step that does not exist yet. #}
+{# The checkout form: contact, shipping address (saved-address picker or a new one), the order
+   summary with every charge visible, the coupon field, and the terms box (unticked, required).
+   It posts and re-renders with no JavaScript; checkout.js only adds the pincode autofill. On a
+   valid post the view creates the order and redirects to the Razorpay pay page. #}
 {% extends "base.html" %}
 {% from "_macros/breadcrumbs.html" import breadcrumbs %}
 {% from "_macros/button.html" import button %}
 {% from "_macros/empty.html" import empty %}
 {% from "_macros/notice.html" import notices %}
+{% from "_macros/field.html" import field, select, checkbox %}
 
 {% block title %}Checkout | CivicForest Clothing{% endblock %}
 {% block description %}Complete your CivicForest order.{% endblock %}
 
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/account.css') }}">{% endblock %}
+
 {% block content %}
-  <div class="container account__plain">
+  <div class="container checkout">
     {{ breadcrumbs([("Home", "/"), ("Cart", "/cart/")], "Checkout") }}
     <h1>Checkout</h1>
     {{ notices(request) }}
 
     {%- if priced.lines %}
-      {% with cta = false %}{% include "cart/_summary.html" %}{% endwith %}
-      <p>
-        Payment opens with the next release. Your cart is saved to your account, so it will be
-        here when it does.
-      </p>
-      {{ button("Back to the cart", href="/cart/", variant="secondary") }}
+      <form class="checkout__grid" method="post" action="/checkout/" data-checkout>
+        {{ csrf_input }}
+
+        <div class="checkout__fields">
+          {%- if form.non_field_errors() %}
+            <div class="field__error" role="alert">
+              {%- for err in form.non_field_errors() %}<p>{{ err }}</p>{% endfor %}
+            </div>
+          {%- endif %}
+
+          <fieldset class="checkout__section">
+            <legend>Contact</legend>
+            <p class="checkout__static">{{ request.user.email }}</p>
+            {{ field("phone", "Phone number", value=form.phone.value() or "",
+                     error=form.phone.errors|join(" "), required=True, icon_start="headset",
+                     hint="Couriers call this number on delivery.") }}
+          </fieldset>
+
+          <fieldset class="checkout__section">
+            <legend>Shipping address</legend>
+            {%- if addresses %}
+              {{ select("saved_address", "Saved addresses", form.fields.saved_address.choices,
+                        value=form.saved_address.value() or "",
+                        error=form.saved_address.errors|join(" ")) }}
+            {%- endif %}
+            <div data-new-address{% if addresses and form.saved_address.value() %} hidden{% endif %}>
+              {{ field("full_name", "Full name", value=form.full_name.value() or "",
+                       error=form.full_name.errors|join(" ")) }}
+              {{ field("line1", "Address", value=form.line1.value() or "",
+                       error=form.line1.errors|join(" ")) }}
+              {{ field("line2", "Apartment, landmark (optional)", value=form.line2.value() or "",
+                       error=form.line2.errors|join(" ")) }}
+              {{ field("postal_code", "Pincode", value=form.postal_code.value() or "",
+                       error=form.postal_code.errors|join(" "),
+                       attrs={"inputmode": "numeric", "maxlength": "6", "data-pincode": "1"}) }}
+              {{ field("city", "City", value=form.city.value() or "",
+                       error=form.city.errors|join(" "), attrs={"data-city": "1"}) }}
+              {{ field("state", "State", value=form.state.value() or "",
+                       error=form.state.errors|join(" "), attrs={"data-state": "1"}) }}
+              {{ checkbox("save_address", "Save this address to my account",
+                          checked=form.save_address.value()) }}
+            </div>
+          </fieldset>
+
+          <fieldset class="checkout__section">
+            <legend>Delivery</legend>
+            <p class="checkout__static">Dispatched in {{ config_dispatch }}, delivered in
+              {{ config_delivery }} working days. Prepaid only.</p>
+          </fieldset>
+        </div>
+
+        <aside class="checkout__summary">
+          {% with cta = false %}{% include "cart/_summary.html" %}{% endwith %}
+          <div class="checkout__terms">
+            {{ checkbox("accept_terms", terms, checked=form.accept_terms.value()) }}
+            {%- if form.accept_terms.errors %}
+              <p class="field__error">{{ form.accept_terms.errors|join(" ") }}</p>
+            {%- endif %}
+          </div>
+          {{ button("Pay " ~ (priced.total|rupees), type="submit", size="lg", block=True,
+                    icon_end="arrow-right") }}
+        </aside>
+      </form>
     {%- else %}
       {% call empty("Your cart is empty", "There is nothing to check out yet.") %}
         {{ button("Start shopping", href="/shop/", icon_end="arrow-right") }}
       {% endcall %}
     {%- endif %}
   </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ static('js/checkout.js') }}"></script>
 {% endblock %}

@@ -11,6 +11,12 @@ from . import views
 
 urlpatterns = [
     path("checkout/", views.checkout_page, name="checkout-page"),
+    path("checkout/pay/<str:order_number>/", views.checkout_pay, name="checkout-pay"),
+    path(
+        "checkout/thank-you/<str:order_number>/",
+        views.checkout_thank_you,
+        name="checkout-thank-you",
+    ),
     path("account/orders/", views.account_orders, name="account-orders"),
     path(
         "account/orders/<str:order_number>/",

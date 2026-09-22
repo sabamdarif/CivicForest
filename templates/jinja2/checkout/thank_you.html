@@ -1,0 +1,30 @@
+{# Order confirmation, safe to reload or bookmark. Payment is confirmed by the webhook, which
+   may land a moment after the browser callback, so a still-pending order shows "confirming"
+   rather than claiming success it cannot see yet. #}
+{% extends "base.html" %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/icon.html" import icon %}
+
+{% block title %}Thank you | CivicForest Clothing{% endblock %}
+
+{% block content %}
+  <div class="container account__plain checkout-thanks">
+    {%- if order.is_paid %}
+      <p class="checkout-thanks__mark">{{ icon("check-circle", 48) }}</p>
+      <h1>Thank you, your order is confirmed</h1>
+      <p>Order <strong>{{ order.order_number }}</strong>. We've emailed a confirmation to
+        {{ order.email }}. We'll email you again when it ships.</p>
+    {%- else %}
+      <h1>Confirming your payment</h1>
+      <p>Order <strong>{{ order.order_number }}</strong> is being confirmed. This page updates
+        once payment clears, and we'll email you either way. You can safely leave this page.</p>
+    {%- endif %}
+
+    <dl class="account-totals">
+      <div><dt>Total</dt><dd><strong>{{ order.total|rupees }}</strong></dd></div>
+    </dl>
+
+    {{ button("View order", href="/account/orders/" ~ order.order_number ~ "/") }}
+    {{ button("Continue shopping", href="/shop/", variant="secondary") }}
+  </div>
+{% endblock %}

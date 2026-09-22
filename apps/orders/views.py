@@ -15,7 +15,7 @@ import re
 from allauth.account.decorators import verified_email_required
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -28,23 +28,148 @@ from apps.payments import gateway as payment_gateway
 from apps.payments import services as payment_services
 
 from . import services
+from .forms import CheckoutForm
 from .models import Order
 from .serializers import CheckoutSerializer, OrderSerializer
 
 _CHECKOUT_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 
 
-# ─── Storefront: the login wall at checkout ──────────────────────────────────
+# ─── Storefront: the checkout page, behind the login + verified-email gate ────
 @verified_email_required
 def checkout_page(request):
-    """The gate decision 14 puts in front of checkout, with the cart behind it.
+    """The checkout form (contact + shipping + terms), posting and re-rendering without JS.
 
-    allauth's decorator is ``login_required`` plus B2's verified-email check, so an unverified
-    account is stopped here and sent to verify rather than into a payment it cannot complete.
-    ``cart_context`` is what revalidates stock before anything is priced (G9), which checkout
-    has to do as well as the cart page. M6 task 3 fills the page in; the gate is what is real.
+    ``verified_email_required`` is ``login_required`` plus B2's verified-email check, so an
+    unverified account is stopped here rather than sent into a payment it cannot complete.
+    ``cart_context`` revalidates stock before anything is priced (G9). A valid POST snapshots
+    the cart into an order, opens a Razorpay order for it, and redirects to the pay page; the
+    Razorpay modal there is the one documented JS exception.
     """
-    return render(request, "checkout/page.html", cart_context(request))
+    context = cart_context(request)
+    addresses = list(request.user.addresses.all())
+    priced = context["priced"]
+
+    if request.method == "POST":
+        form = CheckoutForm(request.POST, addresses=addresses)
+        if not priced.lines:
+            form.add_error(None, "Your cart is empty.")
+        if form.is_valid():
+            return _place_order(request, form, addresses)
+    else:
+        form = CheckoutForm(addresses=addresses, initial=_default_initial(request, addresses))
+
+    context.update(
+        {
+            "form": form,
+            "addresses": addresses,
+            "terms": settings.CHECKOUT_TERMS_TEXT,
+            "config_dispatch": settings.DISPATCH_DAYS,
+            "config_delivery": settings.DELIVERY_DAYS,
+        }
+    )
+    return render(request, "checkout/page.html", context)
+
+
+def _default_initial(request, addresses) -> dict:
+    """Prefill the phone and preselect the default saved address, so a returning customer
+    with a saved address can pay in one tap."""
+    initial = {"phone": request.user.phone}
+    default = next((a for a in addresses if a.is_default), None) or (
+        addresses[0] if addresses else None
+    )
+    if default:
+        initial["saved_address"] = str(default.id)
+    return initial
+
+
+def _shipping_from_form(request, form, addresses) -> dict:
+    """The address the order snapshots: a picked saved one, or the typed new one."""
+    data = form.cleaned_data
+    picked_id = data.get("saved_address")
+    if picked_id:
+        address = next((a for a in addresses if str(a.id) == picked_id), None)
+        if address is not None:
+            return {
+                "full_name": address.full_name,
+                "phone": data["phone"] or address.phone,
+                "line1": address.line1,
+                "line2": address.line2,
+                "city": address.city,
+                "state": address.state,
+                "postal_code": address.postal_code,
+                "country": address.country,
+            }
+    return {
+        "full_name": data["full_name"],
+        "phone": data["phone"],
+        "line1": data["line1"],
+        "line2": data["line2"],
+        "city": data["city"],
+        "state": data["state"],
+        "postal_code": data["postal_code"],
+        "country": "IN",
+    }
+
+
+def _place_order(request, form, addresses):
+    shipping = _shipping_from_form(request, form, addresses)
+    cart = cart_services.get_or_create_cart(request)
+    try:
+        order = services.create_order_from_cart(
+            request.user, cart, shipping, rights_ack_text=settings.CHECKOUT_TERMS_TEXT
+        )
+    except services.OrderError as exc:
+        form.add_error(None, exc.message)
+        return None
+
+    if form.cleaned_data.get("save_address") and not form.cleaned_data.get("saved_address"):
+        CheckoutView._save_address(request.user, shipping)
+
+    try:
+        payment_services.create_gateway_order(order)
+    except payment_gateway.PaymentError as exc:
+        services.transition(order, Order.Status.CANCELLED)
+        form.add_error(None, exc.message)
+        return None
+
+    return redirect("checkout-pay", order_number=order.order_number)
+
+
+@login_required
+def checkout_pay(request, order_number):
+    """The Razorpay handoff page for a still-pending order. Reads the order's open gateway
+    order and hands the browser what it needs to launch the hosted checkout modal. Owner-scoped
+    and read-only; it never mutates order state."""
+    order = get_object_or_404(
+        Order.objects.filter(user=request.user, status=Order.Status.PAYMENT_PENDING),
+        order_number=order_number,
+    )
+    payment = order.payments.order_by("-created_at").first()
+    if payment is None:
+        return redirect("checkout-page")
+    return render(
+        request,
+        "checkout/pay.html",
+        {
+            "order": order,
+            "razorpay_key_id": settings.RAZORPAY_KEY_ID,
+            "razorpay_order_id": payment.gateway_order_id,
+            "amount_paise": payment_gateway.to_paise(order.total),
+        },
+    )
+
+
+@login_required
+def checkout_thank_you(request, order_number):
+    """Order confirmation, keyed on the order number. Owner-scoped, read-only and reload-safe:
+    it reflects whatever the webhook has done, showing "confirming" while the order is still
+    pending and "confirmed" once paid. Bookmarking or refreshing it changes nothing."""
+    order = get_object_or_404(
+        Order.objects.filter(user=request.user).prefetch_related("items"),
+        order_number=order_number,
+    )
+    return render(request, "checkout/thank_you.html", {"order": order, "priced": None})
 
 
 @login_required
