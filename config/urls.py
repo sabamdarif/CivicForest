@@ -55,6 +55,7 @@ urlpatterns = [
     path("", home, name="home"),
     path("", include("apps.catalog.urls")),
     path("", include("apps.cart.urls")),
+    path("", include("apps.accounts.urls")),
     path("", include("apps.orders.urls")),
     path("", include("apps.search.urls")),
     # allauth owns login, signup, logout, email verification, passwords, 2FA, the session
@@ -66,7 +67,7 @@ urlpatterns = [
     # Staff-only, and the regression surface for every stylesheet.
     path("styleguide/", styleguide, name="styleguide"),
     path(settings.ADMIN_URL, admin.site.urls),
-    path("api/v1/", include("apps.accounts.urls")),
+    path("api/v1/", include("apps.accounts.api_urls")),
     path("api/v1/", include("apps.cart.api_urls")),
     path("api/v1/", include("apps.orders.api_urls")),
     path("api/v1/", include("apps.payments.urls")),

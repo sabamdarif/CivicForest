@@ -12,6 +12,7 @@ from django.utils import timezone
 from jinja2 import Environment, FileSystemBytecodeCache
 
 from apps.common.formatting import pct_off, rupees
+from apps.common.forms import control
 
 
 def announcement():
@@ -103,6 +104,9 @@ def environment(**options):
             "srcset": srcset,
             "card_data": card_data,
             "json_ld": json_ld,
+            # The same callable allauth's DTL templates use, so one form field looks the same
+            # whichever engine drew it.
+            "control": control,
         }
     )
     return env

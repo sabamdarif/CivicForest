@@ -1,0 +1,41 @@
+{% extends "account/base.html" %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/card.html" import card %}
+{% from "_macros/empty.html" import empty %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Addresses | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>Addresses</h1>
+  {{ notices(request) }}
+  <p>{{ button("Add an address", href="/account/addresses/add/") }}</p>
+  {%- if addresses %}
+    <div class="account-grid">
+      {%- for address in addresses %}
+        {% call card(address.full_name) %}
+          <address>
+            {{ address.line1 }}{% if address.line2 %}, {{ address.line2 }}{% endif %}<br>
+            {{ address.city }}, {{ address.state }} {{ address.postal_code }}<br>
+            {{ address.phone }}
+          </address>
+          {%- if address.is_default %}<p><strong>Default address</strong></p>{% endif %}
+          <div class="account-panel__actions">
+            {{ button("Edit", variant="secondary", href="/account/addresses/" ~ address.pk ~ "/edit/") }}
+            {{ button("Delete", variant="secondary", href="/account/addresses/" ~ address.pk ~ "/delete/") }}
+            {%- if not address.is_default %}
+              <form method="post" action="/account/addresses/{{ address.pk }}/default/">
+                {{ csrf_input }}
+                {{ button("Make default", variant="secondary", type="submit") }}
+              </form>
+            {%- endif %}
+          </div>
+        {% endcall %}
+      {%- endfor %}
+    </div>
+  {%- else %}
+    {% call empty("No saved addresses", "Save one now, or add one during checkout.", icon_name="pin") %}
+      {{ button("Add an address", href="/account/addresses/add/") }}
+    {% endcall %}
+  {%- endif %}
+{% endblock %}

@@ -3,7 +3,7 @@
    The wishlist is product-level, matching the heart on a card, so there is no size or colour to
    add to a cart from here. The card's own link takes the customer to the product page to pick
    one, which is the only place that choice can honestly be made. #}
-{% extends "base.html" %}
+{% extends "account/base.html" %}
 {% from "_macros/breadcrumbs.html" import breadcrumbs %}
 {% from "_macros/button.html" import button %}
 {% from "_macros/empty.html" import empty %}
@@ -11,10 +11,12 @@
 
 {% block title %}Your wishlist | CivicForest Clothing{% endblock %}
 {% block description %}The pieces you have saved for later.{% endblock %}
-{% block page_css %}<link rel="stylesheet" href="{{ static('css/shop.css') }}">{% endblock %}
+{% block page_css %}
+  <link rel="stylesheet" href="{{ static('css/account.css') }}">
+  <link rel="stylesheet" href="{{ static('css/shop.css') }}">
+{% endblock %}
 
-{% block content %}
-  <div class="container">
+{% block account_content %}
     {{ breadcrumbs([("Home", "/")], "Your wishlist") }}
     <h1>Your wishlist</h1>
     {{ notices(request) }}
@@ -28,5 +30,4 @@
         {{ button("Start shopping", href="/shop/", icon_end="arrow-right") }}
       {% endcall %}
     {%- endif %}
-  </div>
 {% endblock %}

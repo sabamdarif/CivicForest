@@ -253,6 +253,38 @@
   margin-block-start: var(--space-4);
 }
 
+.account-stats,
+.account-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+
+.account-stats p,
+.account-grid .card {
+  margin: 0;
+}
+
+.account-lines,
+.account-totals {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.account-lines li,
+.account-totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-2);
+  border-block-end: 1px solid var(--line);
+}
+
+.account-totals dd {
+  margin: 0;
+}
+
 /* The TOTP QR is an SVG data URI, so it scales to whatever box it is given. */
 .mfa-qr {
   width: 12.5rem;

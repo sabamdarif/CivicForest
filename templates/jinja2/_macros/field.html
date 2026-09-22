@@ -71,3 +71,29 @@
     <span>{{ label }}</span>
   </label>
 {%- endmacro %}
+
+{# A bound Django form field, for the pages that post a form back to themselves. Same markup as
+   field() above, with the label, the value, the hint and the error coming from the form; the
+   control filter is the one allauth's own templates use. #}
+{% macro bound(f, icon_start="") -%}
+  {%- set error = f.errors|join(" ") -%}
+  {%- if f.field.widget.input_type == "checkbox" -%}
+    <div class="field">
+      <label class="check" for="{{ f.id_for_label }}">
+        {{ f|control("check__input") }}<span>{{ f.label }}</span>
+      </label>
+      {{ _messages(f.auto_id, f.help_text, error) }}
+    </div>
+  {%- else -%}
+    <div class="field">
+      <label class="field__label" for="{{ f.id_for_label }}">
+        {{ f.label }}{% if f.field.required %} <span class="field__required" aria-hidden="true">*</span>{% endif %}
+      </label>
+      <div class="{{ 'field__wrap' if icon_start else '' }}">
+        {%- if icon_start %}<span class="field__icon">{{ icon(icon_start, 18) }}</span>{% endif -%}
+        {{ f|control }}
+      </div>
+      {{ _messages(f.auto_id, f.help_text, error) }}
+    </div>
+  {%- endif -%}
+{%- endmacro %}

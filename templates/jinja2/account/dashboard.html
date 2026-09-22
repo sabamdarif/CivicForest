@@ -1,0 +1,28 @@
+{% extends "account/base.html" %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/card.html" import card %}
+{% from "_macros/empty.html" import empty %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Your account | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>Welcome{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
+  {{ notices(request) }}
+  <div class="account-stats">
+    <p><strong>{{ order_count }}</strong> orders</p>
+    <p><strong>{{ wishlist_count }}</strong> saved items</p>
+    <p><strong>{{ address_count }}</strong> addresses</p>
+  </div>
+  {%- if latest_order %}
+    {% call card("Latest order") %}
+      <p><strong>{{ latest_order.order_number }}</strong></p>
+      <p>{{ latest_order.get_status_display() }} · {{ latest_order.total|rupees }}</p>
+      {{ button("View order", href="/account/orders/" ~ latest_order.order_number ~ "/") }}
+    {% endcall %}
+  {%- else %}
+    {% call empty("No orders yet", "Your first order will appear here.", icon_name="bag") %}
+      {{ button("Start shopping", href="/shop/") }}
+    {% endcall %}
+  {%- endif %}
+{% endblock %}
