@@ -87,18 +87,19 @@ def test_hearting_the_same_product_twice_takes_it_off_again(browser, catalogue):
     assert "Plain Tee is off your wishlist." in _messages(resp)
 
 
-def test_a_guest_hearting_a_product_is_sent_to_sign_in_with_the_grid_to_return_to(
-    browser, catalogue
-):
+def test_a_guest_heart_stays_on_the_grid_with_a_safe_sign_in_link(browser, catalogue):
     resp = browser.post(
         URL,
         {"product": str(catalogue["plain"].pk)},
         headers={"Referer": "/shop/?size=M&page=2"},
+        follow=True,
     )
 
     assert Wishlist.objects.count() == 0
-    # The filters and the page number survive the round trip; only the scroll position is lost.
-    assert resp["Location"] == "/accounts/login/?next=/shop/%3Fsize%3DM%26page%3D2"
+    assert resp.redirect_chain == [("/shop/?size=M&page=2", 302)]
+    body = resp.content.decode()
+    assert "Please sign in to save items:" in body
+    assert "/accounts/login/?next=/shop/%3Fsize%3DM%26page%3D2" in body
 
 
 def test_the_heart_sends_the_customer_back_where_they_came_from(browser, catalogue):
@@ -121,6 +122,19 @@ def test_a_next_pointing_off_this_host_is_ignored(browser, catalogue):
     )
 
     assert resp["Location"] == "/shop/"
+
+
+def test_a_guest_cannot_turn_an_external_next_into_a_sign_in_link(browser, catalogue):
+    resp = browser.post(
+        URL,
+        {"product": str(catalogue["plain"].pk), "next": "https://evil.example/steal"},
+        follow=True,
+    )
+
+    assert resp.redirect_chain == [("/shop/", 302)]
+    body = resp.content.decode()
+    assert "evil.example" not in body
+    assert "/accounts/login/?next=/shop/" in body
 
 
 def test_a_product_nobody_is_selling_cannot_be_hearted(browser, catalogue):

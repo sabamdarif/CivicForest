@@ -344,8 +344,8 @@ def wishlist(request):
 
     One route for both, because the hearts already rendered on the cards and on the product page
     point here: a GET lists what is saved, a POST toggles one product and goes back where it came
-    from. Both send a guest to the login page, but with a different ``next``: the page asks to come
-    back to itself, the heart asks to come back to the grid it was posted from.
+    from. The wishlist page sends a guest to login. A guest heart stays on its originating page and
+    shows a sign-in link, preserving filters and pagination.
     """
     if request.method == "POST":
         return _toggle_wishlist(request)
@@ -362,16 +362,12 @@ def wishlist(request):
 
 
 def _toggle_wishlist(request):
-    """Toggling is what a heart does, so posting the same product twice saves it and unsaves it.
-
-    A guest goes to the login page with ``?next=`` set to where they came from, so their filters
-    and their page number survive the round trip and only the scroll position is lost. Part 3 of
-    the decision register keeps hearts on accounts rather than cookies, so there is nothing to
-    save for them until they are signed in.
-    """
+    """Toggle a product for a customer, or return a guest to the originating page."""
     target = _back_to(request)
     if not request.user.is_authenticated:
-        return redirect_to_login(target, settings.LOGIN_URL)
+        login_url = redirect_to_login(target, settings.LOGIN_URL)["Location"]
+        messages.info(request, f"Please sign in to save items: {login_url}")
+        return redirect(target)
 
     product = Product.objects.filter(pk=_posted_product(request), is_active=True).first()
     if product is None:

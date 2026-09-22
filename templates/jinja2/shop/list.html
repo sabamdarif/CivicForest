@@ -5,6 +5,7 @@
 {% extends "base.html" %}
 {% from "_macros/breadcrumbs.html" import breadcrumbs %}
 {% from "_macros/icon.html" import icon %}
+{% from "_macros/notice.html" import notices %}
 
 {% block title %}{{ heading }} | CivicForest Clothing{% endblock %}
 {% block description %}{{ blurb or "Premium menswear made in India: tees, hoodies, sweatshirts and polos, all prices inclusive of GST." }}{% endblock %}
@@ -13,6 +14,7 @@
 {% block content %}
   <div class="container">
     {{ breadcrumbs(trail, current) }}
+    {{ notices(request) }}
     <header class="section-head shop__head">
       <h1>{{ heading }}</h1>
       <p class="divider" aria-hidden="true">{{ icon("leaf", 16) }}</p>
