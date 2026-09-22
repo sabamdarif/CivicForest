@@ -274,7 +274,9 @@ Tasks:
 7. Staff gate: mandatory TOTP for `is_staff`, 1 h session, obscure admin path. **Remove the DEBUG
    bypass currently in `StaffAdminMiddleware`.** Add a real TOTP setup page so the first superuser no
    longer needs a shell snippet: this is a documented pain point in the current README.
-8. Emails: welcome, verification, password reset, email change, 2FA enabled/disabled.
+8. [x] Emails: welcome, verification, password reset, email change, 2FA enabled/disabled. Branded
+   through the one `account/email/base_message.txt` base they all extend; the welcome rides
+   `email_confirmed`. The branded-HTML treatment stays with the email subsystem in M6 task 13.
 
 **Done when:** signup → verify → login → 2FA enrol → logout → login with TOTP all work; Google login
 creates a verified account; an unauthenticated visit to `/checkout/` returns to checkout with the cart

@@ -1,0 +1,4 @@
+{% extends "account/email/base_message.txt" %}
+{% load i18n %}
+
+{% block content %}{% autoescape off %}{% blocktrans %}Your email is confirmed and your account is ready. You can sign in, save the pieces you like, and check out whenever you are.{% endblocktrans %}{% endautoescape %}{% endblock content %}

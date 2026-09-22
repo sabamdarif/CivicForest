@@ -52,6 +52,19 @@ def test_signup_sends_a_link_and_the_link_verifies_the_address(browser):
     assert EmailAddress.objects.get(email="new@example.com").verified
 
 
+def test_confirming_the_address_sends_one_branded_welcome(browser):
+    sign_up(browser, "welcome@example.com")
+    confirm_from_email(browser)
+
+    welcome = mail.outbox[-1]
+
+    assert welcome.to == ["welcome@example.com"]
+    assert welcome.subject == "[CivicForest Clothing] Welcome to CivicForest Clothing"
+    # It rides the branded base every allauth email extends, and carries no discount code.
+    assert "Thanks for shopping with CivicForest Clothing" in welcome.body
+    assert "%" not in welcome.body
+
+
 def test_signing_up_with_an_address_that_exists_does_not_admit_it(browser, customer):
     response = sign_up(browser, customer.email)
     body = response.content.decode() if response.status_code == 200 else ""
