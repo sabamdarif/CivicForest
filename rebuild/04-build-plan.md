@@ -299,7 +299,7 @@ Tasks:
    terms checkbox, pay button.
 4. [x] Razorpay: create gateway order → open the Standard Checkout modal → verify signature server-side →
    transition the order. Keep `RAZORPAY_FAKE_MODE` for tests.
-5. Webhook at `/hooks/razorpay/`: verify HMAC, dedupe on `WebhookEvent`, and treat it as the
+5. [x] Webhook at `/hooks/razorpay/`: verify HMAC, dedupe on `WebhookEvent`, and treat it as the
    **authoritative** confirmation: the browser callback is a convenience, not proof.
 6. [x] On payment verified, in one transaction: decrement stock with `select_for_update`, create shipments,
    increment coupon usage, mark the cart converted, enqueue the confirmation email and any Qikink
@@ -307,8 +307,7 @@ Tasks:
 7. [x] Order status machine with allowed transitions only, every change writing a `StatusEvent`.
 8. [x] Failed payment: retry from order detail for 24 h, then a job cancels and releases stock.
 9. [x] Thank-you page keyed on order number, idempotent, safe to reload or bookmark.
-10. Invoice: GST-compliant HTML at `/account/orders/<n>/invoice/`, sequential numbering per financial
-    year, print stylesheet, HSN and rate per line, tax summary, place of supply, seller identity.
+10. [x] Invoice: DROPPED with the GST override (2026-09-23, `01-decisions.md` Part 5). Not built.
 11. [x] Order history and detail with two timelines, per-shipment tracking, and cancel where allowed.
 12. [x] `/track/` guest lookup by order number + email, rate-limited to 5/min per IP.
 13. [x] Emails: order confirmation, payment failed, shipped (per shipment), delivered, cancelled, refunded.

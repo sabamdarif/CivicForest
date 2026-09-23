@@ -22,7 +22,6 @@
       <span>Total</span>
       <strong>{{ priced.total|rupees }}</strong>
     </div>
-    <p class="drawer-cart__tax">Includes GST of {{ priced.tax|rupees }}</p>
     {{ button("Proceed to checkout", href="/checkout/", block=True, icon_end="arrow-right") }}
     <a class="drawer-cart__link" href="/cart/">View the full cart</a>
   {%- endif %}

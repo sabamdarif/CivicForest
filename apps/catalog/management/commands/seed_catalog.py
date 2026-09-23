@@ -32,14 +32,14 @@ from apps.catalog.models import (
 
 SEED_IMAGES = Path(settings.BASE_DIR) / "static" / "img" / "seed"
 
-# (name, blurb, image, HSN code). Blank image is deliberate: the tiles have a fallback.
+# (name, blurb, image). Blank image is deliberate: the tiles have a fallback.
 CATEGORIES = [
-    ("T-Shirts", "Minimal. Comfortable. Made for every day.", "hero-black-tee.png", "61091000"),
-    ("Hoodies", "Warmth meets style. Perfect for all seasons.", "hoodie-green.png", "61102000"),
-    ("Sweatshirts", "Soft, durable and made to last.", "sweatshirt-grey.png", "61102000"),
-    ("Polo Shirts", "Classic looks. Premium feel.", "polo-navy.png", "61051000"),
-    ("Jackets", "Layer up without losing the silhouette.", "", "62013000"),
-    ("Bottoms", "Tailored comfort from waist to hem.", "", "62034200"),
+    ("T-Shirts", "Minimal. Comfortable. Made for every day.", "hero-black-tee.png"),
+    ("Hoodies", "Warmth meets style. Perfect for all seasons.", "hoodie-green.png"),
+    ("Sweatshirts", "Soft, durable and made to last.", "sweatshirt-grey.png"),
+    ("Polo Shirts", "Classic looks. Premium feel.", "polo-navy.png"),
+    ("Jackets", "Layer up without losing the silhouette.", ""),
+    ("Bottoms", "Tailored comfort from waist to hem.", ""),
 ]
 
 # The five tiles in designs/IMG-20260703-WA0017.jpg, in that order.
@@ -103,7 +103,6 @@ PRODUCT_IMAGES = {
     "Bottoms": "rack-new-arrivals.png",
 }
 BESTSELLERS = {"Signature Black Hoodie", "CivicForest Sweatshirt", "Classic Black Tee"}
-HSN_BY_CATEGORY = {name: hsn for name, _blurb, _image, hsn in CATEGORIES}
 COLLECTION_FOR_CATEGORY = {
     "T-Shirts": "T-Shirt Collection",
     "Hoodies": "Hoodie Collection",
@@ -113,7 +112,6 @@ COLLECTION_FOR_CATEGORY = {
 # Filled in on a product that already exists but has the field empty, which is what a
 # database seeded before these columns did. Booleans are left out: False is a real value.
 BACKFILL = (
-    "hsn_code",
     "care_instructions",
     "fit_notes",
     "model_note",
@@ -217,7 +215,7 @@ class Command(BaseCommand):
 
     def _categories(self) -> dict[str, Category]:
         categories = {}
-        for order, (name, blurb, image, _hsn) in enumerate(CATEGORIES):
+        for order, (name, blurb, image) in enumerate(CATEGORIES):
             category, _ = Category.objects.get_or_create(
                 slug=slugify(name),
                 defaults={"name": name, "description": blurb, "display_order": order},
@@ -255,12 +253,7 @@ class Command(BaseCommand):
             )
 
     def _product(self, name, category, material, price, mrp, gsm, offset):
-        """One product with every legally required field filled in (C10, L9).
-
-        The tax rate follows the old under/over ₹1,000 apparel split. It is a placeholder:
-        `rebuild/02-research.md` §5 says the slabs have moved and your CA confirms the real
-        numbers before launch.
-        """
+        """One product with every legally required field filled in (C10, L9)."""
         base_price = Decimal(price)
         defaults = {
             "name": name,
@@ -272,8 +265,6 @@ class Command(BaseCommand):
             "material": material,
             "base_price": base_price,
             "mrp": Decimal(mrp) if mrp else None,
-            "hsn_code": HSN_BY_CATEGORY[category.name],
-            "tax_rate": Decimal("5.00") if base_price < 1000 else Decimal("12.00"),
             "care_instructions": CARE,
             "fit_notes": FIT,
             "model_note": MODEL_NOTE,

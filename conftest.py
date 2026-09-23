@@ -50,7 +50,6 @@ def catalogue():
         category=tees,
         material=cotton,
         base_price=Decimal("799"),
-        hsn_code="61091000",
     )
     ProductVariant.objects.create(
         product=plain, size="M", color="Black", color_hex="#111111", stock_quantity=5
@@ -70,7 +69,6 @@ def catalogue():
         material=cotton,
         base_price=Decimal("999"),
         mrp=Decimal("1199"),
-        hsn_code="61091000",
         is_bestseller=True,
     )
     ProductVariant.objects.create(product=printed, size="M", color="Beige", stock_quantity=2)
@@ -81,7 +79,6 @@ def catalogue():
         category=hoodies,
         material=fleece,
         base_price=Decimal("1499"),
-        hsn_code="61102000",
     )
     ProductVariant.objects.create(product=hoodie, size="M", color="Black", stock_quantity=0)
     ProductVariant.objects.create(

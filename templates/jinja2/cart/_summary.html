@@ -1,6 +1,5 @@
-{# The order summary: every charge visible before the customer commits (C3, J9, and the
-   Consumer Protection Rules' breakdown requirement). The tax line reports the GST already
-   inside the total, so it never raises it.
+{# The order summary: every charge visible before the customer commits (J9, and the
+   Consumer Protection Rules' breakdown requirement).
 
    Context: priced, progress, cta (false on the checkout page, where the button would link to
    the page the customer is already on). #}
@@ -38,7 +37,6 @@
     <span>Total</span>
     <strong>{{ priced.total|rupees }}</strong>
   </div>
-  <p class="summary__tax">Includes GST of {{ priced.tax|rupees }}</p>
 
   {%- if cta|default(true) %}
     {{ button("Proceed to checkout", href="/checkout/", size="lg", block=True, icon_end="arrow-right") }}

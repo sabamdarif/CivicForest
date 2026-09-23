@@ -31,7 +31,6 @@ def tee():
         slug="classic-black-tee",
         category=category,
         base_price=Decimal("799"),
-        hsn_code="61091000",
     )
     ProductVariant.objects.create(product=product, size="M", color="Black", stock_quantity=4)
     ProductVariant.objects.create(product=product, size="L", color="Black", stock_quantity=0)
@@ -46,7 +45,6 @@ def other(tee):
         slug="forest-hoodie",
         category=tee.category,
         base_price=Decimal("1499"),
-        hsn_code="61102000",
     )
     ProductVariant.objects.create(product=product, size="XL", color="Green", stock_quantity=9)
     return product

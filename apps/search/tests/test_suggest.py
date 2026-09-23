@@ -79,7 +79,6 @@ def test_the_payload_is_capped_and_cannot_be_paged(client, documents):
             slug=f"hoodie-{index}",
             category=documents["hoodie"].category,
             base_price=999,
-            hsn_code="61102000",
         )
     call_command("reindex_search", stale=True)
 

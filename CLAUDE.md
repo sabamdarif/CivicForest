@@ -1,7 +1,7 @@
 # CivicForest Clothing
 
-Premium menswear storefront for the Indian market: INR pricing, GST invoicing, prepaid
-only. One Django 5.2 project at the repo root renders every page with Jinja2 and vanilla
+Premium menswear storefront for the Indian market: INR pricing, prepaid only. One Django 5.2
+project at the repo root renders every page with Jinja2 and vanilla
 CSS/JS, deployed as one Vercel function. The models, services and tests of the money path
 carry over from the previous Next.js stack; every view, template, stylesheet and script is
 being rewritten. The plan is `rebuild/`, and `rebuild/01-decisions.md` is the decision
@@ -32,8 +32,9 @@ These are not preferences. A change that breaks one of them is wrong even if it 
   ₹10 lakh first-violation penalty, so this is law, not taste.
 
 - **Legally required product data is required.**
-  Country of origin, HSN code and tax rate on every product, and a named grievance officer
-  with contact details on the site. Details in `rebuild/02-research.md` section 5.
+  Country of origin on every product, and a named grievance officer with contact details on
+  the site. Details in `rebuild/02-research.md` section 5. GST (HSN, tax rate, invoicing) was
+  dropped on 2026-09-23: see the override in `rebuild/01-decisions.md` Part 5.
 
 - **The site works without JavaScript.**
   Browse, filter, sort, paginate, add to cart and check out are forms that post and

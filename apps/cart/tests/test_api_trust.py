@@ -55,7 +55,6 @@ def test_money_in_the_payload_is_dropped_on_the_floor(client, variant):
             "subtotal": "1.00",
             "discount": "700.00",
             "shipping": "0.00",
-            "tax": "0.00",
             "total": "1.00",
         },
     )
@@ -84,7 +83,7 @@ def test_a_discount_cannot_be_asked_for_without_a_coupon(client, variant):
     assert resp.data["error"]["code"] == "coupon_invalid"
 
 
-def test_the_reported_tax_is_inside_the_reported_total(client, variant):
+def test_the_total_is_subtotal_minus_discount_plus_shipping(client, variant):
     resp = client.post("/api/v1/cart/items", {"variant_id": str(variant.id), "quantity": 1})
 
     subtotal = Decimal(resp.data["subtotal"])
@@ -92,7 +91,6 @@ def test_the_reported_tax_is_inside_the_reported_total(client, variant):
     shipping = Decimal(resp.data["shipping"])
 
     assert Decimal(resp.data["total"]) == subtotal - discount + shipping
-    assert Decimal("0") < Decimal(resp.data["tax"]) < subtotal
 
 
 # ─── Coupon guessing, on both doors ──────────────────────────────────────────

@@ -30,7 +30,6 @@ def product():
         slug="signature-hoodie",
         category=category,
         base_price="1199.00",
-        hsn_code="61102000",
     )
 
 

@@ -57,7 +57,6 @@ def test_the_page_carries_everything_the_law_requires_without_opening_anything(c
     body = _get(client, "/product/plain-tee/")
     panel = body[: body.index('<div class="accordions">')]
 
-    assert "Inclusive of all taxes" in panel, "C3: prices are shown tax-inclusive"
     assert "Country of origin" in panel and "India" in panel
     assert "business days" in panel, "the delivery estimate"
     assert "7 days from delivery" in panel, "the return window"
@@ -173,7 +172,6 @@ def test_the_related_row_leaves_out_the_product_itself(client, catalogue):
         slug="second-tee",
         category=Product.objects.get(slug="plain-tee").category,
         base_price="899",
-        hsn_code="61091000",
     )
 
     body = _get(client, "/product/plain-tee/")

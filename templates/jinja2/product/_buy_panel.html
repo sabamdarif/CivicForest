@@ -21,7 +21,6 @@
   <p class="eyebrow">{{ product.category.name }}</p>
   <h1 class="buy__name">{{ product.name }}</h1>
   {{ price(panel.price, panel.mrp, size="lg") }}
-  <p class="buy__tax">Inclusive of all taxes</p>
 
   {{ notices(request) }}
 
@@ -97,7 +96,7 @@
     <span>Save for later</span>
   </form>
 
-  {# L9 wants the country of origin, the tax-inclusive price, the delivery estimate and the
+  {# L9 wants the country of origin, the price, the delivery estimate and the
      return window all visible before add-to-cart. Decision 12 buys no courier API, so the
      estimate is the shop's own dispatch and transit commitment rather than a quote. #}
   <dl class="buy__facts">

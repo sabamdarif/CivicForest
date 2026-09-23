@@ -1,13 +1,12 @@
 """Catalogue data: the vocabularies, categories, collections, products and their variants.
 
 Two invariants worth knowing before editing: a product carries the legally required
-country of origin, HSN code and tax rate and cannot go live without them (C10, L9), and
-the discount is never stored, only derived from `mrp` against the selling price (C2).
+country of origin and cannot go live without it (C10, L9), and the discount is never
+stored, only derived from `mrp` against the selling price (C2).
 """
 
 from decimal import Decimal
 
-from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.text import slugify
@@ -19,7 +18,6 @@ from apps.common.models import UUIDTimestampedModel
 HEX_COLOUR = RegexValidator(
     r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$", "Use a hex colour like #1f3d2b."
 )
-HSN_CODE = RegexValidator(r"^\d{4,8}$", "An HSN code is 4 to 8 digits.")
 
 
 class Material(UUIDTimestampedModel):
@@ -191,16 +189,8 @@ class Product(UUIDTimestampedModel):
         help_text="Printed price. Leave blank when the product is not discounted.",
     )
 
-    # ── Legally required (C10, L9): clean() blocks going live without them ──
+    # ── Legally required (C10, L9): clean() blocks going live without it ──
     country_of_origin = models.CharField(max_length=60, default="India")
-    hsn_code = models.CharField(max_length=8, blank=True, validators=[HSN_CODE])
-    tax_rate = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=Decimal("5.00"),
-        help_text="GST percent. Prices are shown tax-inclusive (C3): confirm the current "
-        "apparel slab with your CA before launch.",
-    )
 
     # ── Detail the product page and the courier need (C10) ──
     care_instructions = models.TextField(blank=True)
@@ -236,16 +226,6 @@ class Product(UUIDTimestampedModel):
 
     def get_absolute_url(self) -> str:
         return f"/product/{self.slug}/"
-
-    def clean(self):
-        """A product cannot go live without its HSN code (C10, L9).
-
-        ``hsn_code`` stays blank-able so staff can save a draft before looking the code up,
-        and so the migration stays backward compatible on a table that already holds rows.
-        Country of origin needs no gate here: it has a default and the form requires it.
-        """
-        if self.is_active and not self.hsn_code:
-            raise ValidationError({"hsn_code": "Required before a product can go live."})
 
     @property
     def price_from(self) -> Decimal:

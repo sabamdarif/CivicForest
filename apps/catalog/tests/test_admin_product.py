@@ -51,9 +51,7 @@ def _form(category, **overrides) -> dict:
         "category": str(category.pk),
         "base_price": "2499.00",
         "mrp": "",
-        "hsn_code": "62044200",
         "country_of_origin": "India",
-        "tax_rate": "5.00",
         "description": "Bias-cut wrap dress.",
         "material": "",
         "tags": [],
@@ -113,17 +111,6 @@ def test_staff_publishes_a_dress_and_it_appears_on_the_storefront(staff_client, 
 
     # The storefront reads through this queryset, so being in it is what "live" means.
     assert product in services.active_products()
-
-
-def test_a_product_cannot_be_published_without_its_hsn_code(staff_client, settings, tmp_path):
-    """C10 and L9 through the form staff actually use, not just through clean()."""
-    settings.MEDIA_ROOT = tmp_path
-    category = CategoryFactory(name="Dresses", slug="dresses")
-
-    resp = staff_client.post(ADD_URL, _form(category, hsn_code=""), format="multipart")
-
-    assert resp.status_code == 200  # form redisplayed with the error
-    assert not Product.objects.filter(slug="midnight-wrap-dress").exists()
 
 
 def test_gallery_rejects_a_file_that_is_not_an_image(staff_client, settings, tmp_path):

@@ -149,8 +149,6 @@ class ProductAdminForm(forms.ModelForm):
             "tags",
             "collections",
             "country_of_origin",
-            "hsn_code",
-            "tax_rate",
             "care_instructions",
             "fit_notes",
             "model_note",
@@ -302,11 +300,11 @@ class ProductAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Price and tax",
+            "Price",
             {
-                "fields": ["base_price", "mrp", "hsn_code", "tax_rate", "country_of_origin"],
-                "description": "Prices are shown tax-inclusive (C3). The HSN code and country "
-                "of origin are legally required and a product cannot go live without them.",
+                "fields": ["base_price", "mrp", "country_of_origin"],
+                "description": "Country of origin is legally required (L9). MRP drives the "
+                "strike-through and the discount badge when it is higher than the price.",
             },
         ),
         ("Photos", {"fields": ["gallery"]}),

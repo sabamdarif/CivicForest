@@ -7,13 +7,14 @@ path, and the login-merge signal without duplication (plan.md §3, §10).
 ``price_cart`` is the single source of truth for a cart's monetary total. The order
 app calls it at checkout; the client is never trusted for any of these numbers.
 
-Prices are tax-inclusive (C3), so GST is **extracted** from a line and never added to it:
-a charge that first appears at checkout is drip pricing under the CCPA guidelines.
+Prices carry no tax: the store is not GST-registered for now (decision C3 override in
+`rebuild/01-decisions.md`), so no tax is added or extracted, and the total is subtotal
+minus discount plus shipping.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
 
@@ -30,7 +31,6 @@ from apps.common.formatting import rupees
 from .models import Cart, CartItem, Coupon, CouponRedemption
 
 TWO_PLACES = Decimal("0.01")
-HUNDRED = Decimal("100")
 
 # G7: ten of one item per order. Enforced here rather than in a view so the API, the form
 # and the login merge cannot disagree about the ceiling.
@@ -277,9 +277,6 @@ class PricedLine:
     quantity: int
     unit_price: Decimal
     line_total: Decimal
-    # Assigned in a second pass, once the cart-wide discount and shipping are known.
-    tax_rate: Decimal = field(default_factory=lambda: Decimal("0.00"))
-    tax: Decimal = field(default_factory=lambda: Decimal("0.00"))
 
 
 @dataclass
@@ -288,7 +285,6 @@ class PricedCart:
     subtotal: Decimal
     discount: Decimal
     shipping: Decimal
-    tax: Decimal
     total: Decimal
     coupon_code: str | None
     item_count: int
@@ -300,40 +296,6 @@ def _items_qs(cart: Cart):
         .prefetch_related("variant__product__images")
         .all()
     )
-
-
-def _apportion(amount: Decimal, weights: list[Decimal]) -> list[Decimal]:
-    """Split an amount across lines pro rata by weight, the remainder on the last line.
-
-    Splitting exactly is what lets the taxable values sum back to the total to the paise,
-    which is the property a GST invoice has to satisfy (H8).
-    """
-    total = sum(weights, Decimal("0"))
-    if not weights or total <= 0:
-        return [Decimal("0.00") for _ in weights]
-    shares = [(amount * weight / total).quantize(TWO_PLACES) for weight in weights]
-    shares[-1] += amount - sum(shares, Decimal("0"))
-    return shares
-
-
-def _extract_tax(lines: list[PricedLine], discount: Decimal, shipping: Decimal) -> Decimal:
-    """Set ``tax_rate`` and ``tax`` on every line and return the cart's GST total.
-
-    The price already includes the tax (C3), so it is extracted: ``amount * r / (100 + r)``.
-    The discount comes off the taxable value (CGST s.15(3)(a)) and freight follows the goods'
-    rate, so both are apportioned across the lines before the rate is applied to each.
-    """
-    weights = [line.line_total for line in lines]
-    less = _apportion(discount, weights)
-    plus = _apportion(shipping, weights)
-    tax = Decimal("0.00")
-    for line, discounted, freight in zip(lines, less, plus, strict=True):
-        rate = line.variant.product.tax_rate
-        net = line.line_total - discounted + freight
-        line.tax_rate = rate
-        line.tax = (net * rate / (HUNDRED + rate)).quantize(TWO_PLACES)
-        tax += line.tax
-    return tax
 
 
 def price_cart(cart: Cart) -> PricedCart:
@@ -382,7 +344,6 @@ def price_cart(cart: Cart) -> PricedCart:
         subtotal=subtotal,
         discount=discount,
         shipping=shipping,
-        tax=_extract_tax(lines, discount, shipping),
         total=total,
         coupon_code=coupon_code,
         item_count=item_count,

@@ -60,7 +60,6 @@ def test_the_cart_page_prints_the_lines_and_the_server_computed_totals(browser, 
     assert "Plain Tee" in body
     assert "Color: Black" in body and "Size: M" in body
     assert "₹1,598.00" in body  # 2 × 799, computed here and nowhere else
-    assert "Includes GST of" in body
 
 
 def test_an_empty_cart_says_so_instead_of_showing_a_zero_total(browser):
@@ -203,7 +202,6 @@ def test_a_posted_total_and_unit_price_are_ignored(browser, tee):
             "unit_price": "1.00",
             "discount": "1000.00",
             "subtotal": "1.00",
-            "tax": "0.00",
         },
     )
     body = browser.get("/cart/").content.decode()

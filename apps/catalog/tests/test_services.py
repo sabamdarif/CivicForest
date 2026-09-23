@@ -321,7 +321,6 @@ def test_related_products_leave_out_the_product_itself_and_anything_retired(cata
         slug="second-tee",
         category=catalogue["plain"].category,
         base_price=Decimal("899"),
-        hsn_code="61091000",
     )
 
     related = services.related_products(catalogue["plain"])

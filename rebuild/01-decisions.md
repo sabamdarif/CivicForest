@@ -350,6 +350,24 @@ multi-warehouse stock · returns pickup scheduling · automated fraud scoring ·
 a CRM integration.
 
 Anything on this list can be added later; none of it is architecturally blocked by the choices above.
+
+## Part 5: Overrides
+
+Decisions changed after the register was first written. Recorded here so the original entry and the
+change both survive.
+
+**2026-09-23, GST dropped (overrides C3 and H8).** The store will not be GST-registered for now, so
+prices carry no tax: none is added or extracted, and the total is subtotal minus discount plus
+shipping. Removed with this decision: the GST invoice page (M6 task 10, not built), the order-level
+tax snapshot, the tax computation in `cart/services.py`, `Product.hsn_code` and `Product.tax_rate`
+(migration drops the columns), and every "prices include GST" line in the storefront. `country_of_origin`
+stays (that is Consumer Protection, not GST).
+
+Risk accepted knowingly: selling through an e-commerce channel in India requires GST registration
+regardless of turnover, and a tax invoice must carry HSN, rate and place of supply
+(`02-research.md` §5). Shipping without these is non-compliant. Reversing this means re-registering,
+re-adding the per-product HSN and rate, restoring the tax extraction, and building the invoice; the
+pricing is tax-exclusive now, so re-introducing tax would change customer-facing totals.
 The two that cost measurable revenue, guest checkout and COD, are called out again in
 `02-research.md` §6 so the trade-off stays visible.
 

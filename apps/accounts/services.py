@@ -381,8 +381,8 @@ def anonymise_account(request: DataRequest, actor: User | None = None) -> bool:
 
     The customer's own record goes (name, phone, addresses, saved items, email addresses, the
     ability to sign in). Their orders stay, with the name and address snapshotted on them,
-    because a tax invoice is a statutory record India requires the seller to retain: DPDP's own
-    exemption for a legal obligation is what covers it, and the privacy policy says so.
+    because a sale record is one India requires the seller to retain: DPDP's own exemption for
+    a legal obligation is what covers it, and the privacy policy says so.
     """
     from apps.cart.models import Cart, Wishlist
 

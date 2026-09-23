@@ -55,14 +55,13 @@ class CartLineSerializer(serializers.Serializer):
 
 
 class CartSerializer(serializers.Serializer):
-    """Read view of a priced cart. ``tax`` is the GST already inside ``total``, never on top
-    of it (C3), so a client that adds it to the total is wrong."""
+    """Read view of a priced cart. The total is subtotal minus discount plus shipping; no tax
+    is added (the store is not GST-registered for now, C3 override)."""
 
     lines = CartLineSerializer(many=True, read_only=True)
     subtotal = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     discount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     shipping = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    tax = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     coupon_code = serializers.CharField(read_only=True, allow_null=True)
     item_count = serializers.IntegerField(read_only=True)
