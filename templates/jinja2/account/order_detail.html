@@ -1,11 +1,22 @@
 {% extends "account/base.html" %}
 {% from "_macros/card.html" import card %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/notice.html" import notices %}
 
 {% block title %}Order {{ order.order_number }} | CivicForest Clothing{% endblock %}
 
 {% block account_content %}
   <h1>Order {{ order.order_number }}</h1>
   <p>{{ order.created_at.strftime("%d %B %Y") }} · {{ order.get_status_display() }}</p>
+  {{ notices(request) }}
+
+  {%- if can_retry %}
+    <div class="account-panel__actions">
+      {{ button("Complete payment", href="/checkout/pay/" ~ order.order_number ~ "/", size="lg") }}
+      <p class="field__hint">Payment wasn't completed. You can finish it here within 24 hours.</p>
+    </div>
+  {%- endif %}
+
   {% call card("Items") %}
     <ul class="account-lines">
       {%- for item in order.items.all() %}
@@ -16,14 +27,39 @@
       {%- endfor %}
     </ul>
   {% endcall %}
+
+  {%- if order.shipments.all() %}
+    {%- for shipment in order.shipments.all() %}
+      {% call card(source_labels[shipment.kind]) %}
+        <ul class="account-lines">
+          {%- for item in shipment.items.all() %}
+            <li><span>{{ item.product_name }} × {{ item.quantity }}</span></li>
+          {%- endfor %}
+        </ul>
+        <dl class="account-totals">
+          {%- if shipment.awb %}
+            <div><dt>Tracking (AWB)</dt><dd>
+              {%- if shipment.tracking_url %}<a href="{{ shipment.tracking_url }}">{{ shipment.awb }}</a>
+              {%- else %}{{ shipment.awb }}{% endif %}</dd></div>
+          {%- endif %}
+          <div><dt>Status</dt><dd>
+            {%- if shipment.delivered_at %}Delivered {{ shipment.delivered_at.strftime("%d %b") }}
+            {%- elif shipment.shipped_at %}Shipped {{ shipment.shipped_at.strftime("%d %b") }}
+            {%- else %}Preparing{% endif %}</dd></div>
+        </dl>
+      {% endcall %}
+    {%- endfor %}
+  {%- endif %}
+
   {% call card("Order total") %}
     <dl class="account-totals">
       <div><dt>Subtotal</dt><dd>{{ order.subtotal|rupees }}</dd></div>
-      <div><dt>Discount</dt><dd>{{ order.discount|rupees }}</dd></div>
+      {%- if order.discount %}<div><dt>Discount</dt><dd>&minus;{{ order.discount|rupees }}</dd></div>{% endif %}
       <div><dt>Shipping</dt><dd>{{ order.shipping_fee|rupees }}</dd></div>
       <div><dt>Total</dt><dd><strong>{{ order.total|rupees }}</strong></dd></div>
     </dl>
   {% endcall %}
+
   {% call card("Delivery details") %}
     <p>{{ order.email }}{% if order.phone %}<br>{{ order.phone }}{% endif %}</p>
     <address>
@@ -33,4 +69,24 @@
       {{ order.ship_country }}
     </address>
   {% endcall %}
+
+  {% call card("History") %}
+    <ol class="order-timeline">
+      {%- for event in order.status_events.all() %}
+        <li>
+          <time>{{ event.created_at.strftime("%d %b %Y, %H:%M") }}</time>
+          <span>{{ event.get_to_status_display() }}{% if event.note %}: {{ event.note }}{% endif %}</span>
+        </li>
+      {%- endfor %}
+    </ol>
+  {% endcall %}
+
+  {%- if can_cancel %}
+    <form method="post" class="account-panel__actions">
+      {{ csrf_input }}
+      <input type="hidden" name="action" value="cancel">
+      {{ button("Cancel order", type="submit", variant="secondary") }}
+      <p class="field__hint">You can cancel until the order ships. Any payment is refunded.</p>
+    </form>
+  {%- endif %}
 {% endblock %}

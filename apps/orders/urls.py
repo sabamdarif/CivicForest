@@ -23,4 +23,5 @@ urlpatterns = [
         views.account_order_detail,
         name="account-order-detail",
     ),
+    path("track/", views.track_order, name="track-order"),
 ]

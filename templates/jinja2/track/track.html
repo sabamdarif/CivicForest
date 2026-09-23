@@ -1,0 +1,45 @@
+{# Guest order tracking (I2): order number + email, no login. The footer's "Track Order" links
+   here. A miss says only "not found"; a hit shows status and per-shipment tracking. #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/field.html" import field %}
+{% from "_macros/card.html" import card %}
+
+{% block title %}Track your order | CivicForest Clothing{% endblock %}
+
+{% block content %}
+  <div class="container account__plain">
+    {{ breadcrumbs([("Home", "/")], "Track order") }}
+    <h1>Track your order</h1>
+
+    <form method="post" action="/track/" class="auth-form">
+      {{ csrf_input }}
+      {%- if error %}<p class="field__error" role="alert">{{ error }}</p>{% endif %}
+      {{ field("order_number", "Order number", value=request.POST.get("order_number", ""),
+               required=True, placeholder="CF-XXXXXXXX") }}
+      {{ field("email", "Email", type="email", value=request.POST.get("email", ""),
+               required=True) }}
+      {{ button("Track order", type="submit") }}
+    </form>
+
+    {%- if order %}
+      {% call card("Order " ~ order.order_number) %}
+        <p>{{ order.created_at.strftime("%d %B %Y") }} · {{ order.get_status_display() }}</p>
+        {%- for shipment in order.shipments.all() %}
+          <dl class="account-totals">
+            <div><dt>{{ source_labels[shipment.kind] }}</dt><dd>
+              {%- if shipment.delivered_at %}Delivered {{ shipment.delivered_at.strftime("%d %b") }}
+              {%- elif shipment.shipped_at %}Shipped {{ shipment.shipped_at.strftime("%d %b") }}
+              {%- else %}Preparing{% endif %}</dd></div>
+            {%- if shipment.awb %}
+              <div><dt>Tracking (AWB)</dt><dd>
+                {%- if shipment.tracking_url %}<a href="{{ shipment.tracking_url }}">{{ shipment.awb }}</a>
+                {%- else %}{{ shipment.awb }}{% endif %}</dd></div>
+            {%- endif %}
+          </dl>
+        {%- endfor %}
+      {% endcall %}
+    {%- endif %}
+  </div>
+{% endblock %}

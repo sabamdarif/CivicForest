@@ -27,6 +27,13 @@ class CouponThrottle(UserRateThrottle):
     scope = "coupon"
 
 
+class TrackThrottle(UserRateThrottle):
+    """Guest order tracking takes an order number and email, so it's a lookup a scraper could
+    grind. Rate-limited per IP (I2)."""
+
+    scope = "track"
+
+
 def exceeded(request, throttle_class) -> bool:
     """Apply a DRF throttle scope to a plain Django view.
 

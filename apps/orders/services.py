@@ -211,6 +211,56 @@ def _attach_custom_designs(user, order: Order, variant_ids: list) -> None:
     order.save(update_fields=["has_custom_items", "fulfilment_kind", "updated_at"])
 
 
+# ─── Customer cancellation (I3) ───────────────────────────────────────────────
+# Cancellable while nothing has shipped. A custom shipment can't be cancelled once Qikink has
+# accepted it, so a paid order with custom items is left to staff rather than self-service.
+_CUSTOMER_CANCELLABLE = {
+    Order.Status.PAYMENT_PENDING,
+    Order.Status.PAID,
+    Order.Status.PROCESSING,
+}
+
+
+def can_customer_cancel(order: Order) -> bool:
+    if order.status not in _CUSTOMER_CANCELLABLE:
+        return False
+    if order.shipments.filter(shipped_at__isnull=False).exists():
+        return False
+    # Once a custom design is with Qikink it can't be pulled back, so hand those to staff.
+    if order.has_custom_items and order.status != Order.Status.PAYMENT_PENDING:
+        return False
+    return True
+
+
+@transaction.atomic
+def customer_cancel(order: Order, *, note: str = "Cancelled by customer") -> Order:
+    """Cancel an order on the customer's request (I3). Releases any stock the order reserved
+    (only a paid order holds stock) and transitions to CANCELLED, which emails the customer.
+    The money refund itself is handled by staff; the cancelled email states it's on its way."""
+    order = Order.objects.select_for_update().get(pk=order.pk)
+    if not can_customer_cancel(order):
+        raise OrderError("This order can no longer be cancelled.", code="not_cancellable")
+    if order.is_paid:
+        release_stock(order)
+    return transition(order, Order.Status.CANCELLED, actor=order.user, note=note)
+
+
+@transaction.atomic
+def release_stock(order: Order) -> None:
+    """Return an order's reserved units to stock, the inverse of ``reserve_stock``. Used when a
+    paid order is cancelled before it ships."""
+    items = list(order.items.select_related("variant"))
+    variant_ids = [i.variant_id for i in items if i.variant_id]
+    locked = {
+        v.id: v for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
+    }
+    for item in items:
+        variant = locked.get(item.variant_id) if item.variant_id else None
+        if variant is not None:
+            variant.stock_quantity += item.quantity
+            variant.save(update_fields=["stock_quantity", "updated_at"])
+
+
 @transaction.atomic
 def reserve_stock(order: Order) -> None:
     """Atomically decrement stock for every line, locking the variant rows first.

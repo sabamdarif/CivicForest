@@ -1,11 +1,11 @@
-"""Order + checkout API, and the storefront's checkout page.
+"""Order + checkout: the storefront checkout flow, the account order pages, guest tracking,
+and the read-only orders JSON API.
 
-- ``GET /orders`` / ``GET /orders/<order_number>``: the caller's own orders only,
-  looked up by the non-guessable public order number (ownership-scoped, no IDOR).
-- ``POST /checkout``: snapshot the cart into an order and create a Razorpay order,
-  computing the amount server-side. Returns what the browser needs to open Razorpay's
-  hosted checkout.
-- ``GET /checkout/``: the login-gated page, which M6 task 3 fills in.
+- ``/checkout/``: the login + verified-email gated form; a valid post creates the order and
+  redirects to the Razorpay pay page. Money is always computed server-side.
+- ``/account/orders/``: the customer's own orders, looked up by the non-guessable public order
+  number (ownership-scoped, no IDOR), with per-shipment tracking and cancellation where allowed.
+- ``/track/``: a guest lookup by order number + email, rate-limited per IP.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ import re
 
 from allauth.account.decorators import verified_email_required
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework import mixins, status, viewsets
@@ -23,7 +24,12 @@ from rest_framework.views import APIView
 
 from apps.cart import services as cart_services
 from apps.cart.views import cart_context
-from apps.common.throttles import CheckoutDayThrottle, CheckoutMinuteThrottle
+from apps.common.throttles import (
+    CheckoutDayThrottle,
+    CheckoutMinuteThrottle,
+    TrackThrottle,
+    exceeded,
+)
 from apps.payments import gateway as payment_gateway
 from apps.payments import services as payment_services
 
@@ -181,10 +187,65 @@ def account_orders(request):
 @login_required
 def account_order_detail(request, order_number):
     order = get_object_or_404(
-        Order.objects.filter(user=request.user).prefetch_related("items"),
+        Order.objects.filter(user=request.user).prefetch_related(
+            "items", "shipments__items", "status_events"
+        ),
         order_number=order_number,
     )
-    return render(request, "account/order_detail.html", {"order": order})
+    if request.method == "POST" and request.POST.get("action") == "cancel":
+        try:
+            services.customer_cancel(order)
+            messages.success(request, "Your order has been cancelled.")
+        except services.OrderError as exc:
+            messages.error(request, exc.message)
+        return redirect("account-order-detail", order_number=order_number)
+
+    return render(
+        request,
+        "account/order_detail.html",
+        {
+            "order": order,
+            "can_cancel": services.can_customer_cancel(order),
+            "can_retry": order.status == Order.Status.PAYMENT_PENDING and order.payments.exists(),
+            "source_labels": {
+                "stock": "Shipped by CivicForest",
+                "custom": "Printed and shipped by Qikink",
+            },
+        },
+    )
+
+
+def track_order(request):
+    """Guest order tracking (I2): look up an order by its public number and the email it was
+    placed with, no login. Rate-limited per IP so it can't be ground into an enumeration oracle,
+    and it reveals nothing on a miss beyond "not found"."""
+    order = None
+    error = ""
+    if request.method == "POST":
+        if exceeded(request, TrackThrottle):
+            error = "Too many attempts. Please wait a minute and try again."
+        else:
+            number = request.POST.get("order_number", "").strip()
+            email = request.POST.get("email", "").strip()
+            order = (
+                Order.objects.filter(order_number__iexact=number, email__iexact=email)
+                .prefetch_related("shipments__items")
+                .first()
+            )
+            if order is None:
+                error = "No order matches that number and email."
+    return render(
+        request,
+        "track/track.html",
+        {
+            "order": order,
+            "error": error,
+            "source_labels": {
+                "stock": "Shipped by CivicForest",
+                "custom": "Printed and shipped by Qikink",
+            },
+        },
+    )
 
 
 class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):

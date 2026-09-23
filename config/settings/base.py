@@ -252,6 +252,7 @@ REST_FRAMEWORK = {
         "checkout": "10/min",
         "checkout_day": "60/day",
         "custom_order_create": "20/hour",
+        "track": "5/min",
     },
     "EXCEPTION_HANDLER": "apps.common.exceptions.standard_exception_handler",
 }
