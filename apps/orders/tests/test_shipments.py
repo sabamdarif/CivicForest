@@ -7,9 +7,9 @@ from apps.cart.models import Cart, CartItem
 from apps.orders import services
 from apps.orders.models import Order, Shipment, StatusEvent
 
-pytestmark = pytest.mark.django_db
-
 from .conftest import SHIPPING
+
+pytestmark = pytest.mark.django_db
 
 
 def _paid_order(user, variant, qty=1):

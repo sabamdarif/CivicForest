@@ -7,6 +7,7 @@ mutate ``Order.status`` or stock directly. The state machine rejects illegal jum
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 from django.db import transaction
 from django.db.models import F, Q
@@ -314,3 +315,37 @@ def _record_coupon_use(order: Order) -> None:
     CouponRedemption.objects.get_or_create(
         coupon=coupon, order=order, defaults={"user_id": order.user_id}
     )
+
+
+# ─── Failed-payment sweep (I3, task 8) ────────────────────────────────────────
+# How long a customer has to complete a started payment before the order is cancelled.
+PAYMENT_WINDOW = timedelta(hours=24)
+
+
+def stale_pending_orders():
+    """Orders that started a payment more than the window ago and never completed it."""
+    return Order.objects.filter(
+        status=Order.Status.PAYMENT_PENDING,
+        created_at__lt=timezone.now() - PAYMENT_WINDOW,
+    )
+
+
+def cancel_stale_pending_orders(limit: int) -> int:
+    """Cancel up to ``limit`` orders whose payment window has elapsed, and return the count.
+
+    No stock is released because a pending order never reserved any: stock is decremented only
+    in ``fulfil_paid_order``, which is exactly what lets two customers race for the last unit
+    without either being blocked before payment. Each cancellation writes a ``StatusEvent`` and
+    sends the payment-failed email, through ``transition``."""
+    cancelled = 0
+    for order in stale_pending_orders()[:limit]:
+        try:
+            transition(order, Order.Status.CANCELLED, note="payment not completed in 24h")
+            from apps.common.email import send_order_email
+
+            send_order_email(str(order.pk), "payment_failed")
+            cancelled += 1
+        except OrderError:
+            # Raced with a webhook that just paid it; leave it alone.
+            continue
+    return cancelled

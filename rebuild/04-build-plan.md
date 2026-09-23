@@ -305,7 +305,7 @@ Tasks:
    increment coupon usage, mark the cart converted, enqueue the confirmation email and any Qikink
    submissions.
 7. [x] Order status machine with allowed transitions only, every change writing a `StatusEvent`.
-8. Failed payment: retry from order detail for 24 h, then a job cancels and releases stock.
+8. [x] Failed payment: retry from order detail for 24 h, then a job cancels and releases stock.
 9. [x] Thank-you page keyed on order number, idempotent, safe to reload or bookmark.
 10. Invoice: GST-compliant HTML at `/account/orders/<n>/invoice/`, sequential numbering per financial
     year, print stylesheet, HSN and rate per line, tax summary, place of supply, seller identity.
