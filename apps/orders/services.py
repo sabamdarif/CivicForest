@@ -73,11 +73,11 @@ def transition(order: Order, to_status: str, *, actor=None, note: str = "") -> O
     _log_event(order, from_status, to_status, actor, note)
 
     # Notify on the transitions the customer cares about. A send failure is swallowed
-    # inside send_order_email, so a slow mail server cannot fail the caller.
+    # inside send_order_email, so a slow mail server cannot fail the caller. Shipped and
+    # delivered are sent per shipment (see the shipment admin), not from the order status.
     kind = {
-        Order.Status.SHIPPED: "shipped",
-        Order.Status.DELIVERED: "delivered",
         Order.Status.CANCELLED: "cancelled",
+        Order.Status.REFUNDED: "refunded",
     }.get(to_status)
     if kind:
         from apps.common.email import send_order_email

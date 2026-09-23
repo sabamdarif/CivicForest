@@ -1,10 +1,10 @@
 """Transactional email: plain-text bodies built inline.
 
-Order emails are the only transactional mail we send (confirmation, shipping,
-delivery), sent from the order state changes in ``orders.services``. A send failure is
-logged and swallowed, never raised, so a dead mail server cannot fail a payment
-webhook. With ``EMAIL_HOST`` unset the console backend prints them (dev/offline); set
-SMTP env vars to actually deliver.
+Order-level notices (confirmation, payment failed, cancelled, refunded) and per-shipment
+notices (shipped and delivered, one per parcel) are sent from the order and shipment state
+changes in ``orders.services`` and the shipment admin. A send failure is logged and swallowed,
+never raised, so a dead mail server cannot fail a payment webhook. With ``EMAIL_HOST`` unset the
+console backend prints them (dev/offline); set SMTP env vars to actually deliver.
 """
 
 from __future__ import annotations
@@ -59,10 +59,44 @@ def _order_delivered(order) -> tuple[str, str]:
     return f"Order {order.order_number} delivered", body
 
 
+def _payment_failed(order) -> tuple[str, str]:
+    body = (
+        f"Hi {order.ship_full_name},\n\n"
+        f"We couldn't confirm payment for order {order.order_number}, so it has been cancelled. "
+        f"Nothing was charged. You're welcome to place the order again whenever you're ready.\n\n"
+        f"Thanks,\nThe CivicForest team"
+    )
+    return f"Order {order.order_number} could not be completed", body
+
+
+def _order_cancelled(order) -> tuple[str, str]:
+    reason = f"\n\nReason: {order.cancel_reason}" if order.cancel_reason else ""
+    body = (
+        f"Hi {order.ship_full_name},\n\n"
+        f"Your order {order.order_number} has been cancelled.{reason}\n\n"
+        f"Any amount paid is refunded to the original payment method.\n\n"
+        f"Thanks,\nThe CivicForest team"
+    )
+    return f"Order {order.order_number} cancelled", body
+
+
+def _order_refunded(order) -> tuple[str, str]:
+    body = (
+        f"Hi {order.ship_full_name},\n\n"
+        f"We've processed a refund of {order.currency} {order.total} for order "
+        f"{order.order_number}. It should reach your account in 5 to 7 working days.\n\n"
+        f"Thanks,\nThe CivicForest team"
+    )
+    return f"Refund processed for order {order.order_number}", body
+
+
 _BUILDERS = {
     "confirmation": _order_confirmation,
     "shipped": _order_shipped,
     "delivered": _order_delivered,
+    "payment_failed": _payment_failed,
+    "cancelled": _order_cancelled,
+    "refunded": _order_refunded,
 }
 
 
@@ -79,5 +113,46 @@ def send_order_email(order_id: str, kind: str) -> str:
     # A dead mail server must not fail the caller, so every send error is swallowed.
     except Exception as exc:  # noqa: BLE001
         logger.warning("Order email %s/%s failed: %s", order.order_number, kind, exc)
+        return "failed"
+    return "sent"
+
+
+# ─── Per-shipment notices (M1: one shipped email per shipment, with its own AWB) ──
+_SOURCE = {"stock": "Shipped by CivicForest", "custom": "Printed and shipped by Qikink"}
+
+
+def send_shipment_email(shipment_id: str, kind: str) -> str:
+    """One notice per shipment (a mixed order gets two), naming what's inside and its own AWB,
+    so the two dispatches read as the separate parcels they are. ``kind`` is "shipped" or
+    "delivered". A send failure is swallowed, like every other transactional mail here."""
+    from apps.orders.models import Shipment
+
+    shipment = Shipment.objects.filter(pk=shipment_id).select_related("order").first()
+    if shipment is None or kind not in ("shipped", "delivered"):
+        return "skipped"
+    order = shipment.order
+    contents = "\n".join(
+        f"  {i.quantity} x {i.product_name} ({i.size}/{i.color})" for i in shipment.items.all()
+    )
+    source = _SOURCE.get(shipment.kind, "Shipped")
+    if kind == "shipped":
+        tracking = f"\nTracking (AWB): {shipment.awb}" if shipment.awb else ""
+        if shipment.tracking_url:
+            tracking += f"\n{shipment.tracking_url}"
+        subject = f"Part of order {order.order_number} has shipped"
+        body = (
+            f"Hi {order.ship_full_name},\n\n{source}. On its way to you:\n\n{contents}{tracking}"
+            f"\n\nThanks,\nThe CivicForest team"
+        )
+    else:
+        subject = f"Part of order {order.order_number} was delivered"
+        body = (
+            f"Hi {order.ship_full_name},\n\nDelivered:\n\n{contents}\n\n"
+            f"Thanks,\nThe CivicForest team"
+        )
+    try:
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [order.email])
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Shipment email %s/%s failed: %s", shipment_id, kind, exc)
         return "failed"
     return "sent"

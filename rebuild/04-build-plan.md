@@ -311,7 +311,7 @@ Tasks:
     year, print stylesheet, HSN and rate per line, tax summary, place of supply, seller identity.
 11. Order history and detail with two timelines, per-shipment tracking, and cancel where allowed.
 12. `/track/` guest lookup by order number + email, rate-limited to 5/min per IP.
-13. Emails: order confirmation, payment failed, shipped (per shipment), delivered, cancelled, refunded.
+13. [x] Emails: order confirmation, payment failed, shipped (per shipment), delivered, cancelled, refunded.
 14. Tests: tampered totals rejected · coupon reuse past `per_user_limit` rejected · concurrent checkout
     of the last unit oversells zero · replayed webhook processed once · signature mismatch rejected ·
     stock released on auto-cancel.

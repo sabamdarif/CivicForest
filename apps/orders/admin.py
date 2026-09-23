@@ -124,6 +124,14 @@ class ShipmentAdmin(admin.ModelAdmin):
     readonly_fields = ["order", "kind"]
 
     def save_model(self, request, obj, form, change):
+        old = Shipment.objects.filter(pk=obj.pk).first() if change else None
         super().save_model(request, obj, form, change)
-        # A shipped/delivered date entered here drives the order status, never a hand-set field.
+        # A newly stamped shipped/delivered date sends that parcel's own email, then the order
+        # status is recomputed from all its shipments (never a hand-set order field).
+        from apps.common.email import send_shipment_email
+
+        if obj.shipped_at and (old is None or not old.shipped_at):
+            send_shipment_email(str(obj.pk), "shipped")
+        if obj.delivered_at and (old is None or not old.delivered_at):
+            send_shipment_email(str(obj.pk), "delivered")
         services.recompute_order_status_from_shipments(obj.order, actor=request.user)
