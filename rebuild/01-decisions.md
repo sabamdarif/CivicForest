@@ -371,3 +371,21 @@ pricing is tax-exclusive now, so re-introducing tax would change customer-facing
 The two that cost measurable revenue, guest checkout and COD, are called out again in
 `02-research.md` §6 so the trade-off stays visible.
 
+**2026-09-24, M8 jobs built as a run ledger, not the §7 engine (scopes O-series task 13).**
+`common.JobRun` and `common.OutboundEmail` are built as per-run history rows (name, status,
+timings, items processed, last error) with cron endpoints that call the existing management
+commands' services in bounded batches. The full `03-architecture.md` §7 design (handler registry,
+per-unit `key` dedup, exponential backoff, dead-letter) is not built: every deferred operation is
+already an idempotent management command with its own idempotency guard (`idempotency_key`,
+`WebhookEvent`, `CouponRedemption`), nothing enqueues rows, and on one Vercel function with no
+broker the engine would be infrastructure nothing consumes. §7 stays the design of record; the
+ledger is what M8 shipped against it. Reversing means adding the registry and backoff fields to
+`JobRun` and having producers enqueue rows, which is additive.
+
+**2026-09-24, M8 returns queue deferred to M9 (moves O9 / build-plan M8 task 11).** The
+`orders.ReturnRequest` model and the returns flow (customer request form, eligibility from the
+delivery date, photo upload to R2, per-transition emails, and the different stock versus custom
+rules) are one unit, and M9 task 3 owns the customer-facing half. Building a staff queue in M8
+against a model nothing can yet write rows to is half a feature, so M8 ships only the direct refund
+action on order detail (task 5) and M9 builds the model, the queue and the customer side together.
+

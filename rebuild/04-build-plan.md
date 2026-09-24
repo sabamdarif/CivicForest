@@ -371,33 +371,37 @@ preview matches the printed placement within the tolerance Qikink states.
 
 Tasks:
 
-1. `apps/backoffice`: views and templates only, no models. Everything behind a
+1. [x] `apps/backoffice`: views and templates only, no models. Everything behind a
    `StaffRequiredMixin` that enforces `is_staff` **and** a confirmed TOTP authenticator, plus a
    per-view permission check.
-2. Four Django groups with explicit permissions: Owner, Manager, Fulfilment, Support (decision O11),
+2. [ ] Four Django groups with explicit permissions: Owner, Manager, Fulfilment, Support (decision O11),
    created by a `bootstrap_roles` management command so they are reproducible, not hand-clicked.
-3. Dashboard: the fifteen tiles from O1, a 30-day revenue sparkline and a status bar chart, both
+3. [ ] Dashboard: the fifteen tiles from O1, a 30-day revenue sparkline and a status bar chart, both
    hand-rolled inline SVG. Every tile links to the filtered list behind it.
-4. Order queue: filters, saved views ("awaiting dispatch", "custom pending review", "payment failed"),
+4. [ ] Order queue: filters, saved views ("awaiting dispatch", "custom pending review", "payment failed"),
    bulk selection, CSV export streamed rather than buffered (the 4.5 MB response cap).
-5. Order detail: both timelines, per-shipment carrier and AWB entry, guarded transitions, cancel,
-   refund, resend any email, internal notes, packing slip and invoice print views.
-6. Design review queue (built in M7, surfaced here alongside everything else).
-7. Product management: list with inline stock and price editing, full form with variant matrix,
+5. [ ] Order detail: both timelines, per-shipment carrier and AWB entry, guarded transitions, cancel,
+   refund, resend any email, internal notes, packing slip print view. Invoice dropped with GST
+   (Part 5), so no invoice print view.
+6. [ ] Design review queue (built in M7, surfaced here alongside everything else).
+7. [ ] Product management: list with inline stock and price editing, full form with variant matrix,
    drag-reorder images, duplicate, archive, CSV import with a dry-run diff before committing.
-8. Inventory: stock-on-hand report, adjustment form that always records a reason into
+8. [ ] Inventory: stock-on-hand report, adjustment form that always records a reason into
    `StockAdjustment`, low-stock list with thresholds.
-9. Coupons: CRUD plus a usage report per coupon and per customer.
-10. Customers: list, detail with orders and lifetime value, block, CSV export.
-11. Returns queue: approve, reject, mark received, trigger refund.
-12. Content: pages, announcement bar, homepage sections, FAQ entries, category and collection imagery.
-13. Jobs panel: `JobRun` rows by status, full error text, "run now" per job and per row, dead-letter
-    alerts. `OutboundEmail` list with resend.
-14. Reports: sales by day, product and category; GST summary by rate; coupon performance; inventory
-    valuation; zero-result search terms. Each exportable.
-15. Django admin hardening underneath: obscure URL from env, TOTP required, 1 h session,
+9. [ ] Coupons: CRUD plus a usage report per coupon and per customer.
+10. [ ] Customers: list, detail with orders and lifetime value, block, CSV export.
+11. [ ] Returns queue: approve, reject, mark received, trigger refund. **Deferred to M9 task 3**, which
+    owns the `ReturnRequest` model and the customer-facing flow; the refund action lives on M8 order
+    detail (task 5). See the override in `01-decisions.md` Part 5.
+12. [ ] Content: pages, announcement bar, homepage sections, FAQ entries, category and collection imagery.
+13. [ ] Jobs panel: `JobRun` rows by status, full error text, "run now" per job, `OutboundEmail` list
+    with resend. Built as a run ledger, not the full `03-architecture.md` §7 engine (no handler
+    registry, backoff or dead-letter); see the override in `01-decisions.md` Part 5.
+14. [ ] Reports: sales by day, product and category; coupon performance; inventory valuation;
+    zero-result search terms. Each exportable. GST summary dropped with GST (Part 5).
+15. [ ] Django admin hardening underneath: obscure URL from env, TOTP required, 1 h session,
     `django-auditlog` on every model, read-only fields for money, no bulk delete on orders.
-16. A real TOTP enrolment page so bootstrapping the first staff account needs no shell.
+16. [x] A real TOTP enrolment page so bootstrapping the first staff account needs no shell.
     (Delivered in M5: allauth's `mfa/totp/activate_form.html` is mounted and styled at
     `/accounts/2fa/totp/activate/`, and M5 task 7 removed the staff gate's DEBUG bypass.)
 

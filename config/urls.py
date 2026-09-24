@@ -13,8 +13,8 @@ from django.contrib.sitemaps.views import sitemap
 from django.http import JsonResponse
 from django.urls import include, path
 
+from apps.backoffice.views import styleguide
 from apps.common.sitemaps import SITEMAPS
-from apps.common.views import styleguide
 from apps.content.views import home
 
 
@@ -67,6 +67,7 @@ urlpatterns = [
     path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
     # Staff-only, and the regression surface for every stylesheet.
     path("styleguide/", styleguide, name="styleguide"),
+    path(settings.BACKOFFICE_URL, include("apps.backoffice.urls")),
     path(settings.ADMIN_URL, admin.site.urls),
     path("api/v1/", include("apps.accounts.api_urls")),
     path("api/v1/", include("apps.cart.api_urls")),

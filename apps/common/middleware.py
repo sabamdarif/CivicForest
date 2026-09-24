@@ -29,6 +29,17 @@ def set_request_id(value: str) -> None:
     _request_id.set(value)
 
 
+def session_completed_mfa(request) -> bool:
+    """True only if *this session* completed an MFA step.
+
+    Enrollment alone isn't enough: a session created without MFA (before enrollment, or via a
+    non-allauth login path) would otherwise ride in on a phished password. The staff admin gate
+    and the back-office ``StaffRequiredMixin`` both hang off this one rule."""
+    from allauth.account.authentication import get_authentication_records
+
+    return any(r.get("method") == "mfa" for r in get_authentication_records(request))
+
+
 class RequestIDMiddleware:
     """Assign every request a correlation ID and echo it on the response."""
 
@@ -83,12 +94,7 @@ class StaffAdminMiddleware:
 
     @staticmethod
     def _session_used_mfa(request) -> bool:
-        """True only if *this session* completed an MFA step. Enrollment alone isn't
-        enough, since a session created without MFA (e.g. before enrollment, or via a
-        non-allauth login path) would otherwise ride in on a phished password."""
-        from allauth.account.authentication import get_authentication_records
-
-        return any(r.get("method") == "mfa" for r in get_authentication_records(request))
+        return session_completed_mfa(request)
 
     @staticmethod
     def _deny(request):

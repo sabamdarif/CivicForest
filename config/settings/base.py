@@ -70,6 +70,7 @@ LOCAL_APPS = [
     "apps.custom_orders",
     "apps.content",
     "apps.search",
+    "apps.backoffice",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -326,6 +327,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 ADMIN_URL = env("DJANGO_ADMIN_URL", default="__admin_disabled__/").strip("/") + "/"
 # Staff sessions expire faster than customer sessions (StaffAdminMiddleware enforces it).
 STAFF_SESSION_AGE = env.int("STAFF_SESSION_AGE", default=60 * 60)
+
+# ─── Back-office and cron ────────────────────────────────────────────────────
+# Custom staff pages sit under this env-driven prefix, never a guessable one, same as the
+# admin. The cron endpoints under /internal/cron/ require CRON_SECRET as a bearer token.
+BACKOFFICE_URL = env("BACKOFFICE_URL", default="__backoffice_disabled__/").strip("/") + "/"
+CRON_SECRET = env("CRON_SECRET", default="")
 
 # ─── Cart / checkout pricing rules ───────────────────────────────────────────
 # Server-side pricing constants: the client never sends shipping or totals.
