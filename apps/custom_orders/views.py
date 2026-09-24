@@ -20,8 +20,14 @@ from rest_framework.views import APIView
 from apps.common import r2
 from apps.common.throttles import CustomOrderCreateThrottle
 
-from .models import DesignUpload
-from .serializers import DesignUploadSerializer, UploadUrlSerializer
+from .models import CustomBlank, DesignUpload
+from .serializers import (
+    AddToCartSerializer,
+    CustomDesignOrderSerializer,
+    DesignUploadSerializer,
+    UploadUrlSerializer,
+)
+from .services import CustomOrderError, add_design_to_cart
 from .uploads import sanitise_upload
 
 _EXT = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}
@@ -74,6 +80,63 @@ class DesignCompleteView(APIView):
         if design.status == DesignUpload.Status.UPLOADED:
             sanitise_upload(design)
         return Response(DesignUploadSerializer(design).data)
+
+
+class AddToCartView(APIView):
+    """Place a designed blank into the cart. Validates the placement against the blank's own
+    print area, then hands off to the service, which computes the surcharge and snapshots the
+    rights text (M7.5, M7.11)."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [CustomOrderCreateThrottle]
+
+    def post(self, request):
+        form = AddToCartSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+        data = form.validated_data
+
+        blank = get_object_or_404(
+            CustomBlank.objects.select_related("product"),
+            slug=data["blank_slug"],
+            is_active=True,
+        )
+        area = next(
+            (
+                a
+                for a in blank.print_areas.values()
+                if a.get("placement_sku") == data["placement_sku"]
+            ),
+            None,
+        )
+        if area is None:
+            return Response(
+                {"error": {"code": "unknown_placement", "message": "Unknown print placement."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Clamp to the printable bounds: the client's size is a hint, never trusted past this.
+        width = min(data["width_inches"], area["max_width_in"])
+        height = min(data["height_inches"], area["max_height_in"])
+        design = get_object_or_404(DesignUpload, id=data["design_id"], user=request.user)
+
+        try:
+            custom = add_design_to_cart(
+                request.user,
+                blank=blank,
+                design=design,
+                size=data["size"],
+                color=data["color"],
+                placement_sku=data["placement_sku"],
+                width_inches=width,
+                height_inches=height,
+                quantity=data["quantity"],
+                rights_accepted=data["rights_accepted"],
+            )
+        except CustomOrderError as exc:
+            return Response(
+                {"error": {"code": exc.code, "message": exc.message}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(CustomDesignOrderSerializer(custom).data, status=status.HTTP_201_CREATED)
 
 
 @csrf_exempt

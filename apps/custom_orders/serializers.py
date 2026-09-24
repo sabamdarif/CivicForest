@@ -6,6 +6,8 @@ values and shape the design rows read back to the account area."""
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from apps.common import r2
@@ -53,6 +55,26 @@ class DesignUploadSerializer(serializers.ModelSerializer):
 
     def get_preview_url(self, obj) -> str:
         return r2.signed_get_url(obj.r2_key_print) if obj.r2_key_print else ""
+
+
+class AddToCartSerializer(serializers.Serializer):
+    """Input for placing a designed blank into the cart. No price crosses the wire: the
+    surcharge is computed server-side from the blank's tiers, and the rights text is the
+    server's, snapshotted onto the line."""
+
+    blank_slug = serializers.SlugField()
+    design_id = serializers.UUIDField()
+    size = serializers.CharField(max_length=16)
+    color = serializers.CharField(max_length=40)
+    placement_sku = serializers.CharField(max_length=8, default="fr")
+    width_inches = serializers.DecimalField(
+        max_digits=5, decimal_places=2, min_value=Decimal("0.5")
+    )
+    height_inches = serializers.DecimalField(
+        max_digits=5, decimal_places=2, min_value=Decimal("0.5")
+    )
+    quantity = serializers.IntegerField(min_value=1, max_value=20, default=1)
+    rights_accepted = serializers.BooleanField()
 
 
 class CustomDesignOrderSerializer(serializers.ModelSerializer):

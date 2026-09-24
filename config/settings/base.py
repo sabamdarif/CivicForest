@@ -338,6 +338,12 @@ CHECKOUT_TERMS_TEXT = (
     "I have read and accept the Terms of Service, Privacy Policy, "
     "and the Returns and Refunds policy."
 )
+# The rights acknowledgement the design tool shows, unticked, and snapshots onto each custom
+# line (M7.11). Frozen per line so a later wording change cannot rewrite what was agreed.
+CUSTOM_RIGHTS_TEXT = (
+    "I own or am licensed to print this artwork, it infringes no third-party rights, and I "
+    "accept that custom-printed items are made to order and returnable only if defective."
+)
 
 # ─── Catalogue display ───────────────────────────────────────────────────────
 # The only number that turns a real stock level into a "only N left" line (E4). Nothing

@@ -7,14 +7,16 @@ retried submission cannot create a duplicate print job (plan.md §8)."""
 from __future__ import annotations
 
 import logging
+from decimal import Decimal
 from urllib.parse import urlsplit
 
+from django.conf import settings
 from django.utils import timezone
 
 from apps.orders import services as order_services
 from apps.orders.models import Order
 
-from .models import CustomDesignOrder
+from .models import CustomBlank, CustomDesignOrder, DesignUpload
 from .qikink import QikinkClient, QikinkError
 
 logger = logging.getLogger("custom_orders")
@@ -206,3 +208,80 @@ def _advance_order(order: Order, target: str) -> None:
         order_services.transition(order, target)
     except order_services.OrderError:
         logger.debug("Skipped illegal order transition %s to %s", order.status, target)
+
+
+# ─── Customise: surcharge and add-to-cart (M7.5, M7.11) ───────────────────────
+class CustomOrderError(Exception):
+    def __init__(self, message: str, code: str = "custom_order_error"):
+        super().__init__(message)
+        self.message = message
+        self.code = code
+
+
+def surcharge_for(blank: CustomBlank, width_in, height_in) -> Decimal:
+    """The print surcharge for a placement of this size: the smallest tier the art fits in
+    (tiers are smallest-first). Falls back to the largest tier when the art fills the area,
+    since the tool clamps placement to the printable bounds anyway."""
+    tiers = blank.surcharge_tiers or []
+    if not tiers:
+        return Decimal("0.00")
+    width_in, height_in = Decimal(str(width_in)), Decimal(str(height_in))
+    for tier in tiers:
+        if width_in <= Decimal(str(tier["max_width_in"])) and height_in <= Decimal(
+            str(tier["max_height_in"])
+        ):
+            return Decimal(str(tier["surcharge"]))
+    return Decimal(str(tiers[-1]["surcharge"]))
+
+
+def add_design_to_cart(
+    user,
+    *,
+    blank: CustomBlank,
+    design: DesignUpload,
+    size: str,
+    color: str,
+    placement_sku: str,
+    width_inches,
+    height_inches,
+    quantity: int,
+    rights_accepted: bool,
+) -> CustomDesignOrder:
+    """Create a custom line and its cart item. The surcharge and the rights wording are set
+    server-side; the client sends neither a price nor the consent text (no dark patterns)."""
+    from apps.cart.models import Cart, CartItem
+    from apps.catalog.models import ProductVariant
+
+    if not rights_accepted:
+        raise CustomOrderError(
+            "You must accept the rights acknowledgement.", code="rights_required"
+        )
+    if design.user_id != user.id:
+        raise CustomOrderError("Unknown design.", code="unknown_design")
+    if design.status != DesignUpload.Status.READY:
+        raise CustomOrderError("That design is not print-ready yet.", code="design_not_ready")
+    if design.review_status == DesignUpload.ReviewStatus.REJECTED:
+        raise CustomOrderError("That design was rejected in review.", code="design_rejected")
+
+    variant = ProductVariant.objects.filter(
+        product=blank.product, size=size, color=color, is_active=True
+    ).first()
+    if variant is None:
+        raise CustomOrderError("That size or colour is unavailable.", code="unknown_variant")
+
+    surcharge = surcharge_for(blank, width_inches, height_inches)
+    custom = CustomDesignOrder.objects.create(
+        user=user,
+        blank_variant=variant,
+        design_upload=design,
+        print_type_id=blank.print_type_id,
+        placement_sku=placement_sku,
+        width_inches=width_inches,
+        height_inches=height_inches,
+        quantity=quantity,
+        print_surcharge=surcharge,
+        rights_ack_text=settings.CUSTOM_RIGHTS_TEXT,
+    )
+    cart, _ = Cart.objects.get_or_create(user=user)
+    CartItem.objects.create(cart=cart, variant=variant, quantity=quantity, custom_design=custom)
+    return custom
