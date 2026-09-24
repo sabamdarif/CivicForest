@@ -16,6 +16,8 @@ from django.urls import reverse
 from django.views.generic import TemplateView, View
 
 from apps.common.email import ORDER_EMAIL_KINDS
+from apps.custom_orders import services as custom_services
+from apps.custom_orders.models import DesignUpload
 from apps.orders import services as order_services
 from apps.orders.models import Order
 from apps.payments import gateway as payment_gateway
@@ -217,6 +219,83 @@ class OrderActionView(StaffRequiredMixin, View):
             return
         order_services.add_note(order, actor=request.user, note=note)
         messages.success(request, "Note added.")
+
+
+class DesignReviewQueueView(StaffRequiredMixin, TemplateView):
+    """The design moderation queue (M8.6): the M7 review flow surfaced here. Defaults to the
+    flagged designs a moderator must act on; the dashboard's failed-Qikink tile links in with
+    ``?submit=failed``."""
+
+    template_name = "backoffice/designs.html"
+    permission_required = "custom_orders.view_designupload"
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(**kwargs),
+            "designs": services.design_queue(self.request.GET, self.request.GET.get("page")),
+            "review": self.request.GET.get("review", ""),
+            "submit": self.request.GET.get("submit", ""),
+            "review_choices": DesignUpload.ReviewStatus.choices,
+        }
+
+
+class DesignReviewDetailView(StaffRequiredMixin, TemplateView):
+    """One design: full-resolution art through a short-lived signed R2 GET, its dimensions, the
+    bound custom lines with their Qikink status and AWB, and the approve/reject/resubmit forms."""
+
+    template_name = "backoffice/design_detail.html"
+    permission_required = "custom_orders.view_designupload"
+
+    def get_context_data(self, **kwargs):
+        design = get_object_or_404(
+            DesignUpload.objects.select_related("user").prefetch_related(
+                "front_orders__order", "back_orders__order"
+            ),
+            pk=kwargs["pk"],
+        )
+        return {
+            **super().get_context_data(**kwargs),
+            "design": design,
+            "print_link": custom_services.design_link(design),
+            "bound_orders": [*design.front_orders.all(), *design.back_orders.all()],
+        }
+
+
+class DesignReviewActionView(StaffRequiredMixin, View):
+    """Approve, reject or resubmit from the design detail page. Approve/reject need
+    ``change_designupload``; resubmit needs ``change_customdesignorder``."""
+
+    _ACTION_PERMS = {
+        "approve": "custom_orders.change_designupload",
+        "reject": "custom_orders.change_designupload",
+        "resubmit": "custom_orders.change_customdesignorder",
+    }
+
+    def post(self, request, pk):
+        action = request.POST.get("action", "")
+        perm = self._ACTION_PERMS.get(action)
+        if perm is None or not request.user.has_perm(perm):
+            raise Http404
+        design = get_object_or_404(DesignUpload, pk=pk)
+        if action == "resubmit":
+            self._resubmit(request, design)
+        else:
+            custom_services.review_design(
+                design, approve=action == "approve", reason=request.POST.get("reason", "")
+            )
+            messages.success(request, f"Design {action}d.")
+        return redirect("backoffice:design_detail", pk=pk)
+
+    def _resubmit(self, request, design):
+        results = [
+            custom_services.resubmit_design(custom)
+            for custom in (*design.front_orders.all(), *design.back_orders.all())
+        ]
+        submitted = results.count("submitted")
+        if submitted:
+            messages.success(request, f"Resubmitted {submitted} line(s) to Qikink.")
+        else:
+            messages.warning(request, "Nothing to resubmit (unpaid or already submitted).")
 
 
 def styleguide(request):

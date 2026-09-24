@@ -302,4 +302,13 @@ a.bo-tile:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* Design review (M8.6): the artwork preview is capped so a large print file still fits a card. */
+.bo-artwork {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+
+
 

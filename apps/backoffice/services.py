@@ -284,3 +284,26 @@ def order_saved_views(active: str | None) -> list[dict]:
         {"key": key, "label": preset["label"], "active": key == active}
         for key, preset in ORDER_SAVED_VIEWS.items()
     ]
+
+
+# ── Design review queue (M8.6) ─────────────────────────────────────────────────
+DESIGN_QUEUE_PAGE_SIZE = 40
+
+
+def design_queue(params, page) -> Page:
+    """One page of designs for the review queue. ``submit`` filters by a bound line's Qikink
+    submission state (the dashboard's failed-jobs tile); otherwise ``review`` filters by review
+    status, defaulting to the flagged designs a moderator actually has to act on."""
+    qs = DesignUpload.objects.select_related("user").order_by("-created_at")
+    submit = params.get("submit")
+    if submit in CustomDesignOrder.SubmitStatus.values:
+        qs = qs.filter(
+            Q(front_orders__submit_status=submit) | Q(back_orders__submit_status=submit)
+        ).distinct()
+    else:
+        review = params.get("review") or DesignUpload.ReviewStatus.FLAGGED
+        if review in DesignUpload.ReviewStatus.values:
+            qs = qs.filter(review_status=review)
+        elif review != "all":
+            qs = qs.filter(review_status=DesignUpload.ReviewStatus.FLAGGED)
+    return Paginator(qs, DESIGN_QUEUE_PAGE_SIZE).get_page(page)

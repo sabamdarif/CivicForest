@@ -383,7 +383,7 @@ Tasks:
 5. [x] Order detail: both timelines, per-shipment carrier and AWB entry, guarded transitions, cancel,
    refund, resend any email, internal notes, packing slip print view. Invoice dropped with GST
    (Part 5), so no invoice print view.
-6. [ ] Design review queue (built in M7, surfaced here alongside everything else).
+6. [x] Design review queue (built in M7, surfaced here alongside everything else).
 7. [ ] Product management: list with inline stock and price editing, full form with variant matrix,
    drag-reorder images, duplicate, archive, CSV import with a dry-run diff before committing.
 8. [ ] Inventory: stock-on-hand report, adjustment form that always records a reason into

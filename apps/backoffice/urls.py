@@ -25,4 +25,11 @@ urlpatterns = [
         views.OrderActionView.as_view(),
         name="order_action",
     ),
+    path("designs/", views.DesignReviewQueueView.as_view(), name="designs"),
+    path("designs/<uuid:pk>/", views.DesignReviewDetailView.as_view(), name="design_detail"),
+    path(
+        "designs/<uuid:pk>/action/",
+        views.DesignReviewActionView.as_view(),
+        name="design_action",
+    ),
 ]

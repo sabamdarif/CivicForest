@@ -1,13 +1,11 @@
 """Admin for the custom-print line.
 
 Design review acts on ``DesignUpload`` (the artwork), because a design is reusable and is
-judged once. The Qikink submission and its retry act on ``CustomDesignOrder``. The customer-
-facing moderation queue and its emails are surfaced in the back-office (M8.6); these actions
-are the staff gate until then."""
+judged once. The Qikink submission and its retry act on ``CustomDesignOrder``. The moderation
+logic itself lives in ``services`` (``review_design``, ``resubmit_design``) so the back-office
+queue (M8.6) and these admin actions share one implementation."""
 
 from django.contrib import admin, messages
-
-from apps.common.email import send_design_review_email
 
 from . import services
 from .models import CustomBlank, CustomDesignOrder, DesignUpload
@@ -53,28 +51,15 @@ class DesignUploadAdmin(admin.ModelAdmin):
 
     @admin.action(description="Approve selected designs for printing")
     def mark_approved(self, request, queryset):
-        count = 0
         for design in queryset:
-            design.review_status = DesignUpload.ReviewStatus.APPROVED
-            design.save(update_fields=["review_status", "updated_at"])
-            send_design_review_email(str(design.id), "approved")
-            # A design approved after payment missed the webhook's submission window; submit any
-            # paid line now. submit_paid_design is idempotent and re-checks paid + review state.
-            for custom in design.front_orders.all():
-                if custom.order_id and custom.order.is_paid:
-                    services.submit_paid_design(custom)
-            count += 1
-        self.message_user(request, f"Approved {count} design(s).", messages.SUCCESS)
+            services.review_design(design, approve=True)
+        self.message_user(request, f"Approved {queryset.count()} design(s).", messages.SUCCESS)
 
     @admin.action(description="Reject selected designs")
     def mark_rejected(self, request, queryset):
-        count = 0
         for design in queryset:
-            design.review_status = DesignUpload.ReviewStatus.REJECTED
-            design.save(update_fields=["review_status", "updated_at"])
-            send_design_review_email(str(design.id), "rejected")
-            count += 1
-        self.message_user(request, f"Rejected {count} design(s).", messages.WARNING)
+            services.review_design(design, approve=False)
+        self.message_user(request, f"Rejected {queryset.count()} design(s).", messages.WARNING)
 
 
 @admin.register(CustomDesignOrder)
@@ -104,10 +89,9 @@ class CustomDesignOrderAdmin(admin.ModelAdmin):
 
     @admin.action(description="Retry Qikink submission")
     def retry_submission(self, request, queryset):
-        submitted = 0
-        for custom in queryset.select_related("order"):
-            if custom.order is not None and custom.order.is_paid and not custom.qikink_order_id:
-                if services.submit_paid_design(custom) == "submitted":
-                    submitted += 1
+        submitted = sum(
+            services.resubmit_design(custom) == "submitted"
+            for custom in queryset.select_related("order")
+        )
         if submitted:
             self.message_user(request, f"Submitted {submitted} Qikink order(s).", messages.SUCCESS)

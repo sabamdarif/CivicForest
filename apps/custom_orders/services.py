@@ -180,6 +180,41 @@ def submit_paid_design(custom: CustomDesignOrder) -> str:
         return "failed"
 
 
+def _bound_orders(design: DesignUpload):
+    """The custom lines this design is used on, whether as the front or the back artwork."""
+    return [*design.front_orders.all(), *design.back_orders.all()]
+
+
+def review_design(design: DesignUpload, *, approve: bool, reason: str = "") -> DesignUpload:
+    """Approve or reject one design (M8.6 back-office and the admin action share this).
+
+    Sets the review status and reason, emails the customer either way, and on approval submits
+    any paid line whose review only cleared now (``submit_paid_design`` is idempotent and
+    re-checks paid + review state, so a design approved after the webhook's window still ships)."""
+    design.review_status = (
+        DesignUpload.ReviewStatus.APPROVED if approve else DesignUpload.ReviewStatus.REJECTED
+    )
+    design.review_reason = reason[:200]
+    design.save(update_fields=["review_status", "review_reason", "updated_at"])
+
+    from apps.common.email import send_design_review_email
+
+    send_design_review_email(str(design.id), "approved" if approve else "rejected")
+    if approve:
+        for custom in _bound_orders(design):
+            if custom.order_id and custom.order.is_paid:
+                submit_paid_design(custom)
+    return design
+
+
+def resubmit_design(custom: CustomDesignOrder) -> str:
+    """Retry a Qikink submission for a paid line that has not reached Qikink (M8.6 and the admin
+    action). A no-op for an unpaid or already-submitted line, so it is safe to click twice."""
+    if custom.order is not None and custom.order.is_paid and not custom.qikink_order_id:
+        return submit_paid_design(custom)
+    return "skipped"
+
+
 def _custom_shipment(order: Order) -> Shipment | None:
     return order.shipments.filter(kind=Shipment.Kind.CUSTOM).first()
 
