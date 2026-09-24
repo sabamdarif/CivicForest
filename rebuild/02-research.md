@@ -139,6 +139,24 @@ hang tags, poly bags, white-label packaging. No minimum order quantity, no subsc
   placement SKUs, COD-specific payload fields. These must be read off your own dashboard's Postman
   collection during M7 and recorded here.
 
+### Print type IDs and placement SKUs (record as confirmed)
+
+Read these off your dashboard's Postman collection and fill the tables in as you verify each one.
+`manage.py qikink_sandbox_check --design-url <url> --placement <sku> --poll` places one sandbox
+order with `search_from_my_products: 0` and hand-supplied design fields, so you can confirm a
+placement SKU is accepted before wiring it into a blank's `print_areas`. The seed blanks currently
+assume `print_type_id: 1` and placements `fr` (front) and `bk` (back); correct them here and in the
+blank config once the real values are known.
+
+| Print type | ID | Notes |
+|---|---|---|
+| DTG (assumed default) | 1 | Unconfirmed; verify against the dashboard |
+
+| Placement | SKU | Notes |
+|---|---|---|
+| Front | `fr` | Assumed; verify |
+| Back | `bk` | Assumed; verify |
+
 ### Fulfilment and returns: this dictates policy copy
 
 - Dispatch within **48 hours**. Prepaid, COD and credits are all supported at their end.

@@ -355,7 +355,7 @@ Tasks:
 9. [x] Failure path: alert staff, back off, expose a manual resubmit, never fail silently.
 10. [x] `/account/designs/`: saved artwork, reorder, delete.
 11. [x] Rights acknowledgement checkbox, wording snapshotted onto the order.
-12. Sandbox verification before go-live: `search_from_my_products: 0` with hand-supplied design fields,
+12. [x] Sandbox verification before go-live: `search_from_my_products: 0` with hand-supplied design fields,
     because sandbox cannot see live dashboard products. Record the real print type IDs and placement
     SKUs from your dashboard's Postman collection into `02-research.md` §3 as you find them.
 
