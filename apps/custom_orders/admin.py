@@ -7,6 +7,8 @@ are the staff gate until then."""
 
 from django.contrib import admin, messages
 
+from apps.common.email import send_design_review_email
+
 from . import services
 from .models import CustomBlank, CustomDesignOrder, DesignUpload
 
@@ -51,13 +53,28 @@ class DesignUploadAdmin(admin.ModelAdmin):
 
     @admin.action(description="Approve selected designs for printing")
     def mark_approved(self, request, queryset):
-        updated = queryset.update(review_status=DesignUpload.ReviewStatus.APPROVED)
-        self.message_user(request, f"Approved {updated} design(s).", messages.SUCCESS)
+        count = 0
+        for design in queryset:
+            design.review_status = DesignUpload.ReviewStatus.APPROVED
+            design.save(update_fields=["review_status", "updated_at"])
+            send_design_review_email(str(design.id), "approved")
+            # A design approved after payment missed the webhook's submission window; submit any
+            # paid line now. submit_paid_design is idempotent and re-checks paid + review state.
+            for custom in design.front_orders.all():
+                if custom.order_id and custom.order.is_paid:
+                    services.submit_paid_design(custom)
+            count += 1
+        self.message_user(request, f"Approved {count} design(s).", messages.SUCCESS)
 
     @admin.action(description="Reject selected designs")
     def mark_rejected(self, request, queryset):
-        updated = queryset.update(review_status=DesignUpload.ReviewStatus.REJECTED)
-        self.message_user(request, f"Rejected {updated} design(s).", messages.WARNING)
+        count = 0
+        for design in queryset:
+            design.review_status = DesignUpload.ReviewStatus.REJECTED
+            design.save(update_fields=["review_status", "updated_at"])
+            send_design_review_email(str(design.id), "rejected")
+            count += 1
+        self.message_user(request, f"Rejected {count} design(s).", messages.WARNING)
 
 
 @admin.register(CustomDesignOrder)

@@ -156,3 +156,35 @@ def send_shipment_email(shipment_id: str, kind: str) -> str:
         logger.warning("Shipment email %s/%s failed: %s", shipment_id, kind, exc)
         return "failed"
     return "sent"
+
+
+# ─── Design review notices (M7.6: the customer hears the moderation outcome either way) ──
+def send_design_review_email(design_id: str, kind: str) -> str:
+    """Tell the customer their custom artwork was approved or rejected. ``kind`` is "approved"
+    or "rejected". Swallowed on failure, like every transactional mail here."""
+    from apps.custom_orders.models import DesignUpload
+
+    design = DesignUpload.objects.filter(pk=design_id).select_related("user").first()
+    if design is None or design.user is None or kind not in ("approved", "rejected"):
+        return "skipped"
+    if kind == "approved":
+        subject = "Your custom design was approved"
+        body = (
+            "Hi,\n\nGood news: your custom design passed review and is going into print. "
+            "If it was part of a paid order, we have sent it to production.\n\n"
+            "Thanks,\nThe CivicForest team"
+        )
+    else:
+        reason = f" Reason: {design.review_reason}" if design.review_reason else ""
+        subject = "Your custom design could not be printed"
+        body = (
+            f"Hi,\n\nWe were unable to approve your custom design for printing.{reason}\n\n"
+            "If you were charged for it, we will refund that line. You are welcome to upload a "
+            "different design.\n\nThanks,\nThe CivicForest team"
+        )
+    try:
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [design.user.email])
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Design email %s/%s failed: %s", design_id, kind, exc)
+        return "failed"
+    return "sent"

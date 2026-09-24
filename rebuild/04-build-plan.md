@@ -344,7 +344,7 @@ Tasks:
    dashed print-area outline, live price as print size changes, a resolution warning when the raster is
    too small, colour and size selection, add to cart. Serialises to placement SKU, width and height in
    inches: exactly Qikink's fields.
-6. Moderation queue in the back-office: artwork at full resolution, approve or reject with a reason,
+6. [x] Moderation queue in the back-office: artwork at full resolution, approve or reject with a reason,
    customer emailed either way.
 7. [x] `qikink.submit` job: build the payload with **strings** for `quantity`, `price` and
    `total_order_value` and a **number** for `search_from_my_products`; `order_number` ≤ 15 characters;
@@ -353,7 +353,7 @@ Tasks:
 8. [x] `qikink.poll` job plus the 30-minute on-demand piggyback on order views; map Qikink statuses to
    shipment statuses; store AWB and tracking link.
 9. [x] Failure path: alert staff, back off, expose a manual resubmit, never fail silently.
-10. `/account/designs/`: saved artwork, reorder, delete.
+10. [x] `/account/designs/`: saved artwork, reorder, delete.
 11. [x] Rights acknowledgement checkbox, wording snapshotted onto the order.
 12. Sandbox verification before go-live: `search_from_my_products: 0` with hand-supplied design fields,
     because sandbox cannot see live dashboard products. Record the real print type IDs and placement

@@ -1,0 +1,48 @@
+{# Saved custom designs (M7.10): reuse artwork in a new design, or delete it. A design that is
+   part of an order is locked, because deleting it would break that order's print record. #}
+{% extends "account/base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/empty.html" import empty %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Your designs | CivicForest Clothing{% endblock %}
+{% block description %}The custom artwork you have uploaded.{% endblock %}
+{% block page_css %}
+  <link rel="stylesheet" href="{{ static('css/account.css') }}">
+  <link rel="stylesheet" href="{{ static('css/designer.css') }}">
+{% endblock %}
+
+{% block account_content %}
+    {{ breadcrumbs([("Home", "/")], "Your designs") }}
+    <h1>Your designs</h1>
+    {{ notices(request) }}
+
+    {%- if designs %}
+      <ul class="designer__saved-list" role="list">
+        {% for d in designs %}
+        <li class="design-tile">
+          <img src="{{ d.preview_url }}" alt="Saved design" loading="lazy" width="120" height="120">
+          <p class="design-tile__meta">{{ d.width_px }}×{{ d.height_px }} px · {{ d.review_status }}</p>
+          <div class="design-tile__actions">
+            {{ button("Design something", href=url('customise-landing'), size="sm", variant="secondary") }}
+            {% if d.in_use %}
+              <span class="design-tile__locked">In an order</span>
+            {% else %}
+              <form method="post" action="{{ url('account-designs') }}">
+                {{ csrf_input }}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="design_id" value="{{ d.id }}">
+                <button type="submit" class="btn btn--ghost btn--sm">Delete</button>
+              </form>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    {%- else %}
+      {% call empty("No designs yet", "Upload artwork in the design tool and it will show up here.", icon_name="upload") %}
+        {{ button("Start a design", href=url('customise-landing'), icon_end="arrow-right") }}
+      {% endcall %}
+    {%- endif %}
+{% endblock %}

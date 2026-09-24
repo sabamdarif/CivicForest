@@ -8,8 +8,10 @@ only hands the tool the blank's configuration to draw with."""
 from __future__ import annotations
 
 from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.http import Http404
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.catalog.models import Size
 from apps.common import r2
@@ -77,3 +79,35 @@ def customise_designer(request, slug: str):
             "tool_config": tool_config,
         },
     )
+
+
+@login_required
+def account_designs(request):
+    """The customer's saved artwork (M7.10): reuse in a new design, or delete. A design used by
+    an order line is protected: it cannot be deleted without breaking that order's record."""
+    if request.method == "POST" and request.POST.get("action") == "delete":
+        design = get_object_or_404(
+            DesignUpload, id=request.POST.get("design_id"), user=request.user
+        )
+        if design.front_orders.exists() or design.back_orders.exists():
+            messages.error(request, "That design is part of an order and cannot be deleted.")
+        else:
+            for key in (design.r2_key_print, design.r2_key_raw, design.r2_key_mockup):
+                r2.delete(key)
+            design.delete()
+            messages.success(request, "Design deleted.")
+        return redirect("account-designs")
+
+    rows = [
+        {
+            "id": str(d.id),
+            "preview_url": r2.signed_get_url(d.r2_key_print),
+            "status": d.get_status_display(),
+            "review_status": d.get_review_status_display(),
+            "width_px": d.width_px,
+            "height_px": d.height_px,
+            "in_use": d.front_orders.exists() or d.back_orders.exists(),
+        }
+        for d in DesignUpload.objects.filter(user=request.user).order_by("-created_at")
+    ]
+    return render(request, "account/designs.html", {"designs": rows})

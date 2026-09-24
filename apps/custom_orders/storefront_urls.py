@@ -9,5 +9,6 @@ from . import storefront_views
 
 urlpatterns = [
     path("customise/", storefront_views.customise_landing, name="customise-landing"),
+    path("account/designs/", storefront_views.account_designs, name="account-designs"),
     path("customise/<slug:slug>/", storefront_views.customise_designer, name="customise-designer"),
 ]
