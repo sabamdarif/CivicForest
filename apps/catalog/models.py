@@ -209,6 +209,9 @@ class Product(UUIDTimestampedModel):
     )
     is_bestseller = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    # A blank garment for the custom-print line: sellable through /customise/ but kept out
+    # of /shop/, search and the sitemap so it never appears as an ordinary product (M7.1).
+    is_custom_blank = models.BooleanField(default=False)
 
     # Overrides the defaults the product page derives from the name and description.
     meta_title = models.CharField(max_length=180, blank=True)

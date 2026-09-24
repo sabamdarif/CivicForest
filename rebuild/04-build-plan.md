@@ -327,7 +327,7 @@ paid order, and the invoice carries every field GST requires.
 
 Tasks:
 
-1. Models: `CustomBlank` with per-blank print areas in inches and pixel offsets for preview,
+1. [x] Models: `CustomBlank` with per-blank print areas in inches and pixel offsets for preview,
    `DesignUpload`, and the `CustomDesignOrder` extensions.
 2. R2 direct upload: `POST /api/v1/designs/upload-url/` authenticates the user, validates the declared
    content type and size, and returns a presigned PUT valid for 5 minutes into the **private** bucket

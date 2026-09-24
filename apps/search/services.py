@@ -192,7 +192,7 @@ def ranking(term: str) -> catalog.Ranking | None:
     }
     # A fallback, not a permanent union: widening every query would let "black hoodie" pick up
     # everything loosely similar to the whole phrase. One indexed EXISTS decides it.
-    if not Product.objects.filter(is_active=True).filter(where).exists():
+    if not Product.objects.filter(is_active=True, is_custom_blank=False).filter(where).exists():
         where |= Q(word_sim__gte=SIMILARITY_FLOOR)
     return catalog.Ranking(where=where, aliases=aliases, order_by=("-rank", "-word_sim"))
 

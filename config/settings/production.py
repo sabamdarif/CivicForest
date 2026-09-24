@@ -10,6 +10,7 @@ from .base import (  # noqa: F401
     S3_ACCESS_KEY_ID,
     S3_BUCKET_NAME,
     S3_ENDPOINT_URL,
+    S3_PRIVATE_BUCKET_NAME,
     S3_REGION,
     S3_SECRET_ACCESS_KEY,
     S3_SIGNED_URL_TTL,
@@ -44,14 +45,29 @@ SECURE_HSTS_PRELOAD = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
-# Customer artwork lives in this bucket, so it is never public: every URL is a
-# short-lived signed link. R2 has no object ACLs, hence default_acl=None. The public
-# product-image bucket and its CDN hostname arrive with the catalogue milestone.
+# Two R2 buckets (rebuild/03-architecture.md §8): "default" is the public product-media
+# bucket, "designs" is the private customer-artwork bucket, never publicly readable, whose
+# every URL is a short-lived signed link. R2 has no object ACLs, hence default_acl=None.
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
             "bucket_name": S3_BUCKET_NAME,
+            "access_key": S3_ACCESS_KEY_ID,
+            "secret_key": S3_SECRET_ACCESS_KEY,
+            "endpoint_url": S3_ENDPOINT_URL or None,
+            "region_name": S3_REGION,
+            "default_acl": None,
+            "querystring_auth": True,
+            "querystring_expire": S3_SIGNED_URL_TTL,
+            "file_overwrite": False,
+            "signature_version": "s3v4",
+        },
+    },
+    "designs": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": S3_PRIVATE_BUCKET_NAME,
             "access_key": S3_ACCESS_KEY_ID,
             "secret_key": S3_SECRET_ACCESS_KEY,
             "endpoint_url": S3_ENDPOINT_URL or None,

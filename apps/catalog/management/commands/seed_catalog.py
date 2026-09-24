@@ -166,6 +166,71 @@ SIZE_CHARTS = {
 }
 
 
+# The custom-print blanks (M7). Each is a hidden catalog product (is_custom_blank) sold only
+# through /customise/, plus a CustomBlank config carrying the Qikink mapping, the printable
+# areas in inches (with a preview pixel box), and the surcharge tiers (smallest fit first).
+CUSTOM_BLANKS = [
+    {
+        "name": "Custom Tee",
+        "slug": "custom-tee",
+        "category": "T-Shirts",
+        "material": "Cotton",
+        "base_price": "699.00",
+        "tagline": "Your art on a premium tee.",
+        "colours": ["Black", "White"],
+        "print_type_id": 1,
+        "print_areas": {
+            "front": {
+                "placement_sku": "fr",
+                "max_width_in": 12,
+                "max_height_in": 16,
+                "px": {"x": 120, "y": 90, "w": 260, "h": 340},
+            },
+            "back": {
+                "placement_sku": "bk",
+                "max_width_in": 12,
+                "max_height_in": 16,
+                "px": {"x": 120, "y": 80, "w": 260, "h": 360},
+            },
+        },
+        "surcharge_tiers": [
+            {"max_width_in": 6, "max_height_in": 6, "surcharge": "0.00"},
+            {"max_width_in": 10, "max_height_in": 12, "surcharge": "99.00"},
+            {"max_width_in": 12, "max_height_in": 16, "surcharge": "199.00"},
+        ],
+    },
+    {
+        "name": "Custom Hoodie",
+        "slug": "custom-hoodie",
+        "category": "Hoodies",
+        "material": "Fleece",
+        "base_price": "1499.00",
+        "tagline": "Your art on a heavyweight hoodie.",
+        "colours": ["Black", "Forest Green"],
+        "print_type_id": 1,
+        "print_areas": {
+            "front": {
+                "placement_sku": "fr",
+                "max_width_in": 12,
+                "max_height_in": 14,
+                "px": {"x": 130, "y": 120, "w": 240, "h": 280},
+            },
+            "back": {
+                "placement_sku": "bk",
+                "max_width_in": 14,
+                "max_height_in": 16,
+                "px": {"x": 120, "y": 90, "w": 280, "h": 340},
+            },
+        },
+        "surcharge_tiers": [
+            {"max_width_in": 6, "max_height_in": 6, "surcharge": "0.00"},
+            {"max_width_in": 10, "max_height_in": 12, "surcharge": "149.00"},
+            {"max_width_in": 14, "max_height_in": 16, "surcharge": "249.00"},
+        ],
+    },
+]
+
+
 class Command(BaseCommand):
     help = "Seed categories, collections, materials, size charts and a demo product range."
 
@@ -192,6 +257,8 @@ class Command(BaseCommand):
             self._variants(product, colours, offset)
             self._collect(product, collections, category, offset)
             self._image(product, PRODUCT_IMAGES.get(category, ""))
+
+        self._custom_blanks(categories, materials)
 
         # Nothing is findable until a document exists, and the sweep that would build them is
         # M8's cron endpoint, so the seed builds its own.
@@ -321,6 +388,41 @@ class Command(BaseCommand):
             return
         with path.open("rb") as handle:
             getattr(instance, field_name).save(filename, File(handle), save=True)
+
+    def _custom_blanks(self, categories: dict, materials: dict) -> None:
+        """Seed the custom-print blanks as hidden products (M7). Each rides the ordinary
+        variant machinery so cart, stock and fulfilment reuse the catalogue, but is kept out
+        of /shop/ by is_custom_blank and exposed only through /customise/."""
+        from apps.custom_orders.models import CustomBlank
+
+        for order, blank in enumerate(CUSTOM_BLANKS):
+            product, _ = Product.objects.get_or_create(
+                slug=slugify(blank["name"]),
+                defaults={
+                    "name": blank["name"],
+                    "description": blank["tagline"],
+                    "category": categories[blank["category"]],
+                    "material": materials[blank["material"]],
+                    "base_price": Decimal(blank["base_price"]),
+                    "country_of_origin": "India",
+                    "care_instructions": CARE,
+                    "is_custom_blank": True,
+                },
+            )
+            if not product.is_custom_blank:
+                Product.objects.filter(pk=product.pk).update(is_custom_blank=True)
+            self._variants(product, blank["colours"], offset=0)
+            CustomBlank.objects.update_or_create(
+                product=product,
+                defaults={
+                    "slug": blank["slug"],
+                    "tagline": blank["tagline"],
+                    "print_type_id": blank["print_type_id"],
+                    "print_areas": blank["print_areas"],
+                    "surcharge_tiers": blank["surcharge_tiers"],
+                    "display_order": order,
+                },
+            )
 
     def _image(self, product: Product, filename: str) -> None:
         if filename and not product.images.exists():

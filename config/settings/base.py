@@ -286,6 +286,15 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Customer artwork: private in production, on-disk locally. Kept out of MEDIA_ROOT so a
+    # dev server never serves a raw design by a guessable path.
+    "designs": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "location": str(BASE_DIR / "designfiles"),
+            "base_url": "/designfiles/",
+        },
+    },
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 MEDIA_URL = "/media/"

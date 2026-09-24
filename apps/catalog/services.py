@@ -140,7 +140,7 @@ def active_products() -> QuerySet[Product]:
         .order_by("rank", "created_at")
     )
     return (
-        Product.objects.filter(is_active=True)
+        Product.objects.filter(is_active=True, is_custom_blank=False)
         .select_related("category", "material")
         .prefetch_related(
             "images",
@@ -187,8 +187,11 @@ def listed_collections() -> QuerySet[Collection]:
 
 
 def _listable() -> QuerySet[Product]:
-    """The lean base for counting. No prefetches: an aggregate never reads them."""
-    return Product.objects.filter(is_active=True)
+    """The lean base for counting. No prefetches: an aggregate never reads them.
+
+    Custom blanks are excluded so they never show up in the shop grid or its facet counts.
+    """
+    return Product.objects.filter(is_active=True, is_custom_blank=False)
 
 
 # ── Price, filters and sorts ─────────────────────────────────────────────────
