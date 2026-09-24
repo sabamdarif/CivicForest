@@ -10,6 +10,7 @@ and the read-only orders JSON API.
 
 from __future__ import annotations
 
+import logging
 import re
 
 from allauth.account.decorators import verified_email_required
@@ -37,6 +38,8 @@ from . import services
 from .forms import CheckoutForm
 from .models import Order
 from .serializers import CheckoutSerializer, OrderSerializer
+
+logger = logging.getLogger("orders")
 
 _CHECKOUT_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 
@@ -186,12 +189,9 @@ def account_orders(request):
 
 @login_required
 def account_order_detail(request, order_number):
-    order = get_object_or_404(
-        Order.objects.filter(user=request.user).prefetch_related(
-            "items", "shipments__items", "status_events"
-        ),
-        order_number=order_number,
-    )
+    base = Order.objects.filter(user=request.user)
+    order = get_object_or_404(base, order_number=order_number)
+
     if request.method == "POST" and request.POST.get("action") == "cancel":
         try:
             services.customer_cancel(order)
@@ -200,6 +200,14 @@ def account_order_detail(request, order_number):
             messages.error(request, exc.message)
         return redirect("account-order-detail", order_number=order_number)
 
+    # On-demand piggyback (§7): refresh Qikink tracking when the customer is looking, so the
+    # data is fresh even under Hobby's once-a-day cron. A Qikink outage is swallowed inside.
+    _poll_custom_shipments(order)
+
+    order = get_object_or_404(
+        base.prefetch_related("items", "shipments__items", "status_events"),
+        order_number=order_number,
+    )
     return render(
         request,
         "account/order_detail.html",
@@ -213,6 +221,19 @@ def account_order_detail(request, order_number):
             },
         },
     )
+
+
+def _poll_custom_shipments(order) -> None:
+    """Best-effort inline Qikink poll for a custom order. Imported lazily so orders keeps no
+    hard dependency on custom_orders."""
+    if not getattr(order, "has_custom_items", False):
+        return
+    try:
+        from apps.custom_orders import services as custom_services
+
+        custom_services.poll_order_if_stale(order)
+    except Exception:  # noqa: BLE001 - a tracking refresh must never break the page
+        logger.debug("Custom poll skipped for %s", order.order_number)
 
 
 def track_order(request):

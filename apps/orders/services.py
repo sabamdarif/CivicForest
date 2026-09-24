@@ -117,6 +117,13 @@ def recompute_order_status_from_shipments(order: Order, *, actor=None) -> Order:
 
     if target == order.status:
         return order
+    # Delivered is only reachable through shipped, so step through it when a poll jumps straight
+    # to delivered (e.g. the first poll after a Qikink shipment already arrived).
+    if target == Order.Status.DELIVERED and order.status in {
+        Order.Status.PAID,
+        Order.Status.PROCESSING,
+    }:
+        order = transition(order, Order.Status.SHIPPED, actor=actor, note="derived from shipments")
     return transition(order, target, actor=actor, note="derived from shipments")
 
 

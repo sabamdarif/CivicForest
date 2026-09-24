@@ -1,29 +1,19 @@
+"""Qikink submission and polling (M7.7, M7.8).
+
+Two things this pins down: submission is idempotent (a retry never places a second print job),
+and a polled Qikink status flows through the custom *shipment*, never straight onto the order,
+so a mixed stock+custom order is derived correctly (rebuild/03-architecture.md §6)."""
+
 import pytest
 from django.core.cache import cache
-from django.core.files.base import ContentFile
 from django.test import override_settings
 
 from apps.custom_orders import services
-from apps.custom_orders.models import CustomDesignOrder
+from apps.custom_orders.models import CustomDesignOrder, DesignUpload
 from apps.custom_orders.qikink import QikinkClient
-from apps.orders.models import Order
-
-from .conftest import make_png_bytes
+from apps.orders.models import Order, OrderItem, Shipment
 
 pytestmark = pytest.mark.django_db
-
-
-def _custom(user, variant, order, review=CustomDesignOrder.ReviewStatus.AUTO_OK):
-    custom = CustomDesignOrder(
-        user=user,
-        order=order,
-        variant=variant,
-        review_status=review,
-        submit_status=CustomDesignOrder.SubmitStatus.PENDING_PAYMENT,
-    )
-    custom.design_file.save("d.png", ContentFile(make_png_bytes()), save=False)
-    custom.save()
-    return custom
 
 
 @pytest.fixture(autouse=True)
@@ -31,6 +21,27 @@ def _clear_cache():
     cache.clear()
     yield
     cache.clear()
+
+
+def _design(user, review=DesignUpload.ReviewStatus.AUTO_OK):
+    return DesignUpload.objects.create(
+        user=user,
+        r2_key_print="designs/print/x.png",
+        status=DesignUpload.Status.READY,
+        review_status=review,
+        width_px=2000,
+        height_px=2000,
+    )
+
+
+def _custom(user, variant, order, review=DesignUpload.ReviewStatus.AUTO_OK):
+    return CustomDesignOrder.objects.create(
+        user=user, order=order, blank_variant=variant, design_upload=_design(user, review)
+    )
+
+
+def _custom_shipment(order):
+    return Shipment.objects.create(order=order, kind=Shipment.Kind.CUSTOM)
 
 
 # ─── Idempotency: a retried submit never creates a duplicate ─────────────────
@@ -49,13 +60,29 @@ def test_submit_is_idempotent(user, variant, paid_order, monkeypatch):
     custom.refresh_from_db()
     assert custom.qikink_order_id == "QK123"
 
-    # Second call (task retry) must be a no-op — no second create_order.
+    # Second call (task retry) must be a no-op: no second create_order.
     assert services.submit_to_qikink(custom) == "already_submitted"
     assert len(calls) == 1
 
 
+def test_payload_types_and_order_number(user, variant, paid_order, monkeypatch):
+    custom = _custom(user, variant, paid_order)
+    captured = {}
+    monkeypatch.setattr(
+        QikinkClient, "create_order", lambda self, p: captured.update(p) or {"order_id": "QK1"}
+    )
+    monkeypatch.setattr(QikinkClient, "_token", lambda self: "tok")
+    services.submit_to_qikink(custom)
+
+    line = captured["line_items"][0]
+    assert line["search_from_my_products"] == 0  # a number
+    assert isinstance(line["quantity"], str) and isinstance(line["price"], str)
+    assert isinstance(captured["total_order_value"], str)
+    assert len(captured["order_number"]) <= 15
+
+
 def test_flagged_design_never_submits(user, variant, paid_order, monkeypatch):
-    custom = _custom(user, variant, paid_order, review=CustomDesignOrder.ReviewStatus.FLAGGED)
+    custom = _custom(user, variant, paid_order, review=DesignUpload.ReviewStatus.FLAGGED)
     monkeypatch.setattr(
         QikinkClient, "create_order", lambda self, p: pytest.fail("must not submit")
     )
@@ -91,60 +118,76 @@ def test_token_is_cached_and_reused(monkeypatch):
 
     assert client._token() == "TESTTOKEN"
     assert client._token() == "TESTTOKEN"  # served from cache
-    # Token endpoint hit exactly once despite two _token() calls.
     assert sends.count("/api/token") == 1
 
 
-# ─── Status mapping: each Qikink status → expected internal order state ───────
-@pytest.mark.parametrize(
-    "qikink_status,expected",
-    [
-        ("Printed", Order.Status.PROCESSING),
-        ("In-Transit", Order.Status.SHIPPED),
-        ("Delivered", Order.Status.DELIVERED),
-    ],
-)
-def test_apply_status_maps_to_order_state(user, variant, paid_order, qikink_status, expected):
+# ─── Status flows through the custom shipment, not the order directly ────────
+def test_in_transit_ships_the_custom_shipment(user, variant, paid_order):
     custom = _custom(user, variant, paid_order)
-    # Order must already be processing before it can ship/deliver (legal chain).
-    from apps.orders import services as order_services
+    shipment = _custom_shipment(paid_order)
 
-    if expected in (Order.Status.SHIPPED, Order.Status.DELIVERED):
-        order_services.transition(paid_order, Order.Status.PROCESSING)
-    if expected == Order.Status.DELIVERED:
-        order_services.transition(paid_order, Order.Status.SHIPPED)
+    services.apply_status(custom, "In-Transit", awb="AWB123", link="https://track/1")
 
-    services.apply_status(custom, qikink_status, awb="AWB123")
+    shipment.refresh_from_db()
+    paid_order.refresh_from_db()
+    assert shipment.shipped_at is not None
+    assert shipment.awb == "AWB123" and shipment.tracking_url == "https://track/1"
+    assert paid_order.status == Order.Status.SHIPPED
+
+
+def test_delivered_marks_shipment_and_order_delivered(user, variant, paid_order):
+    custom = _custom(user, variant, paid_order)
+    shipment = _custom_shipment(paid_order)
+
+    services.apply_status(custom, "Delivered")
+
+    shipment.refresh_from_db()
     paid_order.refresh_from_db()
     custom.refresh_from_db()
-    assert paid_order.status == expected
-    assert custom.tracking_awb == "AWB123"
-
-
-def test_delivered_marks_custom_terminal(user, variant, paid_order):
-    from apps.orders import services as order_services
-
-    order_services.transition(paid_order, Order.Status.PROCESSING)
-    order_services.transition(paid_order, Order.Status.SHIPPED)
-    custom = _custom(user, variant, paid_order)
-    services.apply_status(custom, "Delivered")
-    custom.refresh_from_db()
+    assert shipment.delivered_at is not None
+    assert paid_order.status == Order.Status.DELIVERED
     assert custom.submit_status == CustomDesignOrder.SubmitStatus.TERMINAL
+
+
+def test_in_progress_status_touches_no_timestamp(user, variant, paid_order):
+    custom = _custom(user, variant, paid_order)
+    shipment = _custom_shipment(paid_order)
+
+    services.apply_status(custom, "Printed")
+
+    shipment.refresh_from_db()
+    paid_order.refresh_from_db()
+    assert shipment.shipped_at is None
+    assert paid_order.status == Order.Status.PAID
+
+
+def test_custom_poll_does_not_overship_a_mixed_order(user, variant, paid_order):
+    """The §6 win: a custom shipment going in-transit must not ship the whole order while the
+    stock shipment is still unshipped."""
+    stock_item = OrderItem.objects.create(
+        order=paid_order,
+        variant=variant,
+        product_name="Stock Tee",
+        variant_sku="ST-1",
+        unit_price=paid_order.total,
+        quantity=1,
+        line_total=paid_order.total,
+    )
+    Shipment.objects.create(order=paid_order, kind=Shipment.Kind.STOCK).items.set([stock_item])
+    custom = _custom(user, variant, paid_order)
+    _custom_shipment(paid_order)
+
+    services.apply_status(custom, "In-Transit", awb="AWB9")
+
+    paid_order.refresh_from_db()
+    assert paid_order.status == Order.Status.PARTIALLY_SHIPPED
 
 
 def test_apply_status_rejects_non_http_tracking_link(user, variant, paid_order):
     custom = _custom(user, variant, paid_order)
+    _custom_shipment(paid_order)
 
     services.apply_status(custom, "Printed", link="javascript:alert(1)")
 
     custom.refresh_from_db()
     assert custom.tracking_link == ""
-
-
-def test_apply_status_accepts_https_tracking_link(user, variant, paid_order):
-    custom = _custom(user, variant, paid_order)
-
-    services.apply_status(custom, "Printed", link="https://carrier.example/track/1")
-
-    custom.refresh_from_db()
-    assert custom.tracking_link == "https://carrier.example/track/1"

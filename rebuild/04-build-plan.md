@@ -346,13 +346,13 @@ Tasks:
    inches: exactly Qikink's fields.
 6. Moderation queue in the back-office: artwork at full resolution, approve or reject with a reason,
    customer emailed either way.
-7. `qikink.submit` job: build the payload with **strings** for `quantity`, `price` and
+7. [x] `qikink.submit` job: build the payload with **strings** for `quantity`, `price` and
    `total_order_value` and a **number** for `search_from_my_products`; `order_number` ≤ 15 characters;
    signed URLs for design and mockup; idempotent on `idempotency_key`; only after payment is verified
    **and** review has passed.
-8. `qikink.poll` job plus the 30-minute on-demand piggyback on order views; map Qikink statuses to
+8. [x] `qikink.poll` job plus the 30-minute on-demand piggyback on order views; map Qikink statuses to
    shipment statuses; store AWB and tracking link.
-9. Failure path: alert staff, back off, expose a manual resubmit, never fail silently.
+9. [x] Failure path: alert staff, back off, expose a manual resubmit, never fail silently.
 10. `/account/designs/`: saved artwork, reorder, delete.
 11. [x] Rights acknowledgement checkbox, wording snapshotted onto the order.
 12. Sandbox verification before go-live: `search_from_my_products: 0` with hand-supplied design fields,
