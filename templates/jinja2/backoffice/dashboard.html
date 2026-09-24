@@ -1,12 +1,82 @@
-{# Back-office landing. M8.1 ships the shell and the gate; M8.3 fills the O1 tiles and charts. #}
+{# Back-office dashboard: the fifteen O1 tiles, a revenue sparkline and an orders-by-status bar
+   chart (both hand-rolled SVG, O2), plus supporting panels. Every tile with a link points at the
+   filtered list behind it. #}
 {% extends "base.html" %}
+{% from "_macros/charts.html" import sparkline, bar_chart %}
 
 {% block title %}Dashboard, CivicForest back-office{% endblock %}
 {% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
 
 {% block content %}
-<div class="container">
-  <h1>Back-office</h1>
-  <p>Dashboard tiles and charts arrive in M8.3.</p>
+<div class="container bo">
+  <h1 class="bo__title">Dashboard</h1>
+
+  <div class="bo-tiles">
+    {% for tile in tiles %}
+      {% if tile.url %}
+        <a class="bo-tile" href="{{ tile.url }}">
+          <span class="bo-tile__label">{{ tile.label }}</span>
+          <span class="bo-tile__value">{{ tile.value }}</span>
+        </a>
+      {% else %}
+        <div class="bo-tile">
+          <span class="bo-tile__label">{{ tile.label }}</span>
+          <span class="bo-tile__value">{{ tile.value }}</span>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="bo-charts">
+    <section class="bo-card">
+      <h2 class="bo-card__title">Revenue, last 30 days</h2>
+      {{ sparkline(series) }}
+    </section>
+    <section class="bo-card">
+      <h2 class="bo-card__title">Orders by status</h2>
+      {{ bar_chart(pipeline) }}
+    </section>
+  </div>
+
+  <div class="bo-panels">
+    <section class="bo-card">
+      <h2 class="bo-card__title">Top products, 30 days</h2>
+      {% if top_products %}
+        <ol class="bo-list">
+          {% for row in top_products %}
+            <li><span>{{ row.product_name }}</span><span class="bo-list__num">{{ row.units }}</span></li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="bo-empty">No sales yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="bo-card">
+      <h2 class="bo-card__title">Low stock</h2>
+      {% if low_stock %}
+        <ol class="bo-list">
+          {% for v in low_stock %}
+            <li><span>{{ v.product.name }} ({{ v.size }}/{{ v.color }})</span><span class="bo-list__num">{{ v.stock_quantity }}</span></li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="bo-empty">Nothing below threshold.</p>
+      {% endif %}
+    </section>
+
+    <section class="bo-card">
+      <h2 class="bo-card__title">Recent orders</h2>
+      {% if recent_orders %}
+        <ol class="bo-list">
+          {% for o in recent_orders %}
+            <li><span>{{ o.order_number }}</span><span class="bo-list__num">{{ o.total|rupees(decimals=0) }}</span></li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="bo-empty">No orders yet.</p>
+      {% endif %}
+    </section>
+  </div>
 </div>
 {% endblock %}

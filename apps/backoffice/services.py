@@ -1,0 +1,167 @@
+"""Read-side aggregation for the back-office (dashboards, reports, queues).
+
+Views stay thin by calling these. Nothing here writes; mutations live in the owning app's
+services (orders, cart, catalog). `dashboard_context` is the O1 tile set plus the two chart
+series; it grew out of the admin-index templatetag in `apps.common.templatetags.admin_dashboard`,
+which stays for anyone still on Django admin.
+"""
+
+from __future__ import annotations
+
+from datetime import timedelta
+from decimal import Decimal
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Sum
+from django.db.models.functions import TruncDate
+from django.urls import NoReverseMatch, reverse
+from django.utils import timezone
+
+from apps.cart import services as cart_services
+from apps.cart.models import Cart, CouponRedemption
+from apps.catalog.models import ProductVariant
+from apps.common.formatting import rupees
+from apps.custom_orders.models import CustomDesignOrder, DesignUpload
+from apps.orders.models import Order, OrderItem
+from apps.payments.models import Payment
+from apps.search.models import SearchQueryLog
+
+# Money captured and not reversed. Refunded and cancelled are excluded on purpose.
+REVENUE_STATUSES = [
+    Order.Status.PAID,
+    Order.Status.PROCESSING,
+    Order.Status.PARTIALLY_SHIPPED,
+    Order.Status.SHIPPED,
+    Order.Status.DELIVERED,
+]
+
+
+def _maybe(name: str, **query) -> str | None:
+    """A back-office URL if it exists yet, else None.
+
+    Tiles link to lists built in later M8 tasks; a tile renders without its link until then, so
+    the dashboard never has to wait for the whole milestone."""
+    try:
+        url = reverse(f"backoffice:{name}")
+    except NoReverseMatch:
+        return None
+    if query:
+        from urllib.parse import urlencode
+
+        url = f"{url}?{urlencode(query)}"
+    return url
+
+
+def dashboard_context() -> dict:
+    today = timezone.localdate()
+    start_30 = today - timedelta(days=29)
+    start_7 = today - timedelta(days=6)
+
+    window = Order.objects.filter(status__in=REVENUE_STATUSES, created_at__date__gte=start_30)
+    by_day = {
+        row["day"]: row
+        for row in window.annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(revenue=Sum("total"), count=Count("id"))
+        .order_by()
+    }
+    series = []
+    for i in range(30):
+        day = start_30 + timedelta(days=i)
+        row = by_day.get(day, {})
+        series.append(
+            {
+                "label": f"{day.day} {day.strftime('%b')}",
+                "revenue": float(row.get("revenue") or 0),
+                "orders": row.get("count") or 0,
+            }
+        )
+
+    revenue_30d = window.aggregate(t=Sum("total"))["t"] or Decimal("0")
+    revenue_7d = window.filter(created_at__date__gte=start_7).aggregate(t=Sum("total"))[
+        "t"
+    ] or Decimal("0")
+    revenue_today = by_day.get(today, {}).get("revenue") or Decimal("0")
+    orders_30d = window.count()
+    units_30d = (
+        OrderItem.objects.filter(
+            order__status__in=REVENUE_STATUSES, order__created_at__date__gte=start_30
+        ).aggregate(u=Sum("quantity"))["u"]
+        or 0
+    )
+    new_customers = get_user_model().objects.filter(date_joined__date__gte=start_30).count()
+    carts_30d = Cart.objects.filter(created_at__date__gte=start_30).count()
+    abandoned = cart_services.carts_awaiting_reminder().count()
+
+    status_counts = {
+        row["status"]: row["count"]
+        for row in Order.objects.values("status").annotate(count=Count("id")).order_by()
+    }
+    awaiting = status_counts.get(Order.Status.PAID, 0) + status_counts.get(
+        Order.Status.PROCESSING, 0
+    )
+    pending_reviews = DesignUpload.objects.filter(
+        review_status=DesignUpload.ReviewStatus.FLAGGED
+    ).count()
+    failed_qikink = CustomDesignOrder.objects.filter(
+        submit_status=CustomDesignOrder.SubmitStatus.FAILED
+    ).count()
+    failed_payments = Payment.objects.filter(
+        status=Payment.Status.FAILED, created_at__date__gte=start_30
+    ).count()
+    coupon_uses = CouponRedemption.objects.filter(created_at__date__gte=start_30).count()
+    zero_results = SearchQueryLog.objects.filter(
+        result_count=0, created_at__date__gte=start_30
+    ).count()
+    conversion = (orders_30d / carts_30d * 100) if carts_30d else 0
+
+    tiles = [
+        _tile("Revenue today", rupees(revenue_today, decimals=0)),
+        _tile("Revenue, 7 days", rupees(revenue_7d, decimals=0)),
+        _tile("Revenue, 30 days", rupees(revenue_30d, decimals=0)),
+        _tile("Orders, 30 days", f"{orders_30d:,}", _maybe("orders")),
+        _tile(
+            "Avg order value",
+            rupees(revenue_30d / orders_30d, decimals=0) if orders_30d else "no orders",
+        ),
+        _tile("Units sold, 30 days", f"{units_30d:,}"),
+        _tile("New customers, 30 days", f"{new_customers:,}", _maybe("customers")),
+        _tile("Awaiting fulfilment", f"{awaiting:,}", _maybe("orders", view="awaiting")),
+        _tile("Designs to review", f"{pending_reviews:,}", _maybe("designs")),
+        _tile("Failed Qikink jobs", f"{failed_qikink:,}", _maybe("designs", submit="failed")),
+        _tile(
+            "Failed payments, 30 days", f"{failed_payments:,}", _maybe("orders", payment="failed")
+        ),
+        _tile("Abandoned carts", f"{abandoned:,}"),
+        _tile("Coupon uses, 30 days", f"{coupon_uses:,}", _maybe("coupons")),
+        _tile("Zero-result searches, 30 days", f"{zero_results:,}"),
+        _tile("Conversion rate, 30 days", f"{conversion:.1f}%"),
+    ]
+
+    return {
+        "tiles": tiles,
+        "series": series,
+        "pipeline": [
+            {"value": value, "label": label, "count": status_counts.get(value, 0)}
+            for value, label in Order.Status.choices
+        ],
+        "top_products": list(
+            OrderItem.objects.filter(
+                order__status__in=REVENUE_STATUSES, order__created_at__date__gte=start_30
+            )
+            .values("product_name")
+            .annotate(units=Sum("quantity"))
+            .order_by("-units")[:8]
+        ),
+        "low_stock": ProductVariant.objects.filter(
+            is_active=True, stock_quantity__lte=settings.LOW_STOCK_THRESHOLD
+        )
+        .select_related("product")
+        .order_by("stock_quantity")[:8],
+        "recent_orders": Order.objects.select_related("user")[:10],
+    }
+
+
+def _tile(label: str, value: str, url: str | None = None) -> dict:
+    return {"label": label, "value": value, "url": url}

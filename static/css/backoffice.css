@@ -60,3 +60,131 @@
   gap: var(--space-2);
   max-width: 24rem;
 }
+
+/* ── Dashboard (M8.3) ─────────────────────────────────────────────────────── */
+
+.bo {
+  padding-block: var(--space-6);
+}
+
+.bo__title {
+  margin-bottom: var(--space-5);
+}
+
+.bo-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--space-3);
+}
+
+.bo-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: inherit;
+  text-decoration: none;
+}
+
+a.bo-tile:hover {
+  border-color: var(--gold-deep);
+}
+
+.bo-tile__label {
+  color: var(--muted);
+  font-size: var(--step--2);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.bo-tile__value {
+  font-family: var(--font-display);
+  font-size: var(--step-3);
+}
+
+.bo-charts,
+.bo-panels {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.bo-charts {
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+}
+
+.bo-panels {
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.bo-card {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.bo-card__title {
+  margin-bottom: var(--space-3);
+  font-size: var(--step-0);
+}
+
+.bo-chart {
+  width: 100%;
+  height: auto;
+}
+
+.bo-chart--spark {
+  height: 7.5rem;
+}
+
+.bo-chart__line {
+  stroke: var(--gold-deep);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.bo-chart__col {
+  fill: var(--gold-deep);
+}
+
+.bo-chart__count {
+  fill: var(--ink);
+  font-size: 11px;
+}
+
+.bo-chart__tick {
+  fill: var(--muted);
+  font-size: 10px;
+}
+
+.bo-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bo-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+
+.bo-list li:first-child {
+  border-top: 0;
+}
+
+.bo-list__num {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.bo-empty {
+  margin: 0;
+  color: var(--muted);
+}

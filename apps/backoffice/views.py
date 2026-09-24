@@ -11,13 +11,17 @@ from django.http import Http404
 from django.shortcuts import render
 from django.views.generic import TemplateView
 
+from . import services
 from .mixins import StaffRequiredMixin
 
 
 class DashboardView(StaffRequiredMixin, TemplateView):
-    """The back-office landing. M8.3 fills the O1 tiles and charts."""
+    """The back-office landing: the O1 tiles and the two hand-rolled SVG charts."""
 
     template_name = "backoffice/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), **services.dashboard_context()}
 
 
 def styleguide(request):
