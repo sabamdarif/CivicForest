@@ -7,6 +7,7 @@ mutate ``Order.status`` or stock directly. The state machine rejects illegal jum
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import timedelta
 
 from django.db import transaction
@@ -125,6 +126,28 @@ def recompute_order_status_from_shipments(order: Order, *, actor=None) -> Order:
     }:
         order = transition(order, Order.Status.SHIPPED, actor=actor, note="derived from shipments")
     return transition(order, target, actor=actor, note="derived from shipments")
+
+
+def bulk_transition(order_ids, to_status: str, *, actor=None, note: str = "") -> dict:
+    """Move many orders to ``to_status`` from a single staff action (M8.4 bulk update).
+
+    Each order transitions in its own atomic block through ``transition``, so one illegal jump
+    is skipped rather than rolling back the rest. Ids that are not valid UUIDs are dropped, so a
+    tampered form value cannot crash the query. Returns the moved and skipped counts."""
+    valid = []
+    for raw in order_ids:
+        try:
+            valid.append(uuid.UUID(str(raw)))
+        except (ValueError, TypeError):
+            continue
+    moved = skipped = 0
+    for order in Order.objects.filter(pk__in=valid):
+        try:
+            transition(order, to_status, actor=actor, note=note)
+            moved += 1
+        except OrderError:
+            skipped += 1
+    return {"moved": moved, "skipped": skipped}
 
 
 @transaction.atomic

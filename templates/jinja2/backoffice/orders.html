@@ -1,0 +1,105 @@
+{# Back-office order queue (M8.4): saved-view presets, a GET filter form, a POST bulk-status
+   form over the results, streamed CSV export and numbered pagination. Works with no JavaScript:
+   filtering and bulk update are plain form posts. #}
+{% extends "base.html" %}
+{% from "_macros/pagination.html" import pagination %}
+
+{% block title %}Orders, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Orders</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <nav class="bo-tabs" aria-label="Saved views">
+    <a class="bo-tab {{ 'bo-tab--on' if not filters.get('view') else '' }}" href="{{ url('backoffice:orders') }}">All</a>
+    {% for v in saved_views %}
+      <a class="bo-tab {{ 'bo-tab--on' if v.active else '' }}" href="?view={{ v.key }}">{{ v.label }}</a>
+    {% endfor %}
+  </nav>
+
+  <form class="bo-filters" method="get" action="{{ url('backoffice:orders') }}">
+    <label>Status
+      <select name="status">
+        <option value="">Any</option>
+        {% for value, label in status_choices %}
+          <option value="{{ value }}" {{ 'selected' if value in (filters.get('status') or []) else '' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Fulfilment
+      <select name="fulfilment">
+        <option value="">Any</option>
+        {% for value, label in fulfilment_choices %}
+          <option value="{{ value }}" {{ 'selected' if value in (filters.get('fulfilment') or []) else '' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Payment
+      <select name="payment">
+        <option value="">Any</option>
+        {% for value, label in payment_choices %}
+          <option value="{{ value }}" {{ 'selected' if value == filters.get('payment') else '' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>From <input type="date" name="date_from" value="{{ filters.get('date_from') or '' }}"></label>
+    <label>To <input type="date" name="date_to" value="{{ filters.get('date_to') or '' }}"></label>
+    <label>Search <input type="search" name="q" value="{{ filters.get('q') or '' }}" placeholder="Order # or email" maxlength="64"></label>
+    <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+    <a class="btn btn--ghost btn--sm" href="?{{ query }}{{ '&' if query else '' }}export=csv">Export CSV</a>
+  </form>
+
+  <form method="post" action="{{ url('backoffice:order_bulk') }}">
+    {{ csrf_input }}
+    <input type="hidden" name="next" value="{{ query }}">
+    <div class="bo-bulk">
+      <label>With selected
+        <select name="to_status">
+          <option value="">Set status</option>
+          {% for value, label in bulk_statuses %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </label>
+      <button type="submit" class="btn btn--primary btn--sm">Apply</button>
+    </div>
+
+    <table class="bo-table">
+      <thead>
+        <tr>
+          <th scope="col"><span class="sr-only">Select</span></th>
+          <th scope="col">Order</th>
+          <th scope="col">Date</th>
+          <th scope="col">Customer</th>
+          <th scope="col">Status</th>
+          <th scope="col">Fulfilment</th>
+          <th scope="col">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+          <tr>
+            <td><input type="checkbox" name="ids" value="{{ o.id }}" aria-label="Select {{ o.order_number }}"></td>
+            <td>{{ o.order_number }}</td>
+            <td>{{ o.created_at.date() }}</td>
+            <td>{{ o.email }}</td>
+            <td><span class="bo-status bo-status--{{ o.status }}">{{ o.get_status_display() }}</span></td>
+            <td>{{ o.get_fulfilment_kind_display() }}</td>
+            <td>{{ o.total|rupees(decimals=0) }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="bo-empty">No orders match these filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </form>
+
+  {{ pagination(orders.number, orders.paginator.num_pages, query) }}
+</div>
+{% endblock %}

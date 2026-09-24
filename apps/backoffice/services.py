@@ -8,15 +8,18 @@ which stays for anyone still on Django admin.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Sum
+from django.core.paginator import Page, Paginator
+from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 from apps.cart import services as cart_services
 from apps.cart.models import Cart, CouponRedemption
@@ -165,3 +168,119 @@ def dashboard_context() -> dict:
 
 def _tile(label: str, value: str, url: str | None = None) -> dict:
     return {"label": label, "value": value, "url": url}
+
+
+# ── Order queue (M8.4) ─────────────────────────────────────────────────────────
+# Saved views are named query-string presets, not stored rows (O3): a link that seeds the whole
+# filter set. The dashboard's "Awaiting fulfilment" and "Failed payments" tiles link to these.
+ORDER_SAVED_VIEWS: dict[str, dict] = {
+    "awaiting": {
+        "label": "Awaiting dispatch",
+        "filters": {"status": [Order.Status.PAID, Order.Status.PROCESSING]},
+    },
+    "custom_review": {
+        "label": "Custom pending review",
+        "filters": {
+            "fulfilment": [Order.Fulfilment.CUSTOM, Order.Fulfilment.MIXED],
+            "status": [Order.Status.PAID, Order.Status.PROCESSING],
+        },
+    },
+    "payment_failed": {"label": "Payment failed", "filters": {"payment": "failed"}},
+}
+
+# The statuses a bulk action may set. Refund is excluded on purpose: it moves money and belongs
+# on the guarded per-order action (M8.5), not a multi-select.
+BULK_STATUS_CHOICES = [
+    (Order.Status.PROCESSING, "Processing"),
+    (Order.Status.SHIPPED, "Shipped"),
+    (Order.Status.DELIVERED, "Delivered"),
+    (Order.Status.CANCELLED, "Cancelled"),
+]
+
+ORDER_CSV_HEADER = [
+    "order_number",
+    "created_at",
+    "status",
+    "fulfilment",
+    "email",
+    "subtotal",
+    "discount",
+    "shipping_fee",
+    "total",
+    "coupon_code",
+]
+
+ORDER_QUEUE_PAGE_SIZE = 50
+
+
+def parse_order_filters(params) -> dict:
+    """Normalise the queue's GET params. A ``view`` naming a saved preset supplies the whole
+    filter set; otherwise the explicit params are read. Every value is checked against the model
+    choices, so a hand-edited query string cannot inject an unknown lookup."""
+    view = params.get("view")
+    if view in ORDER_SAVED_VIEWS:
+        return {"view": view, **ORDER_SAVED_VIEWS[view]["filters"]}
+
+    filters: dict = {}
+    statuses = [s for s in params.getlist("status") if s in Order.Status.values]
+    if statuses:
+        filters["status"] = statuses
+    kinds = [k for k in params.getlist("fulfilment") if k in Order.Fulfilment.values]
+    if kinds:
+        filters["fulfilment"] = kinds
+    if params.get("payment") in Payment.Status.values:
+        filters["payment"] = params["payment"]
+    for key in ("date_from", "date_to"):
+        parsed = parse_date(params.get(key) or "")
+        if parsed:
+            filters[key] = parsed
+    q = (params.get("q") or "").strip()
+    if q:
+        filters["q"] = q[:64]
+    return filters
+
+
+def _order_queryset(filters: dict):
+    qs = Order.objects.select_related("user").order_by("-created_at")
+    if filters.get("status"):
+        qs = qs.filter(status__in=filters["status"])
+    if filters.get("fulfilment"):
+        qs = qs.filter(fulfilment_kind__in=filters["fulfilment"])
+    if filters.get("payment"):
+        qs = qs.filter(payments__status=filters["payment"]).distinct()
+    if filters.get("date_from"):
+        qs = qs.filter(created_at__date__gte=filters["date_from"])
+    if filters.get("date_to"):
+        qs = qs.filter(created_at__date__lte=filters["date_to"])
+    if filters.get("q"):
+        qs = qs.filter(Q(order_number__icontains=filters["q"]) | Q(email__icontains=filters["q"]))
+    return qs
+
+
+def order_queue(filters: dict, page) -> Page:
+    return Paginator(_order_queryset(filters), ORDER_QUEUE_PAGE_SIZE).get_page(page)
+
+
+def order_queue_rows(filters: dict) -> Iterator[list]:
+    """CSV rows for the current filter set, streamed off a queryset iterator so the export never
+    buffers the whole table (the 4.5 MB response cap)."""
+    for o in _order_queryset(filters).iterator():
+        yield [
+            o.order_number,
+            o.created_at.isoformat(),
+            o.get_status_display(),
+            o.get_fulfilment_kind_display(),
+            o.email,
+            o.subtotal,
+            o.discount,
+            o.shipping_fee,
+            o.total,
+            o.coupon_code,
+        ]
+
+
+def order_saved_views(active: str | None) -> list[dict]:
+    return [
+        {"key": key, "label": preset["label"], "active": key == active}
+        for key, preset in ORDER_SAVED_VIEWS.items()
+    ]

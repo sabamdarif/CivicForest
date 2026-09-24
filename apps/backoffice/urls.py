@@ -12,4 +12,6 @@ app_name = "backoffice"
 
 urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
+    path("orders/", views.OrderQueueView.as_view(), name="orders"),
+    path("orders/bulk/", views.OrderBulkActionView.as_view(), name="order_bulk"),
 ]

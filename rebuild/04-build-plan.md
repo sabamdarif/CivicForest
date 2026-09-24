@@ -378,7 +378,7 @@ Tasks:
    created by a `bootstrap_roles` management command so they are reproducible, not hand-clicked.
 3. [x] Dashboard: the fifteen tiles from O1, a 30-day revenue sparkline and a status bar chart, both
    hand-rolled inline SVG. Every tile links to the filtered list behind it.
-4. [ ] Order queue: filters, saved views ("awaiting dispatch", "custom pending review", "payment failed"),
+4. [x] Order queue: filters, saved views ("awaiting dispatch", "custom pending review", "payment failed"),
    bulk selection, CSV export streamed rather than buffered (the 4.5 MB response cap).
 5. [ ] Order detail: both timelines, per-shipment carrier and AWB entry, guarded transitions, cancel,
    refund, resend any email, internal notes, packing slip print view. Invoice dropped with GST
