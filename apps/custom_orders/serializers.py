@@ -1,66 +1,83 @@
-from __future__ import annotations
+"""Serializers for the custom-print API.
 
-from urllib.parse import urlsplit
+The upload path never carries image bytes: the client declares a content type and size, gets
+a presigned PUT, and uploads straight to R2 (M7.2). These serializers bound the declared
+values and shape the design rows read back to the account area."""
+
+from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.catalog.models import ProductVariant
+from apps.common import r2
 
-from .models import CustomDesignOrder
+from .models import CustomDesignOrder, DesignUpload
+from .uploads import ALLOWED_MIME
 
 
-class CustomDesignCreateSerializer(serializers.Serializer):
-    """Upload input. The image itself is validated/re-encoded in the service layer; the
-    client-supplied print params are bounded here."""
+class UploadUrlSerializer(serializers.Serializer):
+    """Input for minting a presigned upload URL. The real bytes are validated out of band by
+    the sanitise step; here only the client's declared type and size are bounded."""
 
-    design = serializers.FileField()
-    variant_id = serializers.UUIDField()
-    print_type_id = serializers.IntegerField(min_value=1, max_value=99, default=1)
-    placement_sku = serializers.CharField(max_length=8, default="fr")
-    width_inches = serializers.DecimalField(max_digits=5, decimal_places=2, default=12)
-    height_inches = serializers.DecimalField(max_digits=5, decimal_places=2, default=14)
-    quantity = serializers.IntegerField(min_value=1, max_value=20, default=1)
+    content_type = serializers.ChoiceField(choices=sorted(ALLOWED_MIME))
+    bytes = serializers.IntegerField(min_value=1)
 
-    def validate_variant_id(self, value):
-        if not ProductVariant.objects.filter(id=value, is_active=True).exists():
-            raise serializers.ValidationError("Unknown or inactive variant.")
+    def validate_bytes(self, value):
+        from django.conf import settings
+
+        cap = getattr(settings, "DESIGN_UPLOAD_MAX_BYTES", 15 * 1024 * 1024)
+        if value > cap:
+            raise serializers.ValidationError(f"File is too large (max {cap // (1024 * 1024)} MB).")
         return value
 
 
-class CustomDesignOrderSerializer(serializers.ModelSerializer):
-    """Read shape — includes Qikink tracking once available. The design file URL is not
-    exposed directly; it's served via signed URLs to the print partner only."""
+class DesignUploadSerializer(serializers.ModelSerializer):
+    """Read shape for a design. The R2 keys are never exposed; the preview is a short-lived
+    signed GET so a raw design is never publicly addressable."""
 
-    design_url = serializers.SerializerMethodField()
-    tracking_link = serializers.SerializerMethodField()
+    preview_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DesignUpload
+        fields = [
+            "id",
+            "status",
+            "review_status",
+            "review_reason",
+            "width_px",
+            "height_px",
+            "dpi_estimate",
+            "preview_url",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+    def get_preview_url(self, obj) -> str:
+        return r2.signed_get_url(obj.r2_key_print) if obj.r2_key_print else ""
+
+
+class CustomDesignOrderSerializer(serializers.ModelSerializer):
+    """Read shape for a custom line, including Qikink tracking once available."""
+
+    design = DesignUploadSerializer(source="design_upload", read_only=True)
 
     class Meta:
         model = CustomDesignOrder
         fields = [
             "id",
-            "variant",
-            "print_type_id",
+            "blank_variant",
             "placement_sku",
             "width_inches",
             "height_inches",
+            "back_placement_sku",
+            "back_width_inches",
+            "back_height_inches",
             "quantity",
-            "review_status",
+            "print_surcharge",
             "submit_status",
             "qikink_status",
             "tracking_awb",
             "tracking_link",
-            "design_url",
+            "design",
             "created_at",
         ]
         read_only_fields = fields
-
-    def get_tracking_link(self, obj) -> str:
-        link = obj.tracking_link or ""
-        return link if urlsplit(link).scheme.lower() in {"http", "https"} else ""
-
-    def get_design_url(self, obj) -> str | None:
-        if not obj.design_file:
-            return None
-        request = self.context.get("request")
-        url = obj.design_file.url
-        return request.build_absolute_uri(url) if request else url

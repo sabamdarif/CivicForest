@@ -329,11 +329,11 @@ Tasks:
 
 1. [x] Models: `CustomBlank` with per-blank print areas in inches and pixel offsets for preview,
    `DesignUpload`, and the `CustomDesignOrder` extensions.
-2. R2 direct upload: `POST /api/v1/designs/upload-url/` authenticates the user, validates the declared
+2. [x] R2 direct upload: `POST /api/v1/designs/upload-url/` authenticates the user, validates the declared
    content type and size, and returns a presigned PUT valid for 5 minutes into the **private** bucket
    under a random key. The browser uploads directly. **Django never receives the bytes**. That is mandatory,
    because the Vercel body cap is 4.5 MB and print artwork exceeds it.
-3. `designs.sanitise` job: fetch from R2 into `/tmp`, content-sniff the real MIME with `filetype`,
+3. [x] `designs.sanitise` job: fetch from R2 into `/tmp`, content-sniff the real MIME with `filetype`,
    `Image.verify()`, cap dimensions, estimate effective DPI against the requested print size, re-encode
    to a clean PNG stripping EXIF and ICC, write the print-ready file back to R2, delete the raw file.
    This is the existing `uploads.py` logic moved out of the request path.

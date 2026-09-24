@@ -1,9 +1,15 @@
-from django.urls import include, path
-from rest_framework.routers import DefaultRouter
+"""Custom-print JSON routes, mounted under /api/v1/.
 
-from .views import CustomDesignViewSet
+The design tool posts here: mint an upload URL, then confirm the upload to trigger sanitise.
+``dev-upload`` is the local stand-in for R2 and is inert once a real bucket is configured.
+"""
 
-router = DefaultRouter(trailing_slash=False)
-router.register("custom-designs", CustomDesignViewSet, basename="custom-design")
+from django.urls import path
 
-urlpatterns = [path("", include(router.urls))]
+from . import views
+
+urlpatterns = [
+    path("designs/upload-url/", views.DesignUploadUrlView.as_view(), name="design-upload-url"),
+    path("designs/dev-upload/", views.dev_upload, name="designs-dev-upload"),
+    path("designs/<uuid:pk>/complete/", views.DesignCompleteView.as_view(), name="design-complete"),
+]

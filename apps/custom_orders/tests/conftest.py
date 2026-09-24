@@ -25,8 +25,17 @@ def make_png_bytes(size=(64, 64), color=(200, 40, 40), *, with_exif=False) -> by
 
 @pytest.fixture(autouse=True)
 def _tmp_media(settings, tmp_path):
-    """Keep design uploads out of the real ``mediafiles/`` dir during tests."""
+    """Keep design uploads out of the real ``mediafiles/``/``designfiles/`` dirs during tests.
+
+    Reassigning ``settings.STORAGES`` resets Django's storage handler, so the ``designs``
+    storage points at the temp dir for the duration of each test."""
     settings.MEDIA_ROOT = str(tmp_path)
+    storages_conf = dict(settings.STORAGES)
+    storages_conf["designs"] = {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": str(tmp_path / "designs"), "base_url": "/designfiles/"},
+    }
+    settings.STORAGES = storages_conf
 
 
 @pytest.fixture
