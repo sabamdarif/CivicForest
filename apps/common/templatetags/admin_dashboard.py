@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from apps.catalog.models import ProductVariant
 from apps.common.formatting import rupees
-from apps.custom_orders.models import CustomDesignOrder
+from apps.custom_orders.models import DesignUpload
 from apps.orders.models import Order
 
 register = template.Library()
@@ -60,9 +60,7 @@ def admin_dashboard():
     awaiting = status_counts.get(Order.Status.PAID, 0) + status_counts.get(
         Order.Status.PROCESSING, 0
     )
-    flagged = CustomDesignOrder.objects.filter(
-        review_status=CustomDesignOrder.ReviewStatus.FLAGGED
-    ).count()
+    flagged = DesignUpload.objects.filter(review_status=DesignUpload.ReviewStatus.FLAGGED).count()
 
     return {
         "tiles": [

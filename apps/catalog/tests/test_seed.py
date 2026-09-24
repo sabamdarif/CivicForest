@@ -73,7 +73,7 @@ def test_running_it_twice_changes_nothing():
 
 def test_it_fills_in_a_field_that_did_not_exist_when_the_row_was_written():
     call_command("seed_catalog")
-    product = Product.objects.first()
+    product = Product.objects.filter(is_custom_blank=False).first()
     Product.objects.filter(pk=product.pk).update(care_instructions="")
 
     call_command("seed_catalog")
@@ -84,7 +84,7 @@ def test_it_fills_in_a_field_that_did_not_exist_when_the_row_was_written():
 
 def test_it_does_not_overwrite_a_real_edit():
     call_command("seed_catalog")
-    product = Product.objects.first()
+    product = Product.objects.filter(is_custom_blank=False).first()
     Product.objects.filter(pk=product.pk).update(fit_notes="Oversized, size down.")
 
     call_command("seed_catalog")

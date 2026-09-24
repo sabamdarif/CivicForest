@@ -137,10 +137,16 @@ def test_webhook_rejects_amount_mismatch_without_touching_order(user, variant):
 
 @override_settings(RAZORPAY_WEBHOOK_SECRET="whsec_test_secret")
 def test_distinct_capture_events_submit_custom_order_once(user, variant):
-    custom = CustomDesignOrder.objects.create(
-        user=user, variant=variant, design_file="designs/test-design.png"
+    custom = CustomDesignOrder.objects.create(user=user, blank_variant=variant)
+    cart = Cart.objects.create(user=user)
+    CartItem.objects.create(cart=cart, variant=variant, quantity=1, custom_design=custom)
+    order = order_services.create_order_from_cart(user, cart, SHIPPING)
+    Payment.objects.create(
+        order=order,
+        gateway_order_id="order_PAY1",
+        amount=order.total,
+        currency=order.currency,
     )
-    order, _, _ = _order_with_payment(user, variant)
     custom.refresh_from_db()
     assert custom.order_id == order.id
 

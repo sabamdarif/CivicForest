@@ -34,8 +34,7 @@ def test_shipped_email_includes_tracking_awb(order):
     CustomDesignOrder.objects.create(
         user=order.user,
         order=order,
-        variant=order.items.first().variant,
-        design_file="designs/x.png",
+        blank_variant=order.items.first().variant,
         tracking_awb="AWB123456",
     )
     send_order_email(str(order.pk), "shipped")

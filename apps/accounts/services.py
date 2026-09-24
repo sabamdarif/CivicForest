@@ -81,23 +81,26 @@ def _export_order(order) -> dict:
 
 
 def _export_design(design) -> dict:
+    upload = design.design_upload
     return {
         "id": str(design.pk),
         "order_number": design.order.order_number if design.order_id else None,
-        "variant_sku": design.variant.sku if design.variant_id else None,
+        "variant_sku": design.blank_variant.sku if design.blank_variant_id else None,
         "print_type_id": design.print_type_id,
         "placement_sku": design.placement_sku,
         "width_inches": str(design.width_inches),
         "height_inches": str(design.height_inches),
         "quantity": design.quantity,
-        "review_status": design.review_status,
+        "review_status": upload.review_status if upload else None,
         "submit_status": design.submit_status,
         "qikink_order_id": design.qikink_order_id,
         "qikink_status": design.qikink_status,
         "tracking_awb": design.tracking_awb,
         "tracking_link": design.tracking_link,
-        "design_file": design.design_file.name or None,
-        "mockup_file": design.mockup_file.name or None,
+        "design_upload_id": str(design.design_upload_id) if design.design_upload_id else None,
+        "back_design_upload_id": (
+            str(design.back_design_upload_id) if design.back_design_upload_id else None
+        ),
         "created_at": design.created_at.isoformat(),
         "submitted_at": _iso(design.submitted_at),
     }
@@ -313,7 +316,7 @@ def export_payload(user: User) -> dict:
         "custom_designs": [
             _export_design(design)
             for design in CustomDesignOrder.objects.filter(user=user).select_related(
-                "order", "variant"
+                "order", "blank_variant", "design_upload"
             )
         ],
         "data_requests": [
