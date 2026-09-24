@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Customise your own | CivicForest{% endblock %}
+{% block description %}Print your own artwork on a premium blank. Upload, place it, and we print and ship it.{% endblock %}
+
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/designer.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container customise-landing">
+  <header class="customise-landing__intro">
+    <h1>Customise your own</h1>
+    <p>Upload your artwork, place it on the garment, and we print and ship it. No minimums.</p>
+  </header>
+
+  <section aria-labelledby="blanks-heading" class="customise-landing__blanks">
+    <h2 id="blanks-heading">Choose a blank</h2>
+    <ul class="blank-grid" role="list">
+      {% for blank in blanks %}
+      <li class="blank-card">
+        <a href="{{ blank.get_absolute_url() }}" class="blank-card__link">
+          <span class="blank-card__name">{{ blank.product.name }}</span>
+          {% if blank.tagline %}<span class="blank-card__tagline">{{ blank.tagline }}</span>{% endif %}
+          <span class="blank-card__price">from {{ blank.product.base_price|rupees }}</span>
+        </a>
+      </li>
+      {% else %}
+      <li class="empty-state">No blanks are available right now. Please check back soon.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section aria-labelledby="how-heading" class="customise-landing__how">
+    <h2 id="how-heading">How it works</h2>
+    <ol class="how-steps">
+      <li><strong>Pick a blank</strong> and a colour and size.</li>
+      <li><strong>Upload your artwork</strong> and drag it into the print area.</li>
+      <li><strong>Add to cart and pay.</strong> We review the artwork, print it, and ship it to you.</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="pricing-heading" class="customise-landing__pricing">
+    <h2 id="pricing-heading">Pricing and turnaround</h2>
+    <p>The blank's price plus a print charge that depends on how large your design is. The exact
+       total is always shown before you pay, with every charge itemised.</p>
+    <p>Custom items are printed to order and dispatched in {{ dispatch_days|default('1 to 2') }}
+       working days, then delivered in {{ delivery_days|default('3 to 7') }} days.</p>
+  </section>
+
+  <section aria-labelledby="returns-heading" class="customise-landing__returns">
+    <h2 id="returns-heading">Returns on custom items</h2>
+    <p>Because each custom item is printed just for you, it can be returned only if it arrives
+       defective, misprinted or damaged. Report it within 7 days of delivery with an unboxing
+       video and photos of the item and its packaging. Change of mind and wrong size are not
+       covered, and there is no size exchange on custom prints.</p>
+  </section>
+</div>
+{% endblock %}

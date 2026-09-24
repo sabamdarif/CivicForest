@@ -337,9 +337,9 @@ Tasks:
    `Image.verify()`, cap dimensions, estimate effective DPI against the requested print size, re-encode
    to a clean PNG stripping EXIF and ICC, write the print-ready file back to R2, delete the raw file.
    This is the existing `uploads.py` logic moved out of the request path.
-4. `/customise/` landing: the six blanks, how it works, pricing, turnaround, the defect-only return
+4. [x] `/customise/` landing: the six blanks, how it works, pricing, turnaround, the defect-only return
    policy stated plainly.
-5. The design tool (`static/js/designer.js`, ~400 lines, no dependencies): upload or pick a saved
+5. [x] The design tool (`static/js/designer.js`, ~400 lines, no dependencies): upload or pick a saved
    design, front/back tabs, drag and pinch to position, scale handles clamped to the print area,
    dashed print-area outline, live price as print size changes, a resolution warning when the raster is
    too small, colour and size selection, add to cart. Serialises to placement SKU, width and height in
@@ -354,7 +354,7 @@ Tasks:
    shipment statuses; store AWB and tracking link.
 9. Failure path: alert staff, back off, expose a manual resubmit, never fail silently.
 10. `/account/designs/`: saved artwork, reorder, delete.
-11. Rights acknowledgement checkbox, wording snapshotted onto the order.
+11. [x] Rights acknowledgement checkbox, wording snapshotted onto the order.
 12. Sandbox verification before go-live: `search_from_my_products: 0` with hand-supplied design fields,
     because sandbox cannot see live dashboard products. Record the real print type IDs and placement
     SKUs from your dashboard's Postman collection into `02-research.md` §3 as you find them.

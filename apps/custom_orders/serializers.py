@@ -76,6 +76,16 @@ class AddToCartSerializer(serializers.Serializer):
     quantity = serializers.IntegerField(min_value=1, max_value=20, default=1)
     rights_accepted = serializers.BooleanField()
 
+    # Optional second placement (the back tab). Present only when the customer printed a back.
+    back_design_id = serializers.UUIDField(required=False, allow_null=True)
+    back_placement_sku = serializers.CharField(max_length=8, required=False, default="bk")
+    back_width_inches = serializers.DecimalField(
+        max_digits=5, decimal_places=2, min_value=Decimal("0.5"), required=False, allow_null=True
+    )
+    back_height_inches = serializers.DecimalField(
+        max_digits=5, decimal_places=2, min_value=Decimal("0.5"), required=False, allow_null=True
+    )
+
 
 class CustomDesignOrderSerializer(serializers.ModelSerializer):
     """Read shape for a custom line, including Qikink tracking once available."""

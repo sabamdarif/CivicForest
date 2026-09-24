@@ -234,6 +234,15 @@ def surcharge_for(blank: CustomBlank, width_in, height_in) -> Decimal:
     return Decimal(str(tiers[-1]["surcharge"]))
 
 
+def _check_design(user, design: DesignUpload) -> None:
+    if design.user_id != user.id:
+        raise CustomOrderError("Unknown design.", code="unknown_design")
+    if design.status != DesignUpload.Status.READY:
+        raise CustomOrderError("That design is not print-ready yet.", code="design_not_ready")
+    if design.review_status == DesignUpload.ReviewStatus.REJECTED:
+        raise CustomOrderError("That design was rejected in review.", code="design_rejected")
+
+
 def add_design_to_cart(
     user,
     *,
@@ -246,9 +255,13 @@ def add_design_to_cart(
     height_inches,
     quantity: int,
     rights_accepted: bool,
+    back: dict | None = None,
 ) -> CustomDesignOrder:
     """Create a custom line and its cart item. The surcharge and the rights wording are set
-    server-side; the client sends neither a price nor the consent text (no dark patterns)."""
+    server-side; the client sends neither a price nor the consent text (no dark patterns).
+
+    ``back`` is an optional second placement: ``{design, placement_sku, width_inches,
+    height_inches}``. When present its surcharge is added to the front's."""
     from apps.cart.models import Cart, CartItem
     from apps.catalog.models import ProductVariant
 
@@ -256,12 +269,9 @@ def add_design_to_cart(
         raise CustomOrderError(
             "You must accept the rights acknowledgement.", code="rights_required"
         )
-    if design.user_id != user.id:
-        raise CustomOrderError("Unknown design.", code="unknown_design")
-    if design.status != DesignUpload.Status.READY:
-        raise CustomOrderError("That design is not print-ready yet.", code="design_not_ready")
-    if design.review_status == DesignUpload.ReviewStatus.REJECTED:
-        raise CustomOrderError("That design was rejected in review.", code="design_rejected")
+    _check_design(user, design)
+    if back:
+        _check_design(user, back["design"])
 
     variant = ProductVariant.objects.filter(
         product=blank.product, size=size, color=color, is_active=True
@@ -270,6 +280,9 @@ def add_design_to_cart(
         raise CustomOrderError("That size or colour is unavailable.", code="unknown_variant")
 
     surcharge = surcharge_for(blank, width_inches, height_inches)
+    if back:
+        surcharge += surcharge_for(blank, back["width_inches"], back["height_inches"])
+
     custom = CustomDesignOrder.objects.create(
         user=user,
         blank_variant=variant,
@@ -278,6 +291,10 @@ def add_design_to_cart(
         placement_sku=placement_sku,
         width_inches=width_inches,
         height_inches=height_inches,
+        back_design_upload=back["design"] if back else None,
+        back_placement_sku=back["placement_sku"] if back else "",
+        back_width_inches=back["width_inches"] if back else None,
+        back_height_inches=back["height_inches"] if back else None,
         quantity=quantity,
         print_surcharge=surcharge,
         rights_ack_text=settings.CUSTOM_RIGHTS_TEXT,

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Design your {{ blank.product.name }} | CivicForest{% endblock %}
+{% block description %}Upload your artwork, place it on the {{ blank.product.name }}, and we print and ship it.{% endblock %}
+
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/designer.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container designer-page">
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="/">Home</a> / <a href="{{ url('customise-landing') }}">Customise</a> /
+    <span aria-current="page">{{ blank.product.name }}</span>
+  </nav>
+
+  <h1>Design your {{ blank.product.name }}</h1>
+
+  <noscript>
+    <p class="notice notice--warning">The design tool needs JavaScript to position your
+      artwork. Please enable it, or email us your artwork and the placement you want and we will
+      set it up for you.</p>
+  </noscript>
+
+  <div class="designer" data-designer hidden>
+    <script type="application/json" data-config>{{ tool_config|tojson }}</script>
+
+    <div class="designer__stage-wrap">
+      <div class="designer__tabs" role="tablist">
+        <button type="button" role="tab" data-side="front" aria-selected="true">Front</button>
+        <button type="button" role="tab" data-side="back" aria-selected="false">Back</button>
+      </div>
+      <div class="designer__stage" data-stage
+           {% if tool_config.mockupUrl %}style="background-image:url('{{ tool_config.mockupUrl }}')"{% endif %}>
+        <div class="designer__area" data-print-area>
+          <img class="designer__art" data-art alt="" hidden>
+        </div>
+      </div>
+      <p class="designer__dpi" data-dpi-warning hidden role="status">
+        This artwork may look soft at this size. Try a smaller placement or a higher-resolution file.
+      </p>
+    </div>
+
+    <form class="designer__controls" data-add-form>
+      {{ csrf_input }}
+
+      <fieldset class="designer__upload">
+        <legend>Your artwork</legend>
+        <label class="field">
+          <span class="field__label">Upload an image (PNG, JPEG or WebP)</span>
+          <input type="file" accept="image/png,image/jpeg,image/webp" data-upload>
+        </label>
+        <p class="designer__upload-status" data-upload-status role="status"></p>
+        {% if saved_designs %}
+        <div class="designer__saved">
+          <p>Or reuse one of your saved designs:</p>
+          <ul class="designer__saved-list" role="list">
+            {% for d in saved_designs %}
+            <li>
+              <button type="button" class="designer__saved-item" data-saved-id="{{ d.id }}"
+                      data-saved-w="{{ d.width_px }}" data-saved-h="{{ d.height_px }}"
+                      data-saved-url="{{ d.preview_url }}">
+                <img src="{{ d.preview_url }}" alt="Saved design" loading="lazy">
+              </button>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </fieldset>
+
+      <label class="field">
+        <span class="field__label">Print size</span>
+        <input type="range" min="10" max="100" value="70" data-scale aria-label="Print size">
+      </label>
+
+      <fieldset>
+        <legend>Colour</legend>
+        <div class="designer__swatches">
+          {% for name, hex in colours %}
+          <label class="swatch">
+            <input type="radio" name="color" value="{{ name }}" {% if loop.first %}checked{% endif %}>
+            <span class="swatch__chip" style="background:{{ hex or '#ccc' }}" title="{{ name }}"></span>
+            <span class="sr-only">{{ name }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Size</legend>
+        <div class="designer__sizes">
+          {% for size in sizes %}
+          <label class="size-btn">
+            <input type="radio" name="size" value="{{ size }}" {% if loop.first %}checked{% endif %}>
+            <span>{{ size }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <label class="field designer__qty">
+        <span class="field__label">Quantity</span>
+        <input type="number" name="quantity" min="1" max="20" value="1" data-qty>
+      </label>
+
+      <p class="designer__price" data-price aria-live="polite"></p>
+
+      <label class="field field--checkbox">
+        <input type="checkbox" data-rights>
+        <span>{{ rights_text }}</span>
+      </label>
+
+      <button type="submit" class="btn btn--primary" data-add disabled>Add to cart</button>
+      <p class="designer__error" data-error role="alert" hidden></p>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script type="module" src="{{ static('js/designer.js') }}"></script>{% endblock %}

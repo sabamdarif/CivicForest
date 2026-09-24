@@ -118,6 +118,32 @@ class AddToCartView(APIView):
         height = min(data["height_inches"], area["max_height_in"])
         design = get_object_or_404(DesignUpload, id=data["design_id"], user=request.user)
 
+        back = None
+        if data.get("back_design_id"):
+            back_area = next(
+                (
+                    a
+                    for a in blank.print_areas.values()
+                    if a.get("placement_sku") == data["back_placement_sku"]
+                ),
+                None,
+            )
+            if back_area is None:
+                return Response(
+                    {"error": {"code": "unknown_placement", "message": "Unknown back placement."}},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            back = {
+                "design": get_object_or_404(
+                    DesignUpload, id=data["back_design_id"], user=request.user
+                ),
+                "placement_sku": data["back_placement_sku"],
+                "width_inches": min(data.get("back_width_inches") or 0, back_area["max_width_in"]),
+                "height_inches": min(
+                    data.get("back_height_inches") or 0, back_area["max_height_in"]
+                ),
+            }
+
         try:
             custom = add_design_to_cart(
                 request.user,
@@ -130,6 +156,7 @@ class AddToCartView(APIView):
                 height_inches=height,
                 quantity=data["quantity"],
                 rights_accepted=data["rights_accepted"],
+                back=back,
             )
         except CustomOrderError as exc:
             return Response(

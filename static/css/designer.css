@@ -1,0 +1,179 @@
+/* The custom design tool and its landing page (M7.4, M7.5).
+ * Uses the shared tokens; no new colours are introduced here. */
+
+.customise-landing,
+.designer-page {
+  padding-block: var(--space-6, 2rem);
+}
+
+.blank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4, 1rem);
+  padding: 0;
+  margin-block: var(--space-4, 1rem);
+}
+
+.blank-card__link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--space-4, 1rem);
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-md, 8px);
+  text-decoration: none;
+  color: inherit;
+}
+
+.blank-card__name {
+  font-weight: 600;
+}
+.blank-card__price {
+  color: var(--color-muted, #666);
+}
+
+.how-steps {
+  line-height: 1.8;
+}
+
+/* ── The tool ── */
+.designer {
+  display: grid;
+  grid-template-columns: minmax(0, 460px) minmax(260px, 1fr);
+  gap: var(--space-6, 2rem);
+  align-items: start;
+}
+
+.designer__tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.designer__tabs [aria-selected="true"] {
+  font-weight: 700;
+  border-bottom: 2px solid var(--color-accent, #c9a227);
+}
+.designer__tabs button {
+  background: none;
+  border: 0;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+}
+.designer__tabs button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.designer__stage {
+  position: relative;
+  width: 460px;
+  max-width: 100%;
+  height: 540px;
+  background: var(--color-cream, #f7f4ef) center/contain no-repeat;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+
+/* The dashed outline is the printable area; the artwork is clamped inside it. */
+.designer__area {
+  position: absolute;
+  border: 2px dashed var(--color-accent, #c9a227);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.designer__art {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.designer__dpi {
+  margin-top: 0.5rem;
+  color: var(--color-danger, #b3261e);
+  font-size: 0.9rem;
+}
+
+.designer__controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 1rem);
+}
+
+.designer__swatches,
+.designer__sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.swatch__chip {
+  display: inline-block;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-border, #ddd);
+}
+.swatch input:checked + .swatch__chip {
+  outline: 2px solid var(--color-accent, #c9a227);
+  outline-offset: 2px;
+}
+
+.size-btn span {
+  display: inline-block;
+  min-width: 2.5rem;
+  text-align: center;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-sm, 4px);
+}
+.size-btn input:checked + span {
+  border-color: var(--color-accent, #c9a227);
+  font-weight: 700;
+}
+
+.designer__price {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.field--checkbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.9rem;
+}
+
+.designer__error {
+  color: var(--color-danger, #b3261e);
+}
+
+.designer__saved-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0;
+}
+.designer__saved-item {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  background: none;
+}
+.designer__saved-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 720px) {
+  .designer {
+    grid-template-columns: 1fr;
+  }
+}

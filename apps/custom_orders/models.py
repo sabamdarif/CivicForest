@@ -60,6 +60,9 @@ class CustomBlank(UUIDTimestampedModel):
     def __str__(self):
         return self.slug
 
+    def get_absolute_url(self) -> str:
+        return f"/customise/{self.slug}/"
+
 
 class DesignUpload(UUIDTimestampedModel):
     """One piece of customer artwork in the private designs bucket, reusable across orders.
