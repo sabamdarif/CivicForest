@@ -7,6 +7,8 @@
 
 {% block title %}Pay for order {{ order.order_number }} | CivicForest Clothing{% endblock %}
 
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/account.css') }}">{% endblock %}
+
 {% block content %}
   <div class="container account__plain checkout-pay"
        data-checkout-pay

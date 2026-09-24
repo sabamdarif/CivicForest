@@ -170,8 +170,8 @@ class StatusEvent(UUIDTimestampedModel):
     place (architecture §5). Written by ``services.transition``, never edited."""
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="status_events")
-    from_status = models.CharField(max_length=20, blank=True)
-    to_status = models.CharField(max_length=20)
+    from_status = models.CharField(max_length=20, blank=True, choices=Order.Status.choices)
+    to_status = models.CharField(max_length=20, choices=Order.Status.choices)
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )

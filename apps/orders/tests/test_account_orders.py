@@ -34,6 +34,26 @@ def test_pending_order_can_be_cancelled(user, variant):
     assert order.status == Order.Status.CANCELLED
 
 
+def test_order_detail_page_renders_with_shipment_and_cancel(user, variant):
+    order = _order(user, variant, paid=True)
+    client = Client()
+    client.force_login(user)
+    resp = client.get(f"/account/orders/{order.order_number}/")
+    assert resp.status_code == 200
+    assert b"Shipped by CivicForest" in resp.content  # the stock shipment timeline
+    assert b"Cancel order" in resp.content  # still cancellable, nothing shipped
+
+
+def test_cancel_action_posts_from_order_detail(user, variant):
+    order = _order(user, variant, paid=True)
+    client = Client()
+    client.force_login(user)
+    resp = client.post(f"/account/orders/{order.order_number}/", {"action": "cancel"})
+    assert resp.status_code == 302
+    order.refresh_from_db()
+    assert order.status == Order.Status.CANCELLED
+
+
 def test_cancelling_a_paid_order_returns_stock(user, variant):
     order = _order(user, variant, qty=2, paid=True)
     variant.refresh_from_db()

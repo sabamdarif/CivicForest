@@ -7,6 +7,8 @@
 
 {% block title %}Thank you | CivicForest Clothing{% endblock %}
 
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/account.css') }}">{% endblock %}
+
 {% block content %}
   <div class="container account__plain checkout-thanks">
     {%- if order.is_paid %}

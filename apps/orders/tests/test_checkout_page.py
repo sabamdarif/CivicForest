@@ -86,9 +86,24 @@ def test_post_without_terms_is_rejected(client_for, user, variant):
 
 def test_pay_page_is_owner_scoped(client_for, user, other_user, variant):
     _fill_cart(user, variant)
-    client_for().post("/checkout/", {**NEW_ADDRESS, "accept_terms": "1"})
+    client = client_for()
+    client.post("/checkout/", {**NEW_ADDRESS, "accept_terms": "1"})
     order = Order.objects.get(user=user)
+
+    # The owner sees the Razorpay handoff page; a signed-in stranger gets a 404, not the order.
+    assert client.get(reverse("checkout-pay", args=[order.order_number])).status_code == 200
 
     intruder = Client()
     intruder.force_login(other_user)
     assert intruder.get(reverse("checkout-pay", args=[order.order_number])).status_code == 404
+
+
+def test_thank_you_page_renders(client_for, user, variant):
+    _fill_cart(user, variant)
+    client = client_for()
+    client.post("/checkout/", {**NEW_ADDRESS, "accept_terms": "1"})
+    order = Order.objects.get(user=user)
+    resp = client.get(reverse("checkout-thank-you", args=[order.order_number]))
+    assert resp.status_code == 200
+    assert order.order_number.encode() in resp.content
+

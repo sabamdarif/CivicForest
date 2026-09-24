@@ -8,6 +8,8 @@
 
 {% block title %}Track your order | CivicForest Clothing{% endblock %}
 
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/account.css') }}">{% endblock %}
+
 {% block content %}
   <div class="container account__plain">
     {{ breadcrumbs([("Home", "/")], "Track order") }}
