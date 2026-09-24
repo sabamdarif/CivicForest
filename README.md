@@ -1,6 +1,6 @@
 # CivicForest
 
-Premium menswear storefront for the Indian market: INR pricing, GST invoicing, prepaid
+Premium menswear storefront for the Indian market: INR pricing, prepaid
 only. **One Django project**, server-rendered with Jinja2, hand-written CSS and vanilla
 ES modules, deployed as a single Vercel function. Postgres on Neon, files on Cloudflare
 R2, deferred work as database job rows swept by cron endpoints.
