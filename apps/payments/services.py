@@ -41,6 +41,23 @@ def create_gateway_order(order: Order) -> Payment:
     return payment
 
 
+def refund_order(order: Order, *, actor=None) -> Order:
+    """Refund an order's captured payment in full and move it to REFUNDED (M8.5).
+
+    Gateway first: only once Razorpay accepts the refund is the status changed, so a gateway
+    failure leaves the order untouched rather than marking a refund that never happened. The
+    REFUNDED transition emails the customer. Raises ``PaymentError`` if there is nothing to
+    refund or the gateway rejects it, which the view surfaces as a message."""
+    payment = order.payments.filter(status=Payment.Status.CAPTURED).order_by("-created_at").first()
+    if payment is None:
+        raise gateway.PaymentError("No captured payment to refund.", code="no_payment")
+
+    gateway.refund_payment(payment.gateway_payment_id, order.total)
+    return order_services.transition(
+        order, Order.Status.REFUNDED, actor=actor, note="Refund issued from back-office"
+    )
+
+
 def verify_callback(order_id: str, payment_id: str, signature: str) -> bool:
     """Verify the browser checkout callback. Advisory: it may mark the payment row as
     captured for UI feedback, but it does **not** fulfil the order — the webhook does."""

@@ -99,6 +99,9 @@ _BUILDERS = {
     "refunded": _order_refunded,
 }
 
+# The order-level emails staff can resend from the back-office order detail (M8.5).
+ORDER_EMAIL_KINDS = tuple(_BUILDERS)
+
 
 def send_order_email(order_id: str, kind: str) -> str:
     """Render and send one order email. Called from ``orders.services``."""

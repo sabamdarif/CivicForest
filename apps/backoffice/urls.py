@@ -14,4 +14,15 @@ urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("orders/", views.OrderQueueView.as_view(), name="orders"),
     path("orders/bulk/", views.OrderBulkActionView.as_view(), name="order_bulk"),
+    path("orders/<str:order_number>/", views.OrderDetailView.as_view(), name="order_detail"),
+    path(
+        "orders/<str:order_number>/slip/",
+        views.OrderPackingSlipView.as_view(),
+        name="order_packing_slip",
+    ),
+    path(
+        "orders/<str:order_number>/action/",
+        views.OrderActionView.as_view(),
+        name="order_action",
+    ),
 ]

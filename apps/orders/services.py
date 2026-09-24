@@ -267,6 +267,64 @@ def customer_cancel(order: Order, *, note: str = "Cancelled by customer") -> Ord
 
 
 @transaction.atomic
+def cancel_order(order: Order, *, actor=None, reason: str = "") -> Order:
+    """Staff cancellation from the back-office (M8.5). Releases reserved stock on a paid order
+    that has not shipped, then moves it to CANCELLED, which emails the customer. The state
+    machine blocks cancelling once anything has shipped, so a refund is the route from there."""
+    order = Order.objects.select_for_update().get(pk=order.pk)
+    if order.is_paid and not order.shipments.filter(shipped_at__isnull=False).exists():
+        release_stock(order)
+    return transition(
+        order, Order.Status.CANCELLED, actor=actor, note=reason or "Cancelled by staff"
+    )
+
+
+def add_note(order: Order, *, actor=None, note: str) -> StatusEvent:
+    """Record a staff note against an order without changing its status (M8.5). Written as a
+    same-status ``StatusEvent`` so it sits in the one timeline the status changes already use."""
+    return StatusEvent.objects.create(
+        order=order, from_status=order.status, to_status=order.status, actor=actor, note=note[:200]
+    )
+
+
+@transaction.atomic
+def update_shipment(
+    shipment: Shipment,
+    *,
+    carrier: str = "",
+    awb: str = "",
+    tracking_url: str = "",
+    mark_shipped: bool = False,
+    mark_delivered: bool = False,
+    actor=None,
+) -> Shipment:
+    """Set a shipment's carrier and tracking and, when asked, stamp it shipped or delivered
+    (M8.5). Order status is then re-derived from all shipments, never set by hand, and the
+    matching per-shipment email fires only on the first stamp so a re-save can't re-notify."""
+    shipment.carrier = carrier
+    shipment.awb = awb
+    shipment.tracking_url = tracking_url
+    now = timezone.now()
+    newly_shipped = mark_shipped and not shipment.shipped_at
+    newly_delivered = mark_delivered and not shipment.delivered_at
+    if newly_shipped:
+        shipment.shipped_at = now
+    if newly_delivered:
+        shipment.delivered_at = now
+    shipment.save()
+
+    recompute_order_status_from_shipments(shipment.order, actor=actor)
+
+    from apps.common.email import send_shipment_email
+
+    if newly_shipped:
+        send_shipment_email(str(shipment.pk), "shipped")
+    if newly_delivered:
+        send_shipment_email(str(shipment.pk), "delivered")
+    return shipment
+
+
+@transaction.atomic
 def release_stock(order: Order) -> None:
     """Return an order's reserved units to stock, the inverse of ``reserve_stock``. Used when a
     paid order is cancelled before it ships."""

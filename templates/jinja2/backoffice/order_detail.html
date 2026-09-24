@@ -1,0 +1,143 @@
+{# Back-office order detail (M8.5): the status and shipment timelines, the money and address
+   snapshot, and the guarded action forms. Each action form is shown only to a user who holds
+   its permission and posts to backoffice:order_action, which re-checks that permission. #}
+{% extends "base.html" %}
+
+{% block title %}{{ order.order_number }}, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% macro action_form(order, action) %}
+  <form method="post" action="{{ url('backoffice:order_action', kwargs={'order_number': order.order_number}) }}">
+    {{ csrf_input }}<input type="hidden" name="action" value="{{ action }}">{{ caller() }}
+  </form>
+{% endmacro %}
+
+{% block content %}
+<div class="container bo">
+  <p><a href="{{ url('backoffice:orders') }}">&larr; Orders</a></p>
+  <h1 class="bo__title">{{ order.order_number }}
+    <span class="bo-status bo-status--{{ order.status }}">{{ order.get_status_display() }}</span>
+  </h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="bo-panels">
+    <section class="bo-card">
+      <h2 class="bo-card__title">Customer</h2>
+      <p>{{ order.email }}<br>{{ order.phone }}</p>
+      <address>{{ order.ship_full_name }}<br>{{ order.ship_line1 }}
+        {% if order.ship_line2 %}<br>{{ order.ship_line2 }}{% endif %}<br>
+        {{ order.ship_city }}, {{ order.ship_state }} {{ order.ship_postal_code }}<br>
+        {{ order.ship_country }}</address>
+    </section>
+
+    <section class="bo-card">
+      <h2 class="bo-card__title">Money</h2>
+      <ul class="bo-list">
+        <li><span>Subtotal</span><span class="bo-list__num">{{ order.subtotal|rupees }}</span></li>
+        <li><span>Discount {{ '(' ~ order.coupon_code ~ ')' if order.coupon_code else '' }}</span><span class="bo-list__num">-{{ order.discount|rupees }}</span></li>
+        <li><span>Shipping</span><span class="bo-list__num">{{ order.shipping_fee|rupees }}</span></li>
+        <li><span>Total</span><span class="bo-list__num">{{ order.total|rupees }}</span></li>
+      </ul>
+      <p><a class="btn btn--ghost btn--sm" href="{{ url('backoffice:order_packing_slip', kwargs={'order_number': order.order_number}) }}" target="_blank" rel="noopener">Packing slip</a></p>
+    </section>
+  </div>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Items</h2>
+    <table class="bo-table">
+      <thead><tr><th>Product</th><th>SKU</th><th>Qty</th><th>Line total</th></tr></thead>
+      <tbody>
+        {% for i in order.items.all() %}
+          <tr><td>{{ i.product_name }} ({{ i.size }}/{{ i.color }})</td><td>{{ i.variant_sku }}</td><td>{{ i.quantity }}</td><td>{{ i.line_total|rupees }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Shipments</h2>
+    {% for s in order.shipments.all() %}
+      <div class="bo-shipment">
+        <h3>{{ s.get_kind_display() }}
+          {% if s.delivered_at %}delivered {{ s.delivered_at.date() }}
+          {% elif s.shipped_at %}shipped {{ s.shipped_at.date() }}
+          {% else %}not yet shipped{% endif %}</h3>
+        {% if request.user.has_perm('orders.change_order') %}
+          {% call action_form(order, 'shipment') %}
+            <input type="hidden" name="shipment_id" value="{{ s.id }}">
+            <label>Carrier <input name="carrier" value="{{ s.carrier }}"></label>
+            <label>AWB <input name="awb" value="{{ s.awb }}"></label>
+            <label>Tracking URL <input name="tracking_url" type="url" value="{{ s.tracking_url }}"></label>
+            {% if not s.shipped_at %}<label><input type="checkbox" name="mark_shipped" value="1"> Mark shipped</label>{% endif %}
+            {% if s.shipped_at and not s.delivered_at %}<label><input type="checkbox" name="mark_delivered" value="1"> Mark delivered</label>{% endif %}
+            <button type="submit" class="btn btn--primary btn--sm">Save shipment</button>
+          {% endcall %}
+        {% else %}
+          <p>{{ s.carrier }} {{ s.awb }}</p>
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="bo-empty">No shipments yet (created when the order is paid).</p>
+    {% endfor %}
+  </section>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Timeline</h2>
+    <ol class="bo-list">
+      {% for e in order.status_events.all() %}
+        <li><span>{{ e.created_at.date() }}
+          {%- if e.from_status == e.to_status %} note{% else %} {{ e.get_from_status_display() }} &rarr; {{ e.get_to_status_display() }}{% endif %}
+          {% if e.note %}({{ e.note }}){% endif %}</span>
+          <span class="bo-list__num">{{ e.actor.email if e.actor else 'system' }}</span></li>
+      {% else %}
+        <li>No events yet.</li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  {% if request.user.has_perm('orders.transition_order') or request.user.has_perm('orders.refund_order') or request.user.has_perm('orders.change_order') %}
+  <section class="bo-card">
+    <h2 class="bo-card__title">Actions</h2>
+    <div class="bo-actions">
+      {% if request.user.has_perm('orders.transition_order') %}
+        {% call action_form(order, 'advance') %}
+          <label>Move to
+            <select name="to_status">
+              {% for value, label in status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </label>
+          <button type="submit" class="btn btn--primary btn--sm">Apply</button>
+        {% endcall %}
+        {% call action_form(order, 'cancel') %}
+          <label>Cancel reason <input name="reason"></label>
+          <button type="submit" class="btn btn--ghost btn--sm">Cancel order</button>
+        {% endcall %}
+      {% endif %}
+      {% if request.user.has_perm('orders.refund_order') %}
+        {% call action_form(order, 'refund') %}
+          <button type="submit" class="btn btn--ghost btn--sm">Refund in full</button>
+        {% endcall %}
+      {% endif %}
+      {% if request.user.has_perm('orders.change_order') %}
+        {% call action_form(order, 'email') %}
+          <label>Resend
+            <select name="kind">{% for k in email_kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select>
+          </label>
+          <button type="submit" class="btn btn--ghost btn--sm">Send</button>
+        {% endcall %}
+        {% call action_form(order, 'note') %}
+          <label>Internal note <input name="note" maxlength="200"></label>
+          <button type="submit" class="btn btn--ghost btn--sm">Add note</button>
+        {% endcall %}
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

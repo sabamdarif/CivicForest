@@ -18,6 +18,7 @@ from decimal import Decimal
 from django.conf import settings
 
 RAZORPAY_ORDERS_URL = "https://api.razorpay.com/v1/orders"
+RAZORPAY_PAYMENTS_URL = "https://api.razorpay.com/v1/payments"
 
 
 class PaymentError(Exception):
@@ -75,6 +76,38 @@ def create_order(
             return json.loads(response.read().decode())
     except urllib.error.HTTPError as exc:  # pragma: no cover - network error path
         raise PaymentError(f"Razorpay rejected the order ({exc.code}).") from exc
+    except urllib.error.URLError as exc:  # pragma: no cover - network error path
+        raise PaymentError("Could not reach the payment gateway.") from exc
+
+
+def refund_payment(payment_id: str, amount: Decimal) -> dict:
+    """Refund a captured payment its full amount server-to-server, returning the refund JSON.
+
+    Mirrors ``create_order``: raises ``PaymentError`` on a missing config or a failed call, and
+    short-circuits in fake mode so the back-office refund path is testable without a network."""
+    if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
+        raise PaymentError("Payments are not configured.", code="not_configured")
+    if not payment_id:
+        raise PaymentError("No captured payment to refund.", code="no_payment")
+
+    if getattr(settings, "RAZORPAY_FAKE_MODE", False):
+        return {"id": f"rfnd_fake_{payment_id}", "status": "processed"}
+
+    payload = json.dumps({"amount": to_paise(amount)}).encode()
+    creds = base64.b64encode(
+        f"{settings.RAZORPAY_KEY_ID}:{settings.RAZORPAY_KEY_SECRET}".encode()
+    ).decode()
+    request = urllib.request.Request(
+        f"{RAZORPAY_PAYMENTS_URL}/{payment_id}/refund",
+        data=payload,
+        headers={"Authorization": f"Basic {creds}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:  # noqa: S310
+            return json.loads(response.read().decode())
+    except urllib.error.HTTPError as exc:  # pragma: no cover - network error path
+        raise PaymentError(f"Razorpay rejected the refund ({exc.code}).") from exc
     except urllib.error.URLError as exc:  # pragma: no cover - network error path
         raise PaymentError("Could not reach the payment gateway.") from exc
 

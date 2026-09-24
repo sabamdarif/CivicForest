@@ -86,7 +86,7 @@
         {% for o in orders %}
           <tr>
             <td><input type="checkbox" name="ids" value="{{ o.id }}" aria-label="Select {{ o.order_number }}"></td>
-            <td>{{ o.order_number }}</td>
+            <td><a href="{{ url('backoffice:order_detail', kwargs={'order_number': o.order_number}) }}">{{ o.order_number }}</a></td>
             <td>{{ o.created_at.date() }}</td>
             <td>{{ o.email }}</td>
             <td><span class="bo-status bo-status--{{ o.status }}">{{ o.get_status_display() }}</span></td>

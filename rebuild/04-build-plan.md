@@ -380,7 +380,7 @@ Tasks:
    hand-rolled inline SVG. Every tile links to the filtered list behind it.
 4. [x] Order queue: filters, saved views ("awaiting dispatch", "custom pending review", "payment failed"),
    bulk selection, CSV export streamed rather than buffered (the 4.5 MB response cap).
-5. [ ] Order detail: both timelines, per-shipment carrier and AWB entry, guarded transitions, cancel,
+5. [x] Order detail: both timelines, per-shipment carrier and AWB entry, guarded transitions, cancel,
    refund, resend any email, internal notes, packing slip print view. Invoice dropped with GST
    (Part 5), so no invoice print view.
 6. [ ] Design review queue (built in M7, surfaced here alongside everything else).
