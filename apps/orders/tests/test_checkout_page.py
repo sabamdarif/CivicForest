@@ -3,6 +3,8 @@ create the order and open a gateway order on a valid post, and refuse an unticke
 Payment itself (the Razorpay modal) is out of scope here; fake mode stands in for the gateway.
 """
 
+from decimal import Decimal
+
 import pytest
 from django.test import Client
 from django.urls import reverse
@@ -51,6 +53,17 @@ def test_checkout_page_renders_the_form(client_for, user, variant):
     resp = client_for().get("/checkout/")
     assert resp.status_code == 200
     assert b"Checkout" in resp.content
+
+
+def test_a_client_supplied_total_is_ignored(client_for, user, variant):
+    # variant is 800.00 each; the order total must come from server re-pricing, never a payload.
+    _fill_cart(user, variant, qty=2)
+    client_for().post(
+        "/checkout/",
+        {**NEW_ADDRESS, "accept_terms": "1", "total": "1.00", "subtotal": "1.00"},
+    )
+    order = Order.objects.get(user=user)
+    assert order.total == Decimal("1600.00")
 
 
 def test_valid_post_creates_order_and_redirects_to_pay(client_for, user, variant):
