@@ -374,7 +374,7 @@ Tasks:
 1. [x] `apps/backoffice`: views and templates only, no models. Everything behind a
    `StaffRequiredMixin` that enforces `is_staff` **and** a confirmed TOTP authenticator, plus a
    per-view permission check.
-2. [ ] Four Django groups with explicit permissions: Owner, Manager, Fulfilment, Support (decision O11),
+2. [x] Four Django groups with explicit permissions: Owner, Manager, Fulfilment, Support (decision O11),
    created by a `bootstrap_roles` management command so they are reproducible, not hand-clicked.
 3. [ ] Dashboard: the fifteen tiles from O1, a 30-day revenue sparkline and a status bar chart, both
    hand-rolled inline SVG. Every tile links to the filtered list behind it.

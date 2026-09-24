@@ -103,6 +103,12 @@ class Order(UUIDTimestampedModel):
 
     class Meta:
         ordering = ["-created_at"]
+        # Back-office actions that map to no add/change/delete: refund and status change are
+        # gated on these so a role (O11) can view orders without moving money or state (M8.2).
+        permissions = [
+            ("refund_order", "Can refund an order"),
+            ("transition_order", "Can change an order's status"),
+        ]
 
     def __str__(self):
         return self.order_number
