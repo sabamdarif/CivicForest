@@ -106,4 +106,3 @@ def test_thank_you_page_renders(client_for, user, variant):
     resp = client.get(reverse("checkout-thank-you", args=[order.order_number]))
     assert resp.status_code == 200
     assert order.order_number.encode() in resp.content
-

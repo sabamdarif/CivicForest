@@ -175,37 +175,28 @@ def create_order_from_cart(
                 unit_price=line.unit_price,
                 quantity=line.quantity,
                 line_total=line.line_total,
+                is_custom=line.is_custom,
             )
             for line in priced.lines
         ]
     )
-    _attach_custom_designs(user, order, [line.variant.id for line in priced.lines])
+    _attach_custom_designs(order, priced.lines)
     return order
 
 
-def _attach_custom_designs(user, order: Order, variant_ids: list) -> None:
-    """Link the user's pending custom designs for these variants to the new order. This
-    is what lets the payment webhook submit them to Qikink, which dropships straight to
-    the order's shipping address (qikink_shipping=1)."""
-    try:
-        from apps.custom_orders.models import CustomDesignOrder
-    except ImportError:  # custom_orders app optional
+def _attach_custom_designs(order: Order, lines: list) -> None:
+    """Link the custom designs on these cart lines to the new order and set its fulfilment
+    kind. This is what lets the payment webhook submit them to Qikink, which dropships
+    straight to the order's shipping address (qikink_shipping=1)."""
+    from apps.custom_orders.models import CustomDesignOrder
+
+    design_ids = [line.custom_design_id for line in lines if line.custom_design_id]
+    if not design_ids:
         return
 
-    linked = CustomDesignOrder.objects.filter(
-        user=user,
-        order__isnull=True,
-        submit_status=CustomDesignOrder.SubmitStatus.PENDING_PAYMENT,
-        variant_id__in=variant_ids,
-    ).update(order=order)
-    if not linked:
-        return
-
-    order.items.filter(variant_id__in=order.custom_designs.values("variant_id")).update(
-        is_custom=True
-    )
-    # mixed if any stock line remains alongside the custom ones, else all-custom.
-    has_stock = order.items.filter(is_custom=False).exists()
+    CustomDesignOrder.objects.filter(id__in=design_ids, order__isnull=True).update(order=order)
+    # mixed if any stock line rides alongside the custom ones, else all-custom.
+    has_stock = any(not line.is_custom for line in lines)
     order.has_custom_items = True
     order.fulfilment_kind = Order.Fulfilment.MIXED if has_stock else Order.Fulfilment.CUSTOM
     order.save(update_fields=["has_custom_items", "fulfilment_kind", "updated_at"])

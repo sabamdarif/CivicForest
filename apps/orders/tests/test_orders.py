@@ -45,22 +45,22 @@ def test_empty_cart_cannot_checkout(user):
     assert exc.value.code == "empty_cart"
 
 
-def test_checkout_links_pending_custom_designs(user, variant, settings, tmp_path):
-    """A pending custom design for a variant in the cart attaches to the new order, so
-    the payment webhook can submit it to Qikink for direct dropship delivery."""
-    from django.core.files.base import ContentFile
-
+def test_checkout_links_pending_custom_designs(user, variant):
+    """A custom line's design attaches to the new order via its cart line, so the payment
+    webhook can submit it to Qikink for direct dropship delivery, and the order snapshots
+    itself as custom."""
     from apps.custom_orders.models import CustomDesignOrder
 
-    settings.MEDIA_ROOT = str(tmp_path)
-    custom = CustomDesignOrder(user=user, variant=variant)
-    custom.design_file.save("art.png", ContentFile(b"fake-png"), save=True)
+    custom = CustomDesignOrder.objects.create(user=user, blank_variant=variant)
+    cart = Cart.objects.create(user=user)
+    CartItem.objects.create(cart=cart, variant=variant, quantity=1, custom_design=custom)
 
-    order = services.create_order_from_cart(user, _cart_with(user, variant, 1), SHIPPING)
+    order = services.create_order_from_cart(user, cart, SHIPPING)
 
     custom.refresh_from_db()
     assert custom.order_id == order.id
     assert order.has_custom_items is True
+    assert order.fulfilment_kind == Order.Fulfilment.CUSTOM
     assert order.items.get().is_custom is True
 
 

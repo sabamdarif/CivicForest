@@ -277,6 +277,8 @@ class PricedLine:
     quantity: int
     unit_price: Decimal
     line_total: Decimal
+    is_custom: bool = False
+    custom_design_id: object = None
 
 
 @dataclass
@@ -292,7 +294,9 @@ class PricedCart:
 
 def _items_qs(cart: Cart):
     return (
-        cart.items.select_related("variant", "variant__product", "variant__product__category")
+        cart.items.select_related(
+            "variant", "variant__product", "variant__product__category", "custom_design"
+        )
         .prefetch_related("variant__product__images")
         .all()
     )
@@ -305,7 +309,11 @@ def price_cart(cart: Cart) -> PricedCart:
     subtotal = Decimal("0")
     item_count = 0
     for item in _items_qs(cart):
+        # A custom line adds its snapshotted print surcharge to the blank's price; both come
+        # from the server, never the client. The surcharge was frozen at add-to-cart.
         unit = item.variant.effective_price
+        if item.custom_design_id is not None:
+            unit = unit + item.custom_design.print_surcharge
         line_total = (unit * item.quantity).quantize(TWO_PLACES)
         subtotal += line_total
         item_count += item.quantity
@@ -316,6 +324,8 @@ def price_cart(cart: Cart) -> PricedCart:
                 quantity=item.quantity,
                 unit_price=unit.quantize(TWO_PLACES),
                 line_total=line_total,
+                is_custom=item.custom_design_id is not None,
+                custom_design_id=item.custom_design_id,
             )
         )
     subtotal = subtotal.quantize(TWO_PLACES)

@@ -142,16 +142,31 @@ class Cart(UUIDTimestampedModel):
 
 class CartItem(UUIDTimestampedModel):
     """A line in a cart. Quantity is re-validated against live stock on every mutation;
-    the unit price is always read from the variant, never accepted from the client."""
+    the unit price is always read from the variant, never accepted from the client.
+
+    A custom-print line carries a ``custom_design`` and rides the same blank variant as any
+    other line, so two different designs on the same blank are two rows: the variant-uniqueness
+    constraint applies only to ordinary stock lines (M7)."""
 
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
     variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name="+")
     quantity = models.PositiveIntegerField(default=1)
+    custom_design = models.OneToOneField(
+        "custom_orders.CustomDesignOrder",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="cart_item",
+    )
 
     class Meta:
         ordering = ["created_at"]
         constraints = [
-            models.UniqueConstraint(fields=["cart", "variant"], name="uniq_variant_per_cart")
+            models.UniqueConstraint(
+                fields=["cart", "variant"],
+                name="uniq_variant_per_cart",
+                condition=models.Q(custom_design__isnull=True),
+            )
         ]
 
     def __str__(self):
