@@ -13,6 +13,7 @@ from django.contrib.sitemaps.views import sitemap
 from django.http import JsonResponse
 from django.urls import include, path
 
+from apps.backoffice.cron import run_job as cron_run_job
 from apps.backoffice.views import styleguide
 from apps.common.sitemaps import SITEMAPS
 from apps.content.views import home
@@ -64,6 +65,7 @@ urlpatterns = [
     # templates/django/ (rebuild/03-architecture.md §3).
     path("accounts/", include("allauth.urls")),
     path("healthz/", healthz, name="healthz"),
+    path("internal/cron/<str:name>/", cron_run_job, name="cron_run"),
     path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
     # Staff-only, and the regression surface for every stylesheet.
     path("styleguide/", styleguide, name="styleguide"),

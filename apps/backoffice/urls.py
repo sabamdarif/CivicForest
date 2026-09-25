@@ -59,4 +59,7 @@ urlpatterns = [
     path(
         "content/collection/<uuid:pk>/", views.CollectionEditView.as_view(), name="collection_edit"
     ),
+    path("jobs/", views.JobsPanelView.as_view(), name="jobs"),
+    path("jobs/run/", views.JobRunNowView.as_view(), name="job_run"),
+    path("jobs/email/<uuid:pk>/resend/", views.EmailResendView.as_view(), name="email_resend"),
 ]

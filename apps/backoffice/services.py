@@ -25,6 +25,7 @@ from apps.cart.models import Cart, Coupon, CouponRedemption
 from apps.catalog import services as catalog_services
 from apps.catalog.models import Category, Collection, Product, ProductVariant
 from apps.common.formatting import rupees
+from apps.common.models import JobRun, OutboundEmail
 from apps.content.models import AnnouncementBar, HomeSection
 from apps.custom_orders.models import CustomDesignOrder, DesignUpload
 from apps.orders.models import Order, OrderItem
@@ -477,3 +478,15 @@ def content_overview() -> dict:
         "categories": Category.objects.order_by("display_order", "name"),
         "collections": Collection.objects.order_by("display_order", "name"),
     }
+
+
+# ── Jobs and outbound email (M8.13) ───────────────────────────────────────────
+JOB_PAGE_SIZE = 50
+
+
+def recent_job_runs(page) -> Page:
+    return Paginator(JobRun.objects.all(), JOB_PAGE_SIZE).get_page(page)
+
+
+def recent_emails(page) -> Page:
+    return Paginator(OutboundEmail.objects.order_by("-created_at"), JOB_PAGE_SIZE).get_page(page)

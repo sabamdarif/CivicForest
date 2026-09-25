@@ -296,6 +296,16 @@ def poll_open_orders(*, queryset=None) -> int:
     return polled
 
 
+def sanitise_pending(limit: int = 50) -> int:
+    """Sanitise DesignUpload rows left in ``uploaded`` by an interrupted complete call (M7.3
+    backstop). The service both `sanitise_designs` and the M8 cron endpoint call, so the sweep
+    lives in one place. Returns how many reached ``ready``."""
+    from .uploads import sanitise_upload
+
+    pending = DesignUpload.objects.filter(status=DesignUpload.Status.UPLOADED)[:limit]
+    return sum(sanitise_upload(design) == "ready" for design in pending)
+
+
 # On-demand piggyback (§7): poll a single order's custom lines when a customer opens it and its
 # last poll is stale. This is what keeps tracking fresh under Hobby's once-a-day cron.
 POLL_PIGGYBACK_AGE = timezone.timedelta(minutes=30)

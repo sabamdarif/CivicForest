@@ -97,6 +97,25 @@ def refresh(product) -> None:
     SearchDocument.objects.filter(pk=document.pk).update(**fields)
 
 
+def reindex(stale: bool = False, batch: int = 500) -> int:
+    """Rebuild search documents, all or only the stale ones, and return how many were built.
+
+    The one service both `reindex_search` and the M8 cron endpoint call, so the sweep lives in
+    one place. A document belonging to a deactivated product is left alone: reactivating it should
+    not need a reindex, and the listing filters on is_active.
+    """
+    products = indexable()
+    if stale:
+        products = products.filter(
+            Q(search_document__is_stale=True) | Q(search_document__isnull=True)
+        )
+    built = 0
+    for product in products[:batch]:
+        refresh(product)
+        built += 1
+    return built
+
+
 def indexable():
     """Products a document is built from, with everything ``_parts`` reads prefetched."""
     return catalog.active_products().prefetch_related("collections")

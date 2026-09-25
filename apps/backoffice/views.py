@@ -30,6 +30,7 @@ from apps.catalog.forms import (
     VariantFormSet,
 )
 from apps.catalog.models import Category, Collection, Product, ProductVariant
+from apps.common import email as common_email
 from apps.common.email import ORDER_EMAIL_KINDS
 from apps.common.models import StockAdjustment
 from apps.content.forms import AnnouncementBarForm, HomeSectionForm
@@ -42,7 +43,7 @@ from apps.payments import gateway as payment_gateway
 from apps.payments import services as payment_services
 from apps.payments.models import Payment
 
-from . import services
+from . import cron, services
 from .exports import stream_csv
 from .mixins import StaffRequiredMixin
 
@@ -771,6 +772,56 @@ class CategoryEditView(_ContentEditMixin, View):
 class CollectionEditView(_ContentEditMixin, View):
     model, form_class, title = Collection, CollectionForm, "Collection"
     permission_required = "catalog.change_collection"
+
+
+class JobsPanelView(StaffRequiredMixin, TemplateView):
+    """The jobs panel (M8.13): recent JobRun rows with full error text, a run-now button per
+    registered job, and the OutboundEmail ledger with resend. Viewing needs ``view_jobrun``."""
+
+    template_name = "backoffice/jobs.html"
+    permission_required = "common.view_jobrun"
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(**kwargs),
+            "runs": services.recent_job_runs(self.request.GET.get("page")),
+            "emails": services.recent_emails(self.request.GET.get("page")),
+            "job_names": list(cron.CRON_JOBS),
+        }
+
+
+class JobRunNowView(StaffRequiredMixin, View):
+    """Run one registered job from the panel, staff-gated (``add_jobrun``) rather than bearer-gated
+    so the CRON_SECRET never reaches a browser. Uses the same runner as the cron endpoint."""
+
+    permission_required = "common.add_jobrun"
+
+    def post(self, request):
+        run = cron.run_named_job(request.POST.get("name", ""))
+        if run is None:
+            raise Http404
+        if run.status == run.Status.DONE:
+            messages.success(request, f"{run.name}: processed {run.items_processed}.")
+        else:
+            messages.error(request, f"{run.name} failed: {run.last_error}")
+        return redirect("backoffice:jobs")
+
+
+class EmailResendView(StaffRequiredMixin, View):
+    """Resend a ledgered email (M8.13), gated by ``change_outboundemail``. Re-renders from the
+    stored ids, so the resend reflects live data."""
+
+    permission_required = "common.change_outboundemail"
+
+    def post(self, request, pk):
+        result = common_email.resend(str(pk))
+        if result == "sent":
+            messages.success(request, "Email resent.")
+        elif result == "failed":
+            messages.error(request, "Resend failed; the mail server rejected it.")
+        else:
+            messages.warning(request, "Nothing to resend for that row.")
+        return redirect("backoffice:jobs")
 
 
 def styleguide(request):

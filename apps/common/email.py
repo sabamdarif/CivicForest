@@ -13,8 +13,32 @@ import logging
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils import timezone
 
 logger = logging.getLogger("email")
+
+
+def _deliver(to: str, template: str, context: dict, subject: str, body: str) -> str:
+    """Send one email and record it in the `OutboundEmail` ledger (M8.13), so the back-office can
+    list and resend it. A send failure is recorded and swallowed, never raised, so a dead mail
+    server cannot fail a payment webhook."""
+    from apps.common.models import OutboundEmail
+
+    record = OutboundEmail.objects.create(
+        to=to, template=template, context=context, subject=subject
+    )
+    try:
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [to])
+    except Exception as exc:  # noqa: BLE001
+        OutboundEmail.objects.filter(pk=record.pk).update(
+            status=OutboundEmail.Status.FAILED, error=str(exc)
+        )
+        logger.warning("Email %s to %s failed: %s", template, to, exc)
+        return "failed"
+    OutboundEmail.objects.filter(pk=record.pk).update(
+        status=OutboundEmail.Status.SENT, sent_at=timezone.now()
+    )
+    return "sent"
 
 
 def _order_confirmation(order) -> tuple[str, str]:
@@ -111,13 +135,9 @@ def send_order_email(order_id: str, kind: str) -> str:
     if order is None or kind not in _BUILDERS:
         return "skipped"
     subject, body = _BUILDERS[kind](order)
-    try:
-        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [order.email])
-    # A dead mail server must not fail the caller, so every send error is swallowed.
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Order email %s/%s failed: %s", order.order_number, kind, exc)
-        return "failed"
-    return "sent"
+    return _deliver(
+        order.email, f"order:{kind}", {"order_id": str(order.pk), "kind": kind}, subject, body
+    )
 
 
 # ─── Per-shipment notices (M1: one shipped email per shipment, with its own AWB) ──
@@ -153,12 +173,13 @@ def send_shipment_email(shipment_id: str, kind: str) -> str:
             f"Hi {order.ship_full_name},\n\nDelivered:\n\n{contents}\n\n"
             f"Thanks,\nThe CivicForest team"
         )
-    try:
-        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [order.email])
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Shipment email %s/%s failed: %s", shipment_id, kind, exc)
-        return "failed"
-    return "sent"
+    return _deliver(
+        order.email,
+        f"shipment:{kind}",
+        {"shipment_id": str(shipment_id), "kind": kind},
+        subject,
+        body,
+    )
 
 
 # ─── Design review notices (M7.6: the customer hears the moderation outcome either way) ──
@@ -185,9 +206,30 @@ def send_design_review_email(design_id: str, kind: str) -> str:
             "If you were charged for it, we will refund that line. You are welcome to upload a "
             "different design.\n\nThanks,\nThe CivicForest team"
         )
-    try:
-        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [design.user.email])
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Design email %s/%s failed: %s", design_id, kind, exc)
-        return "failed"
-    return "sent"
+    return _deliver(
+        design.user.email,
+        f"design:{kind}",
+        {"design_id": str(design_id), "kind": kind},
+        subject,
+        body,
+    )
+
+
+def resend(email_id: str) -> str:
+    """Re-render and re-send a ledgered email (M8.13). It re-runs the original sender from the
+    stored ids, so the resend reflects live data and writes its own fresh ledger row."""
+    from apps.common.models import OutboundEmail
+
+    row = OutboundEmail.objects.filter(pk=email_id).first()
+    if row is None:
+        return "skipped"
+    prefix, _, _ = row.template.partition(":")
+    context = row.context or {}
+    kind = context.get("kind", "")
+    if prefix == "order" and context.get("order_id"):
+        return send_order_email(context["order_id"], kind)
+    if prefix == "shipment" and context.get("shipment_id"):
+        return send_shipment_email(context["shipment_id"], kind)
+    if prefix == "design" and context.get("design_id"):
+        return send_design_review_email(context["design_id"], kind)
+    return "skipped"

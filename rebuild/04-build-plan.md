@@ -396,7 +396,7 @@ Tasks:
 12. [x] Content: announcement bar, homepage sections, category and collection imagery. Static pages
     and FAQ entries arrive with their models in M9 (`03-architecture.md` §5), so their editors land
     there too.
-13. [ ] Jobs panel: `JobRun` rows by status, full error text, "run now" per job, `OutboundEmail` list
+13. [x] Jobs panel: `JobRun` rows by status, full error text, "run now" per job, `OutboundEmail` list
     with resend. Built as a run ledger, not the full `03-architecture.md` §7 engine (no handler
     registry, backoff or dead-letter); see the override in `01-decisions.md` Part 5.
 14. [ ] Reports: sales by day, product and category; coupon performance; inventory valuation;

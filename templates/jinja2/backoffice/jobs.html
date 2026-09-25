@@ -1,0 +1,80 @@
+{# Back-office jobs panel (M8.13): run a scheduled job now, read the JobRun ledger with full error
+   text, and resend any ledgered email. Run-now is staff-gated (the CRON_SECRET stays server-side);
+   the external scheduler hits /internal/cron/<name>/ with the bearer token instead. #}
+{% extends "base.html" %}
+
+{% block title %}Jobs, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Jobs</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Run a job now</h2>
+    <div class="bo-bulk">
+      {% for name in job_names %}
+        <form method="post" action="{{ url('backoffice:job_run') }}">
+          {{ csrf_input }}
+          <input type="hidden" name="name" value="{{ name }}">
+          <button type="submit" class="btn btn--ghost btn--sm">{{ name }}</button>
+        </form>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Recent runs</h2>
+    <table class="bo-table">
+      <thead><tr><th>Job</th><th>Status</th><th>Started</th><th>Finished</th><th>Items</th><th>Error</th></tr></thead>
+      <tbody>
+        {% for r in runs %}
+          <tr>
+            <td>{{ r.name }}</td>
+            <td><span class="bo-status bo-status--{{ r.status }}">{{ r.get_status_display() }}</span></td>
+            <td>{{ r.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ r.finished_at.strftime('%Y-%m-%d %H:%M') if r.finished_at else '' }}</td>
+            <td>{{ r.items_processed }}</td>
+            <td>{{ r.last_error }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="bo-empty">No runs yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Outbound email</h2>
+    <table class="bo-table">
+      <thead><tr><th>To</th><th>Template</th><th>Status</th><th>Sent</th><th>Error</th><th>Resend</th></tr></thead>
+      <tbody>
+        {% for e in emails %}
+          <tr>
+            <td>{{ e.to }}</td>
+            <td>{{ e.template }}</td>
+            <td><span class="bo-status bo-status--{{ e.status }}">{{ e.get_status_display() }}</span></td>
+            <td>{{ e.sent_at.strftime('%Y-%m-%d %H:%M') if e.sent_at else '' }}</td>
+            <td>{{ e.error }}</td>
+            <td>
+              <form method="post" action="{{ url('backoffice:email_resend', kwargs={'pk': e.id}) }}">
+                {{ csrf_input }}
+                <button type="submit" class="btn btn--ghost btn--sm">Resend</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="bo-empty">No email sent yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}
