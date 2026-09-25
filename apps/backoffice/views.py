@@ -11,6 +11,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -631,6 +632,68 @@ class CouponReportView(StaffRequiredMixin, TemplateView):
             "coupon": coupon,
             "usage": services.coupon_usage(coupon),
         }
+
+
+class CustomerListView(StaffRequiredMixin, TemplateView):
+    """Customers with paid-order count and lifetime value (M8.10, O8): search, a blocked filter and
+    a streamed CSV export. Viewing needs ``view_user``; blocking is its own guarded endpoint. No
+    impersonation is offered anywhere (O8)."""
+
+    template_name = "backoffice/customers.html"
+    permission_required = "accounts.view_user"
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export") == "csv":
+            return stream_csv(
+                "customers.csv", services.CUSTOMER_CSV_HEADER, services.customer_rows(request.GET)
+            )
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        return {
+            **super().get_context_data(**kwargs),
+            "customers": services.customer_list(self.request.GET, self.request.GET.get("page")),
+            "q": self.request.GET.get("q", ""),
+            "status": self.request.GET.get("status", ""),
+            "query": params.urlencode(),
+        }
+
+
+class CustomerDetailView(StaffRequiredMixin, TemplateView):
+    """One customer: their orders, lifetime value, and a block/unblock form. Needs ``view_user``."""
+
+    template_name = "backoffice/customer_detail.html"
+    permission_required = "accounts.view_user"
+
+    def get_context_data(self, **kwargs):
+        customer = get_object_or_404(get_user_model(), pk=kwargs["pk"], is_staff=False)
+        return {
+            **super().get_context_data(**kwargs),
+            "customer": customer,
+            **services.customer_detail(customer),
+        }
+
+
+class CustomerBlockView(StaffRequiredMixin, View):
+    """Block or unblock a customer (O8): ``is_active`` toggled, never a delete, so their orders and
+    history survive. Gated by ``change_user``, which only Owner holds (Manager sees but cannot alter
+    user rows, O11)."""
+
+    permission_required = "accounts.change_user"
+
+    def post(self, request, pk):
+        action = request.POST.get("action", "")
+        if action not in {"block", "unblock"}:
+            raise Http404
+        customer = get_object_or_404(get_user_model(), pk=pk, is_staff=False)
+        customer.is_active = action == "unblock"
+        customer.save(update_fields=["is_active"])
+        messages.success(
+            request, "Customer unblocked." if action == "unblock" else "Customer blocked."
+        )
+        return redirect("backoffice:customer_detail", pk=pk)
 
 
 def styleguide(request):

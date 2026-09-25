@@ -1,0 +1,55 @@
+{# Back-office customer detail (M8.10, O8): lifetime value, the order history, and a block/unblock
+   control. No impersonation. #}
+{% extends "base.html" %}
+
+{% block title %}{{ customer.email }}, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">{{ customer.email }}</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="bo-tiles">
+    <div class="bo-tile"><span class="bo-tile__label">Name</span><span class="bo-tile__value">{{ customer.get_full_name() or 'No name' }}</span></div>
+    <div class="bo-tile"><span class="bo-tile__label">Lifetime value</span><span class="bo-tile__value">{{ lifetime_value|rupees(decimals=0) }}</span></div>
+    <div class="bo-tile"><span class="bo-tile__label">Status</span><span class="bo-tile__value">{{ 'Blocked' if not customer.is_active else 'Active' }}</span></div>
+  </div>
+
+  <form class="bo-actions" method="post" action="{{ url('backoffice:customer_action', kwargs={'pk': customer.id}) }}">
+    {{ csrf_input }}
+    {% if customer.is_active %}
+      <button class="btn btn--ghost btn--sm" type="submit" name="action" value="block">Block customer</button>
+    {% else %}
+      <button class="btn btn--primary btn--sm" type="submit" name="action" value="unblock">Unblock customer</button>
+    {% endif %}
+  </form>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Orders</h2>
+    <table class="bo-table">
+      <thead><tr><th>Order</th><th>Date</th><th>Status</th><th>Total</th></tr></thead>
+      <tbody>
+        {% for o in orders %}
+          <tr>
+            <td><a href="{{ url('backoffice:order_detail', kwargs={'order_number': o.order_number}) }}">{{ o.order_number }}</a></td>
+            <td>{{ o.created_at.date() }}</td>
+            <td>{{ o.get_status_display() }}</td>
+            <td>{{ o.total|rupees(decimals=0) }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="bo-empty">No orders yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <p><a class="btn btn--ghost" href="{{ url('backoffice:customers') }}">Back to customers</a></p>
+</div>
+{% endblock %}

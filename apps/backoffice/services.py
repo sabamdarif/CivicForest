@@ -409,3 +409,58 @@ def coupon_usage(coupon: Coupon) -> dict:
         "uses": totals["uses"] or 0,
         "discount": totals["discount"] or Decimal("0"),
     }
+
+
+# ── Customers (M8.10, O8) ─────────────────────────────────────────────────────
+CUSTOMER_PAGE_SIZE = 50
+CUSTOMER_CSV_HEADER = ["email", "name", "orders", "lifetime_value", "is_active", "date_joined"]
+
+
+def _customer_qs(params):
+    """Non-staff users with their paid-order count and lifetime value (O8). Lifetime value sums
+    only revenue-status orders, so a cancelled or refunded order never inflates it."""
+    revenue = Q(orders__status__in=REVENUE_STATUSES)
+    qs = (
+        get_user_model()
+        .objects.filter(is_staff=False)
+        .annotate(
+            order_count=Count("orders", filter=revenue, distinct=True),
+            lifetime_value=Sum("orders__total", filter=revenue),
+        )
+        .order_by("-date_joined")
+    )
+    q = (params.get("q") or "").strip()
+    if q:
+        qs = qs.filter(
+            Q(email__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q)
+        )
+    status = params.get("status")
+    if status == "blocked":
+        qs = qs.filter(is_active=False)
+    elif status == "active":
+        qs = qs.filter(is_active=True)
+    return qs
+
+
+def customer_list(params, page) -> Page:
+    return Paginator(_customer_qs(params), CUSTOMER_PAGE_SIZE).get_page(page)
+
+
+def customer_rows(params):
+    """Customer CSV rows, streamed off a queryset iterator (no PII buffered in memory)."""
+    for u in _customer_qs(params).iterator():
+        yield [
+            u.email,
+            u.get_full_name(),
+            u.order_count,
+            u.lifetime_value or Decimal("0"),
+            u.is_active,
+            u.date_joined.isoformat(),
+        ]
+
+
+def customer_detail(user) -> dict:
+    """One customer's orders and lifetime value (O8)."""
+    orders = user.orders.order_by("-created_at")
+    lifetime = orders.filter(status__in=REVENUE_STATUSES).aggregate(t=Sum("total"))["t"]
+    return {"orders": orders, "lifetime_value": lifetime or Decimal("0")}

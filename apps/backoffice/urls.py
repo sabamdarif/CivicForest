@@ -45,4 +45,7 @@ urlpatterns = [
     path("coupons/<uuid:pk>/", views.CouponEditView.as_view(), name="coupon_edit"),
     path("coupons/<uuid:pk>/report/", views.CouponReportView.as_view(), name="coupon_report"),
     path("coupons/<uuid:pk>/action/", views.CouponActionView.as_view(), name="coupon_action"),
+    path("customers/", views.CustomerListView.as_view(), name="customers"),
+    path("customers/<uuid:pk>/", views.CustomerDetailView.as_view(), name="customer_detail"),
+    path("customers/<uuid:pk>/action/", views.CustomerBlockView.as_view(), name="customer_action"),
 ]
