@@ -1,0 +1,35 @@
+{# Back-office coupon usage report (M8.9, O7): totals and a per-customer breakdown, read from the
+   paid CouponRedemption rows. The discount is the order's snapshotted value. #}
+{% extends "base.html" %}
+
+{% block title %}{{ coupon.code }} usage, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">{{ coupon.code }} usage</h1>
+
+  <div class="bo-tiles">
+    <div class="bo-tile"><span class="bo-tile__label">Redemptions</span><span class="bo-tile__value">{{ usage.uses }}</span></div>
+    <div class="bo-tile"><span class="bo-tile__label">Customers</span><span class="bo-tile__value">{{ usage.rows|length }}</span></div>
+    <div class="bo-tile"><span class="bo-tile__label">Discount given</span><span class="bo-tile__value">{{ usage.discount|rupees(decimals=0) }}</span></div>
+  </div>
+
+  <table class="bo-table">
+    <thead><tr><th>Customer</th><th>Uses</th><th>Discount</th></tr></thead>
+    <tbody>
+      {% for row in usage.rows %}
+        <tr>
+          <td>{{ row['user__email'] }}</td>
+          <td>{{ row.uses }}</td>
+          <td>{{ (row.discount or 0)|rupees(decimals=0) }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="bo-empty">No paid redemptions yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p><a class="btn btn--ghost" href="{{ url('backoffice:coupons') }}">Back to coupons</a></p>
+</div>
+{% endblock %}

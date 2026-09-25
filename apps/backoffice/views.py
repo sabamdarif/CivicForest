@@ -17,6 +17,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.generic import TemplateView, View
 
+from apps.cart.forms import CouponForm
+from apps.cart.models import Coupon
 from apps.catalog import services as catalog_services
 from apps.catalog.forms import ImageFormSet, ProductForm, StockAdjustmentForm, VariantFormSet
 from apps.catalog.models import Product, ProductVariant
@@ -541,6 +543,94 @@ class StockAdjustView(StaffRequiredMixin, View):
         query = request.POST.get("next", "").lstrip("?")
         url = reverse("backoffice:inventory")
         return redirect(f"{url}?{query}" if query else url)
+
+
+class CouponListView(StaffRequiredMixin, TemplateView):
+    """Coupons with their live redemption counts (M8.9, O7). Viewing needs ``view_coupon``; create,
+    edit and retire are guarded endpoints below."""
+
+    template_name = "backoffice/coupons.html"
+    permission_required = "cart.view_coupon"
+
+    def get_context_data(self, **kwargs):
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        return {
+            **super().get_context_data(**kwargs),
+            "coupons": services.coupon_list(self.request.GET, self.request.GET.get("page")),
+            "q": self.request.GET.get("q", ""),
+            "status": self.request.GET.get("status", ""),
+            "query": params.urlencode(),
+        }
+
+
+class _CouponFormMixin(StaffRequiredMixin):
+    template_name = "backoffice/coupon_form.html"
+
+    def _render(self, request, coupon, form):
+        return render(request, self.template_name, {"coupon": coupon, "form": form})
+
+    def _save(self, request, coupon):
+        form = CouponForm(request.POST, instance=coupon)
+        if form.is_valid():
+            coupon = form.save()
+            messages.success(request, "Coupon saved.")
+            return redirect("backoffice:coupon_edit", pk=coupon.pk)
+        messages.error(request, "Fix the errors below and save again.")
+        return self._render(request, coupon, form)
+
+
+class CouponCreateView(_CouponFormMixin, View):
+    permission_required = "cart.add_coupon"
+
+    def get(self, request):
+        return self._render(request, None, CouponForm())
+
+    def post(self, request):
+        return self._save(request, None)
+
+
+class CouponEditView(_CouponFormMixin, View):
+    permission_required = "cart.change_coupon"
+
+    def get(self, request, pk):
+        coupon = get_object_or_404(Coupon, pk=pk)
+        return self._render(request, coupon, CouponForm(instance=coupon))
+
+    def post(self, request, pk):
+        return self._save(request, get_object_or_404(Coupon, pk=pk))
+
+
+class CouponActionView(StaffRequiredMixin, View):
+    """Retire or restore a coupon (O7): deactivation, never a delete, so its redemption history
+    survives. Gated by ``change_coupon``."""
+
+    permission_required = "cart.change_coupon"
+
+    def post(self, request, pk):
+        action = request.POST.get("action", "")
+        if action not in {"retire", "restore"}:
+            raise Http404
+        coupon = get_object_or_404(Coupon, pk=pk)
+        coupon.is_active = action == "restore"
+        coupon.save(update_fields=["is_active", "updated_at"])
+        messages.success(request, "Coupon restored." if action == "restore" else "Coupon retired.")
+        return redirect("backoffice:coupons")
+
+
+class CouponReportView(StaffRequiredMixin, TemplateView):
+    """One coupon's usage broken down per customer (O7). Read-only, needs ``view_coupon``."""
+
+    template_name = "backoffice/coupon_report.html"
+    permission_required = "cart.view_coupon"
+
+    def get_context_data(self, **kwargs):
+        coupon = get_object_or_404(Coupon, pk=kwargs["pk"])
+        return {
+            **super().get_context_data(**kwargs),
+            "coupon": coupon,
+            "usage": services.coupon_usage(coupon),
+        }
 
 
 def styleguide(request):

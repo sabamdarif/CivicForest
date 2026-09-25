@@ -40,4 +40,9 @@ urlpatterns = [
     path("products/<uuid:pk>/action/", views.ProductActionView.as_view(), name="product_action"),
     path("inventory/", views.InventoryView.as_view(), name="inventory"),
     path("inventory/<uuid:pk>/adjust/", views.StockAdjustView.as_view(), name="inventory_adjust"),
+    path("coupons/", views.CouponListView.as_view(), name="coupons"),
+    path("coupons/new/", views.CouponCreateView.as_view(), name="coupon_new"),
+    path("coupons/<uuid:pk>/", views.CouponEditView.as_view(), name="coupon_edit"),
+    path("coupons/<uuid:pk>/report/", views.CouponReportView.as_view(), name="coupon_report"),
+    path("coupons/<uuid:pk>/action/", views.CouponActionView.as_view(), name="coupon_action"),
 ]

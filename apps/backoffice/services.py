@@ -21,7 +21,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from apps.cart import services as cart_services
-from apps.cart.models import Cart, CouponRedemption
+from apps.cart.models import Cart, Coupon, CouponRedemption
 from apps.catalog import services as catalog_services
 from apps.catalog.models import Product, ProductVariant
 from apps.common.formatting import rupees
@@ -371,3 +371,41 @@ def inventory_rows(params):
             "" if v.low_stock_threshold is None else v.low_stock_threshold,
             v.is_active,
         ]
+
+
+# ── Coupons (M8.9, O7) ──────────────────────────────────────────────────────────
+COUPON_PAGE_SIZE = 50
+
+
+def coupon_list(params, page) -> Page:
+    """Coupons with how many paid redemptions and distinct customers each has drawn (J2). A use is
+    a `CouponRedemption`, written only by a paid order, so these are real spend not clicks."""
+    qs = Coupon.objects.annotate(
+        redemptions_count=Count("redemptions", distinct=True),
+        customers=Count("redemptions__user", distinct=True),
+    ).order_by("code")
+    q = (params.get("q") or "").strip()
+    if q:
+        qs = qs.filter(code__icontains=q)
+    status = params.get("status")
+    if status == "active":
+        qs = qs.filter(is_active=True)
+    elif status == "inactive":
+        qs = qs.filter(is_active=False)
+    return Paginator(qs, COUPON_PAGE_SIZE).get_page(page)
+
+
+def coupon_usage(coupon: Coupon) -> dict:
+    """Per-customer redemptions and the discount each drew, plus the totals (O7). The discount is
+    the snapshotted `order.discount`, so a later catalogue edit cannot rewrite what was given."""
+    rows = list(
+        coupon.redemptions.values("user__email")
+        .annotate(uses=Count("id"), discount=Sum("order__discount"))
+        .order_by("-uses", "user__email")
+    )
+    totals = coupon.redemptions.aggregate(uses=Count("id"), discount=Sum("order__discount"))
+    return {
+        "rows": rows,
+        "uses": totals["uses"] or 0,
+        "discount": totals["discount"] or Decimal("0"),
+    }

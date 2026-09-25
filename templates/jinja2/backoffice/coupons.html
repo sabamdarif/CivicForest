@@ -1,0 +1,68 @@
+{# Back-office coupon list (M8.9, O7): search, active filter, live redemption counts, and links to
+   edit, the per-customer report and retire/restore. Retire deactivates, it never deletes. #}
+{% extends "base.html" %}
+{% from "_macros/pagination.html" import pagination %}
+
+{% block title %}Coupons, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Coupons</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="bo-bulk">
+    <a class="btn btn--primary btn--sm" href="{{ url('backoffice:coupon_new') }}">New coupon</a>
+  </div>
+
+  <form class="bo-filters" method="get" action="{{ url('backoffice:coupons') }}">
+    <label>Status
+      <select name="status">
+        <option value="">All</option>
+        <option value="active" {{ 'selected' if status == 'active' else '' }}>Active</option>
+        <option value="inactive" {{ 'selected' if status == 'inactive' else '' }}>Retired</option>
+      </select>
+    </label>
+    <label>Search <input type="search" name="q" value="{{ q }}" placeholder="Code" maxlength="40"></label>
+    <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+  </form>
+
+  <table class="bo-table">
+    <thead>
+      <tr><th>Code</th><th>Discount</th><th>Uses</th><th>Customers</th><th>Active</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for c in coupons %}
+        <tr class="{{ 'bo-row--archived' if not c.is_active else '' }}">
+          <td><a href="{{ url('backoffice:coupon_edit', kwargs={'pk': c.id}) }}">{{ c.code }}</a></td>
+          <td>{% if c.discount_type == 'percent' %}{{ c.value }}%{% else %}{{ c.value|rupees(decimals=0) }}{% endif %}</td>
+          <td>{{ c.redemptions_count }}</td>
+          <td>{{ c.customers }}</td>
+          <td>{{ 'Yes' if c.is_active else 'No' }}</td>
+          <td class="bo-actions">
+            <a class="btn btn--ghost btn--sm" href="{{ url('backoffice:coupon_report', kwargs={'pk': c.id}) }}">Report</a>
+            <form method="post" action="{{ url('backoffice:coupon_action', kwargs={'pk': c.id}) }}">
+              {{ csrf_input }}
+              {% if c.is_active %}
+                <button class="btn btn--ghost btn--sm" type="submit" name="action" value="retire">Retire</button>
+              {% else %}
+                <button class="btn btn--ghost btn--sm" type="submit" name="action" value="restore">Restore</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="bo-empty">No coupons match.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {{ pagination(coupons.number, coupons.paginator.num_pages, query) }}
+</div>
+{% endblock %}

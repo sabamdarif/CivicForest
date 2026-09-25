@@ -388,7 +388,7 @@ Tasks:
    drag-reorder images, duplicate, archive, CSV import with a dry-run diff before committing.
 8. [x] Inventory: stock-on-hand report, adjustment form that always records a reason into
    `StockAdjustment`, low-stock list with thresholds.
-9. [ ] Coupons: CRUD plus a usage report per coupon and per customer.
+9. [x] Coupons: CRUD plus a usage report per coupon and per customer.
 10. [ ] Customers: list, detail with orders and lifetime value, block, CSV export.
 11. [ ] Returns queue: approve, reject, mark received, trigger refund. **Deferred to M9 task 3**, which
     owns the `ReturnRequest` model and the customer-facing flow; the refund action lives on M8 order
