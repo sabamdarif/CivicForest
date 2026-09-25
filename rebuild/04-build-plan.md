@@ -393,7 +393,9 @@ Tasks:
 11. [ ] Returns queue: approve, reject, mark received, trigger refund. **Deferred to M9 task 3**, which
     owns the `ReturnRequest` model and the customer-facing flow; the refund action lives on M8 order
     detail (task 5). See the override in `01-decisions.md` Part 5.
-12. [ ] Content: pages, announcement bar, homepage sections, FAQ entries, category and collection imagery.
+12. [x] Content: announcement bar, homepage sections, category and collection imagery. Static pages
+    and FAQ entries arrive with their models in M9 (`03-architecture.md` §5), so their editors land
+    there too.
 13. [ ] Jobs panel: `JobRun` rows by status, full error text, "run now" per job, `OutboundEmail` list
     with resend. Built as a run ledger, not the full `03-architecture.md` §7 engine (no handler
     registry, backoff or dead-letter); see the override in `01-decisions.md` Part 5.

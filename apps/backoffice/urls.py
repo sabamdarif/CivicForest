@@ -48,4 +48,15 @@ urlpatterns = [
     path("customers/", views.CustomerListView.as_view(), name="customers"),
     path("customers/<uuid:pk>/", views.CustomerDetailView.as_view(), name="customer_detail"),
     path("customers/<uuid:pk>/action/", views.CustomerBlockView.as_view(), name="customer_action"),
+    path("content/", views.ContentView.as_view(), name="content"),
+    path("content/bar/new/", views.AnnouncementCreateView.as_view(), name="announcement_new"),
+    path("content/bar/<uuid:pk>/", views.AnnouncementEditView.as_view(), name="announcement_edit"),
+    path("content/section/new/", views.HomeSectionCreateView.as_view(), name="home_section_new"),
+    path(
+        "content/section/<uuid:pk>/", views.HomeSectionEditView.as_view(), name="home_section_edit"
+    ),
+    path("content/category/<uuid:pk>/", views.CategoryEditView.as_view(), name="category_edit"),
+    path(
+        "content/collection/<uuid:pk>/", views.CollectionEditView.as_view(), name="collection_edit"
+    ),
 ]

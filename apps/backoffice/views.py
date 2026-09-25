@@ -21,10 +21,19 @@ from django.views.generic import TemplateView, View
 from apps.cart.forms import CouponForm
 from apps.cart.models import Coupon
 from apps.catalog import services as catalog_services
-from apps.catalog.forms import ImageFormSet, ProductForm, StockAdjustmentForm, VariantFormSet
-from apps.catalog.models import Product, ProductVariant
+from apps.catalog.forms import (
+    CategoryForm,
+    CollectionForm,
+    ImageFormSet,
+    ProductForm,
+    StockAdjustmentForm,
+    VariantFormSet,
+)
+from apps.catalog.models import Category, Collection, Product, ProductVariant
 from apps.common.email import ORDER_EMAIL_KINDS
 from apps.common.models import StockAdjustment
+from apps.content.forms import AnnouncementBarForm, HomeSectionForm
+from apps.content.models import AnnouncementBar, HomeSection
 from apps.custom_orders import services as custom_services
 from apps.custom_orders.models import DesignUpload
 from apps.orders import services as order_services
@@ -694,6 +703,74 @@ class CustomerBlockView(StaffRequiredMixin, View):
             request, "Customer unblocked." if action == "unblock" else "Customer blocked."
         )
         return redirect("backoffice:customer_detail", pk=pk)
+
+
+class ContentView(StaffRequiredMixin, TemplateView):
+    """Content hub (M8.12, O10): the announcement bars, home sections, and category and collection
+    imagery, each linking to its editor. Pages and FAQ entries arrive with their M9 models."""
+
+    template_name = "backoffice/content.html"
+    permission_required = "content.view_announcementbar"
+
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), **services.content_overview()}
+
+
+class _ContentEditMixin(StaffRequiredMixin):
+    """Shared render and save for a single content ModelForm. Subclasses set ``model``,
+    ``form_class``, ``title`` and the permission; a ``pk`` in the URL edits, its absence creates."""
+
+    form_class = None
+    model = None
+    title = ""
+    template_name = "backoffice/content_form.html"
+
+    def get(self, request, pk=None):
+        instance = get_object_or_404(self.model, pk=pk) if pk else None
+        return self._render(request, self.form_class(instance=instance))
+
+    def post(self, request, pk=None):
+        instance = get_object_or_404(self.model, pk=pk) if pk else None
+        form = self.form_class(request.POST, request.FILES, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Saved.")
+            return redirect("backoffice:content")
+        messages.error(request, "Fix the errors below and save again.")
+        return self._render(request, form)
+
+    def _render(self, request, form):
+        return render(request, self.template_name, {"form": form, "title": self.title})
+
+
+class AnnouncementCreateView(_ContentEditMixin, View):
+    model, form_class, title = AnnouncementBar, AnnouncementBarForm, "New announcement bar"
+    permission_required = "content.add_announcementbar"
+
+
+class AnnouncementEditView(_ContentEditMixin, View):
+    model, form_class, title = AnnouncementBar, AnnouncementBarForm, "Announcement bar"
+    permission_required = "content.change_announcementbar"
+
+
+class HomeSectionCreateView(_ContentEditMixin, View):
+    model, form_class, title = HomeSection, HomeSectionForm, "New home section"
+    permission_required = "content.add_homesection"
+
+
+class HomeSectionEditView(_ContentEditMixin, View):
+    model, form_class, title = HomeSection, HomeSectionForm, "Home section"
+    permission_required = "content.change_homesection"
+
+
+class CategoryEditView(_ContentEditMixin, View):
+    model, form_class, title = Category, CategoryForm, "Category"
+    permission_required = "catalog.change_category"
+
+
+class CollectionEditView(_ContentEditMixin, View):
+    model, form_class, title = Collection, CollectionForm, "Collection"
+    permission_required = "catalog.change_collection"
 
 
 def styleguide(request):

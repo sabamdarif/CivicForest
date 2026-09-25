@@ -11,6 +11,16 @@
 <div class="container bo">
   <h1 class="bo__title">Dashboard</h1>
 
+  <nav class="bo-tabs" aria-label="Back-office sections">
+    <a class="bo-tab" href="{{ url('backoffice:orders') }}">Orders</a>
+    <a class="bo-tab" href="{{ url('backoffice:designs') }}">Designs</a>
+    <a class="bo-tab" href="{{ url('backoffice:products') }}">Products</a>
+    <a class="bo-tab" href="{{ url('backoffice:inventory') }}">Inventory</a>
+    <a class="bo-tab" href="{{ url('backoffice:coupons') }}">Coupons</a>
+    <a class="bo-tab" href="{{ url('backoffice:customers') }}">Customers</a>
+    <a class="bo-tab" href="{{ url('backoffice:content') }}">Content</a>
+  </nav>
+
   <div class="bo-tiles">
     {% for tile in tiles %}
       {% if tile.url %}

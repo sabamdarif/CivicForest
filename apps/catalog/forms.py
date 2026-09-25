@@ -16,7 +16,7 @@ from django.utils.text import slugify
 from apps.common.models import StockAdjustment
 from apps.custom_orders.uploads import UploadError, validate_product_image
 
-from .models import Color, Product, ProductImage, ProductVariant, Size
+from .models import Category, Collection, Color, Product, ProductImage, ProductVariant, Size
 
 
 def vocab_choices(model, current: str = "") -> list[tuple[str, str]]:
@@ -173,3 +173,45 @@ class StockAdjustmentForm(forms.Form):
         if delta == 0:
             raise forms.ValidationError("Enter a non-zero change.")
         return delta
+
+
+def _clean_image(form: forms.ModelForm, field: str):
+    """Sniff a freshly uploaded image, leaving an untouched existing file alone (M8.12)."""
+    uploaded = form.files.get(field)
+    if uploaded is None:
+        return form.cleaned_data.get(field)
+    try:
+        validate_product_image(uploaded)
+    except UploadError as exc:
+        raise forms.ValidationError(exc.message) from exc
+    return uploaded
+
+
+class CategoryForm(forms.ModelForm):
+    """Category copy and shop-by-category imagery for the back-office (O10)."""
+
+    class Meta:
+        model = Category
+        fields = ["name", "slug", "parent", "description", "image", "display_order", "is_active"]
+
+    def clean_image(self):
+        return _clean_image(self, "image")
+
+
+class CollectionForm(forms.ModelForm):
+    """Collection copy and hero imagery for the back-office (O10)."""
+
+    class Meta:
+        model = Collection
+        fields = [
+            "name",
+            "slug",
+            "tagline",
+            "description",
+            "hero_image",
+            "display_order",
+            "is_active",
+        ]
+
+    def clean_hero_image(self):
+        return _clean_image(self, "hero_image")

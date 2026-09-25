@@ -1,0 +1,59 @@
+{# Back-office content hub (M8.12, O10): the announcement bars, the home sections, and the category
+   and collection imagery, each linking to its editor. Pages and FAQ entries arrive with M9. #}
+{% extends "base.html" %}
+
+{% block title %}Content, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Content</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Announcement bars</h2>
+    <p><a class="btn btn--primary btn--sm" href="{{ url('backoffice:announcement_new') }}">New bar</a></p>
+    <ul class="bo-list">
+      {% for bar in bars %}
+        <li><a href="{{ url('backoffice:announcement_edit', kwargs={'pk': bar.id}) }}">{{ bar.text }}</a>
+          <span class="bo-list__num">{{ 'on' if bar.is_active else 'off' }}</span></li>
+      {% else %}<li class="bo-empty">None yet.</li>{% endfor %}
+    </ul>
+  </section>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Home sections</h2>
+    <p><a class="btn btn--primary btn--sm" href="{{ url('backoffice:home_section_new') }}">New section</a></p>
+    <ul class="bo-list">
+      {% for s in sections %}
+        <li><a href="{{ url('backoffice:home_section_edit', kwargs={'pk': s.id}) }}">{{ s.get_kind_display() }}</a>
+          <span class="bo-list__num">{{ 'on' if s.is_active else 'off' }}</span></li>
+      {% else %}<li class="bo-empty">None yet.</li>{% endfor %}
+    </ul>
+  </section>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Category imagery</h2>
+    <ul class="bo-list">
+      {% for c in categories %}
+        <li><a href="{{ url('backoffice:category_edit', kwargs={'pk': c.id}) }}">{{ c.name }}</a></li>
+      {% else %}<li class="bo-empty">None yet.</li>{% endfor %}
+    </ul>
+  </section>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Collection imagery</h2>
+    <ul class="bo-list">
+      {% for c in collections %}
+        <li><a href="{{ url('backoffice:collection_edit', kwargs={'pk': c.id}) }}">{{ c.name }}</a></li>
+      {% else %}<li class="bo-empty">None yet.</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}
