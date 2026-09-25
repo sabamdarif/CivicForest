@@ -8,20 +8,24 @@ size still show how many the other sizes hold (D3). And every multi-valued filte
 true.
 """
 
+import csv
 import io
 import re
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
 from urllib.parse import urlencode
 
 from django.core.files.base import ContentFile
 from django.core.paginator import Page, Paginator
+from django.db import transaction
 from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q, QuerySet, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.utils.text import slugify
 from PIL import Image as PILImage
 from PIL import ImageOps
 
@@ -821,3 +825,288 @@ def srcset(image: ProductImage) -> str:
         f"{storage.url(key)} {width}w"
         for width, key in sorted(image.width_variants.items(), key=lambda pair: int(pair[0]))
     )
+
+
+# ── Back-office product management (M8.7) ─────────────────────────────────────
+def index_product_images(product: Product, uploads=None) -> None:
+    """Append uploaded files as gallery rows, build any missing width sets, and refresh the
+    search document. Shared by the Django admin save path and the back-office product form so the
+    upload, derivatives and index chain lives in one place and cannot drift between them."""
+    from apps.search import services as search_services
+
+    files = list(uploads or [])
+    if files:
+        start = product.images.count()
+        ProductImage.objects.bulk_create(
+            [
+                ProductImage(
+                    product=product,
+                    image=upload,
+                    alt_text=product.name,
+                    display_order=start + offset,
+                )
+                for offset, upload in enumerate(files)
+            ]
+        )
+    for image in product.images.filter(width_variants={}):
+        build_image_widths(image)
+    search_services.refresh(product)
+
+
+def bulk_update_products(updates: dict) -> int:
+    """Apply the list editor's per-row ``{id: {"base_price", "is_active"}}`` in one transaction.
+
+    An id that is not a real product is dropped rather than raising, so a tampered row in the
+    posted form can never touch another product or 500 the request.
+    """
+    changed = 0
+    with transaction.atomic():
+        for raw_id, values in updates.items():
+            try:
+                pk = uuid.UUID(str(raw_id))
+            except (ValueError, TypeError, AttributeError):
+                continue
+            product = Product.objects.filter(pk=pk).first()
+            if product is None:
+                continue
+            fields = ["is_active", "updated_at"]
+            product.is_active = bool(values.get("is_active"))
+            if values.get("base_price") is not None:
+                product.base_price = values["base_price"]
+                fields.insert(0, "base_price")
+            product.save(update_fields=fields)
+            changed += 1
+    return changed
+
+
+def set_product_active(product: Product, active: bool) -> None:
+    """Archive or restore. Never a delete: an order snapshots its lines, but a live variant still
+    points at the product, and hiding it keeps history and stock intact."""
+    product.is_active = bool(active)
+    product.save(update_fields=["is_active", "updated_at"])
+
+
+def duplicate_product(source: Product) -> Product:
+    """Clone a product as an inactive draft: a unique slug, copied variants (SKUs regenerate) and
+    image rows, and the same tags and collections. The copy is never live by accident."""
+    from apps.catalog.forms import unique_product_slug
+
+    with transaction.atomic():
+        clone = Product.objects.get(pk=source.pk)
+        clone.pk = None
+        clone._state.adding = True
+        clone.slug = unique_product_slug(f"{source.slug}-copy")
+        clone.name = f"{source.name} (copy)"
+        clone.is_active = False
+        clone.save()
+        for variant in source.variants.all():
+            variant.pk = None
+            variant._state.adding = True
+            variant.product = clone
+            variant.sku = ""
+            variant.save()
+        for image in source.images.all():
+            image.pk = None
+            image._state.adding = True
+            image.product = clone
+            # The pin points at a source variant that this clone does not own; drop it.
+            image.variant = None
+            image.save()
+        clone.tags.set(source.tags.all())
+        clone.collections.set(source.collections.all())
+    return clone
+
+
+# ── Product CSV (C16, O5) ─────────────────────────────────────────────────────
+# Product-level and keyed on slug: a row is one product, variants are edited in the matrix, not
+# here. Export and import share this header so a file round-trips. Import is a two-step dry run:
+# the view previews `plan_product_import`, then `apply_product_import` re-reads the same text.
+PRODUCT_CSV_HEADER = [
+    "slug",
+    "name",
+    "category",
+    "material",
+    "base_price",
+    "mrp",
+    "country_of_origin",
+    "is_active",
+    "is_new",
+    "is_bestseller",
+]
+
+# Fields compared to decide "update" vs "unchanged", and written on create/update. Slug is the
+# key, so it is not in here; category and material are resolved to objects separately.
+_CSV_SCALAR_FIELDS = [
+    "name",
+    "base_price",
+    "mrp",
+    "country_of_origin",
+    "is_active",
+    "is_new",
+    "is_bestseller",
+]
+
+
+def exportable_products() -> QuerySet[Product]:
+    """Ordinary products (custom blanks excluded), for the CSV export and the back-office list."""
+    return Product.objects.filter(is_custom_blank=False).order_by("name")
+
+
+def product_export_rows(queryset: QuerySet[Product]):
+    """CSV rows over a queryset iterator, so the export never buffers the whole catalogue."""
+    for p in queryset.select_related("category", "material").iterator():
+        yield [
+            p.slug,
+            p.name,
+            p.category.slug if p.category else "",
+            p.material.slug if p.material else "",
+            p.base_price,
+            "" if p.mrp is None else p.mrp,
+            p.country_of_origin,
+            p.is_active,
+            p.is_new,
+            p.is_bestseller,
+        ]
+
+
+_TRUE = {"1", "true", "yes", "y", "on"}
+_FALSE = {"0", "false", "no", "n", "off", ""}
+
+
+def _csv_bool(raw: str, default: bool = False) -> bool | None:
+    value = (raw or "").strip().lower()
+    if value in _TRUE:
+        return True
+    if value in _FALSE:
+        return default if value == "" else False
+    return None  # unparseable, flagged as an error
+
+
+def _csv_decimal(raw: str):
+    value = (raw or "").strip()
+    if value == "":
+        return None
+    try:
+        number = Decimal(value)
+    except InvalidOperation:
+        return "error"
+    return number if number >= 0 else "error"
+
+
+@dataclass
+class ImportRow:
+    """One CSV line after validation: what it would do and why. ``action`` is one of create,
+    update, unchanged or error; ``changes`` names the fields an update would touch."""
+
+    line: int
+    slug: str
+    name: str = ""
+    action: str = "unchanged"
+    changes: list = field(default_factory=list)
+    error: str = ""
+    values: dict = field(default_factory=dict)
+    category: object = None
+    material: object = None
+    product: object = None
+
+
+def _plan_row(line: int, raw: dict, categories: dict, materials: dict) -> ImportRow:
+    slug = slugify((raw.get("slug") or "").strip())[:180]
+    if not slug:
+        return ImportRow(line, "", action="error", error="Missing or invalid slug.")
+
+    row = ImportRow(line, slug, name=(raw.get("name") or "").strip())
+    category = categories.get(slugify((raw.get("category") or "").strip()))
+    if category is None:
+        row.action, row.error = "error", "Unknown category slug."
+        return row
+    material_slug = slugify((raw.get("material") or "").strip())
+    if material_slug and material_slug not in materials:
+        row.action, row.error = "error", "Unknown material slug."
+        return row
+
+    base_price = _csv_decimal(raw.get("base_price"))
+    mrp = _csv_decimal(raw.get("mrp"))
+    flags = {
+        "is_active": _csv_bool(raw.get("is_active"), default=True),
+        "is_new": _csv_bool(raw.get("is_new")),
+        "is_bestseller": _csv_bool(raw.get("is_bestseller")),
+    }
+    if base_price in (None, "error") or mrp == "error" or None in flags.values():
+        row.action, row.error = "error", "Bad price or true/false value."
+        return row
+    if not row.name:
+        row.action, row.error = "error", "Missing name."
+        return row
+
+    row.category = category
+    row.material = materials.get(material_slug) if material_slug else None
+    row.values = {
+        "name": row.name,
+        "base_price": base_price,
+        "mrp": mrp,
+        "country_of_origin": (raw.get("country_of_origin") or "India").strip() or "India",
+        **flags,
+    }
+    row.product = Product.objects.filter(slug=slug).first()
+    if row.product is None:
+        row.action = "create"
+        return row
+
+    row.changes = _changed_fields(row)
+    row.action = "update" if row.changes else "unchanged"
+    return row
+
+
+def _changed_fields(row: ImportRow) -> list:
+    changes = [f for f in _CSV_SCALAR_FIELDS if getattr(row.product, f) != row.values[f]]
+    if row.product.category_id != row.category.pk:
+        changes.append("category")
+    if row.product.material_id != (row.material.pk if row.material else None):
+        changes.append("material")
+    return changes
+
+
+def plan_product_import(text: str) -> list[ImportRow]:
+    """Parse and validate the upload against the catalogue, writing nothing. The view renders this
+    diff; a confirmed apply re-reads the same text so what is written is what was shown."""
+    reader = csv.DictReader(io.StringIO(text))
+    if not reader.fieldnames or "slug" not in reader.fieldnames:
+        return [
+            ImportRow(1, "", action="error", error="CSV needs a header row with a slug column.")
+        ]
+    categories = {c.slug: c for c in Category.objects.all()}
+    materials = {m.slug: m for m in Material.objects.all()}
+    return [_plan_row(line, raw, categories, materials) for line, raw in enumerate(reader, start=2)]
+
+
+def apply_product_import(text: str) -> dict:
+    """Write the create and update rows of a re-parsed plan in one transaction, then reindex each
+    touched product. Error and unchanged rows are skipped."""
+    from apps.search import services as search_services
+
+    plan = plan_product_import(text)
+    touched: list[Product] = []
+    created = updated = 0
+    with transaction.atomic():
+        for row in plan:
+            if row.action == "create":
+                product = Product.objects.create(
+                    slug=row.slug, category=row.category, material=row.material, **row.values
+                )
+                created += 1
+            elif row.action == "update":
+                product = row.product
+                for f, value in row.values.items():
+                    setattr(product, f, value)
+                product.category = row.category
+                product.material = row.material
+                product.save()
+                updated += 1
+            else:
+                continue
+            touched.append(product)
+    for product in touched:
+        search_services.refresh(product)
+    errors = sum(1 for row in plan if row.action == "error")
+    return {"created": created, "updated": updated, "errors": errors}

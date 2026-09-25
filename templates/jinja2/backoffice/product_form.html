@@ -1,0 +1,99 @@
+{# Back-office product form (M8.7): the product fields, the variant matrix and the image reorder
+   list, all in one multipart POST saved together. New photos go through the gallery picker; image
+   order is the display_order column (a small script adds drag on top, but the numbers work with
+   JavaScript off). #}
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if product else 'New' }} product, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">{{ product.name if product else 'New product' }}</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data"
+        action="{{ url('backoffice:product_edit', kwargs={'pk': product.id}) if product else url('backoffice:product_new') }}">
+    {{ csrf_input }}
+
+    <section class="bo-card">
+      <h2 class="bo-card__title">Details</h2>
+      {% for f in form %}
+        <div class="field">
+          <label class="field__label" for="{{ f.id_for_label }}">
+            {{ f.label }}{% if f.field.required %} <span class="field__required" aria-hidden="true">*</span>{% endif %}
+          </label>
+          {{ f }}
+          {% if f.help_text %}<p class="field__hint">{{ f.help_text }}</p>{% endif %}
+          {% if f.errors %}<p class="field__error">{{ f.errors }}</p>{% endif %}
+        </div>
+      {% endfor %}
+    </section>
+
+    <section class="bo-card">
+      <h2 class="bo-card__title">Variants</h2>
+      {{ variant_formset.management_form }}
+      {{ variant_formset.non_form_errors() }}
+      <table class="bo-table bo-matrix">
+        <thead>
+          <tr><th>Size</th><th>Colour</th><th>Hex</th><th>SKU</th><th>Price override</th><th>Stock</th><th>Active</th><th>Remove</th></tr>
+        </thead>
+        <tbody>
+          {% for f in variant_formset %}
+            <tr>
+              {% for h in f.hidden_fields() %}{{ h }}{% endfor %}
+              <td>{{ f.size }}</td>
+              <td>{{ f.color }}</td>
+              <td>{{ f.color_hex }}</td>
+              <td>{{ f.sku }}</td>
+              <td>{{ f.price_override }}</td>
+              <td>{{ f.stock_quantity }}</td>
+              <td>{{ f.is_active }}</td>
+              <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>
+            </tr>
+            {% if f.errors %}<tr><td colspan="8" class="field__error">{{ f.errors }}</td></tr>{% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="field__hint">The last row is blank: fill it in to add a variant.</p>
+    </section>
+
+    {% if product %}
+    <section class="bo-card">
+      <h2 class="bo-card__title">Images</h2>
+      {{ image_formset.management_form }}
+      <table class="bo-table bo-images" data-reorder>
+        <thead>
+          <tr><th>Preview</th><th>Order</th><th>Alt text</th><th>Colour</th><th>Remove</th></tr>
+        </thead>
+        <tbody>
+          {% for f in image_formset %}
+            <tr draggable="true">
+              {% for h in f.hidden_fields() %}{{ h }}{% endfor %}
+              <td>{% if f.instance.image %}<img class="bo-thumb" src="{{ f.instance.image.url }}" alt=""> {% endif %}</td>
+              <td>{{ f.display_order }}</td>
+              <td>{{ f.alt_text }}</td>
+              <td>{{ f.variant }}</td>
+              <td>{{ f.DELETE }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="bo-empty">No images yet. Add some below.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
+
+    <button type="submit" class="btn btn--primary">Save product</button>
+    <a class="btn btn--ghost" href="{{ url('backoffice:products') }}">Back to products</a>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}<script type="module" src="{{ static('js/backoffice-reorder.js') }}"></script>{% endblock %}

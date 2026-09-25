@@ -7,14 +7,19 @@ no data behind it, so its gate is `is_staff`/DEBUG rather than the full MFA mixi
 """
 
 import uuid
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
+from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.generic import TemplateView, View
 
+from apps.catalog import services as catalog_services
+from apps.catalog.forms import ImageFormSet, ProductForm, VariantFormSet
+from apps.catalog.models import Product
 from apps.common.email import ORDER_EMAIL_KINDS
 from apps.custom_orders import services as custom_services
 from apps.custom_orders.models import DesignUpload
@@ -296,6 +301,189 @@ class DesignReviewActionView(StaffRequiredMixin, View):
             messages.success(request, f"Resubmitted {submitted} line(s) to Qikink.")
         else:
             messages.warning(request, "Nothing to resubmit (unpaid or already submitted).")
+
+
+def _product_decimal(raw):
+    """A price from a posted string, or None when it is blank or junk so the service skips it."""
+    try:
+        value = Decimal((raw or "").strip())
+    except (InvalidOperation, TypeError):
+        return None
+    return value if value >= 0 else None
+
+
+class ProductListView(StaffRequiredMixin, TemplateView):
+    """The product list (M8.7): search, an active/archived filter, and inline base-price and
+    active editing across the page. Viewing needs ``view_product``; the bulk save is its own
+    guarded endpoint so a view-only role cannot write."""
+
+    template_name = "backoffice/products.html"
+    permission_required = "catalog.view_product"
+
+    def get_context_data(self, **kwargs):
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        return {
+            **super().get_context_data(**kwargs),
+            "products": services.product_admin_list(self.request.GET, self.request.GET.get("page")),
+            "q": self.request.GET.get("q", ""),
+            "status": self.request.GET.get("status", ""),
+            "low_stock_threshold": settings.LOW_STOCK_THRESHOLD,
+            "query": params.urlencode(),
+        }
+
+
+class ProductBulkUpdateView(StaffRequiredMixin, View):
+    """Apply the list's inline base-price and active edits. Gated by ``change_product`` so a
+    view-only role cannot reach it."""
+
+    permission_required = "catalog.change_product"
+
+    def post(self, request):
+        updates = {
+            raw: {
+                "base_price": _product_decimal(request.POST.get(f"price-{raw}")),
+                "is_active": bool(request.POST.get(f"active-{raw}")),
+            }
+            for raw in request.POST.getlist("ids")
+        }
+        changed = catalog_services.bulk_update_products(updates)
+        messages.success(request, f"{changed} product(s) updated.")
+        query = request.POST.get("next", "").lstrip("?")
+        url = reverse("backoffice:products")
+        return redirect(f"{url}?{query}" if query else url)
+
+
+class _ProductFormMixin(StaffRequiredMixin):
+    """Shared render and save for the create and edit product forms: one ModelForm plus the
+    variant matrix and the image reorder formset, all saved in a single transaction."""
+
+    template_name = "backoffice/product_form.html"
+
+    def _render(self, request, product, form, variants, images):
+        return render(
+            request,
+            self.template_name,
+            {
+                "product": product,
+                "form": form,
+                "variant_formset": variants,
+                "image_formset": images,
+            },
+        )
+
+    def _save(self, request, product):
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        variants = VariantFormSet(request.POST, instance=product)
+        images = ImageFormSet(request.POST, instance=product)
+        if form.is_valid() and variants.is_valid() and images.is_valid():
+            with transaction.atomic():
+                product = form.save()
+                variants.instance = product
+                variants.save()
+                images.instance = product
+                images.save()
+                catalog_services.index_product_images(product, request.FILES.getlist("gallery"))
+            messages.success(request, "Product saved.")
+            return redirect("backoffice:product_edit", pk=product.pk)
+        messages.error(request, "Fix the errors below and save again.")
+        return self._render(request, product, form, variants, images)
+
+
+class ProductCreateView(_ProductFormMixin, View):
+    permission_required = "catalog.add_product"
+
+    def get(self, request):
+        return self._render(request, None, ProductForm(), VariantFormSet(), ImageFormSet())
+
+    def post(self, request):
+        return self._save(request, None)
+
+
+class ProductEditView(_ProductFormMixin, View):
+    permission_required = "catalog.change_product"
+
+    def get(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        return self._render(
+            request,
+            product,
+            ProductForm(instance=product),
+            VariantFormSet(instance=product),
+            ImageFormSet(instance=product),
+        )
+
+    def post(self, request, pk):
+        return self._save(request, get_object_or_404(Product, pk=pk))
+
+
+class ProductActionView(StaffRequiredMixin, View):
+    """Archive, restore or duplicate one product, each re-checking its own permission (the
+    ``OrderActionView`` pattern) so a view-only role reaches none of them. There is no delete: a
+    product is archived, never removed."""
+
+    _ACTION_PERMS = {
+        "archive": "catalog.change_product",
+        "unarchive": "catalog.change_product",
+        "duplicate": "catalog.add_product",
+    }
+
+    def post(self, request, pk):
+        action = request.POST.get("action", "")
+        perm = self._ACTION_PERMS.get(action)
+        if perm is None or not request.user.has_perm(perm):
+            raise Http404
+        product = get_object_or_404(Product, pk=pk)
+        if action == "duplicate":
+            clone = catalog_services.duplicate_product(product)
+            messages.success(request, "Duplicated as an inactive draft.")
+            return redirect("backoffice:product_edit", pk=clone.pk)
+        catalog_services.set_product_active(product, action == "unarchive")
+        messages.success(
+            request, "Product restored." if action == "unarchive" else "Product archived."
+        )
+        return redirect("backoffice:products")
+
+
+class ProductImportView(StaffRequiredMixin, View):
+    """CSV export and a two-step import (C16). Export streams; import previews the diff, carrying
+    the raw CSV in a hidden field, and only writes on the confirmed second post, so nothing is
+    stored on the read-only filesystem between the steps."""
+
+    permission_required = ("catalog.add_product", "catalog.change_product")
+    template_name = "backoffice/product_import.html"
+
+    def get(self, request):
+        if request.GET.get("export") == "csv":
+            return stream_csv(
+                "products.csv",
+                catalog_services.PRODUCT_CSV_HEADER,
+                catalog_services.product_export_rows(catalog_services.exportable_products()),
+            )
+        return render(request, self.template_name, self._context())
+
+    def post(self, request):
+        if request.POST.get("step") == "confirm":
+            result = catalog_services.apply_product_import(request.POST.get("csv", ""))
+            messages.success(
+                request,
+                f"Imported: {result['created']} created, {result['updated']} updated, "
+                f"{result['errors']} skipped.",
+            )
+            return redirect("backoffice:products")
+        upload = request.FILES.get("file")
+        if upload is None:
+            messages.warning(request, "Choose a CSV file to import.")
+            return redirect("backoffice:product_import")
+        text = upload.read().decode("utf-8-sig", errors="replace")
+        return render(
+            request,
+            self.template_name,
+            self._context(plan=catalog_services.plan_product_import(text), csv_text=text),
+        )
+
+    def _context(self, plan=None, csv_text=""):
+        return {"header": catalog_services.PRODUCT_CSV_HEADER, "plan": plan, "csv_text": csv_text}
 
 
 def styleguide(request):

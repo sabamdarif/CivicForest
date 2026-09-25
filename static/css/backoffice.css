@@ -310,5 +310,50 @@ a.bo-tile:hover {
   background: var(--paper);
 }
 
+/* Product management (M8.7): compact inline editors, the variant matrix and the import diff. */
+.bo-inline {
+  width: 7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bo-num--low {
+  color: #b3261e;
+  font-weight: var(--weight-semibold);
+}
+
+.bo-row--archived {
+  color: var(--muted);
+}
+
+.bo-matrix input,
+.bo-matrix select {
+  width: 100%;
+  min-width: 5rem;
+}
+
+.bo-images tr[draggable="true"] {
+  cursor: grab;
+}
+
+.bo-thumb {
+  height: 44px;
+  width: 44px;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+.bo-diff--error {
+  color: #b3261e;
+}
+
+.bo-diff--create {
+  color: #146c2e;
+}
+
+.bo-diff--unchanged {
+  color: var(--muted);
+}
+
+
 
 

@@ -23,7 +23,7 @@ from django.utils.dateparse import parse_date
 
 from apps.cart import services as cart_services
 from apps.cart.models import Cart, CouponRedemption
-from apps.catalog.models import ProductVariant
+from apps.catalog.models import Product, ProductVariant
 from apps.common.formatting import rupees
 from apps.custom_orders.models import CustomDesignOrder, DesignUpload
 from apps.orders.models import Order, OrderItem
@@ -307,3 +307,27 @@ def design_queue(params, page) -> Page:
         elif review != "all":
             qs = qs.filter(review_status=DesignUpload.ReviewStatus.FLAGGED)
     return Paginator(qs, DESIGN_QUEUE_PAGE_SIZE).get_page(page)
+
+
+# ── Product management (M8.7) ───────────────────────────────────────────────────
+PRODUCT_LIST_PAGE_SIZE = 50
+
+
+def product_admin_list(params, page) -> Page:
+    """One page of ordinary products for the management list, with search and an active/archived
+    filter. Variants are prefetched so the row can print stock on hand without an extra query."""
+    qs = (
+        Product.objects.filter(is_custom_blank=False)
+        .select_related("category")
+        .prefetch_related("variants")
+        .order_by("name")
+    )
+    q = (params.get("q") or "").strip()
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(slug__icontains=q))
+    status = params.get("status")
+    if status == "archived":
+        qs = qs.filter(is_active=False)
+    elif status == "active":
+        qs = qs.filter(is_active=True)
+    return Paginator(qs, PRODUCT_LIST_PAGE_SIZE).get_page(page)

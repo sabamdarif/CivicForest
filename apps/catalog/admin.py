@@ -5,7 +5,6 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from apps.custom_orders.uploads import UploadError, validate_product_image
-from apps.search import services as search_services
 
 from . import services
 from .models import (
@@ -362,31 +361,12 @@ class ProductAdmin(admin.ModelAdmin):
         return format_html('<b style="color:{}">{}</b>', color, total)
 
     def save_related(self, request, form, formsets, change):
-        """Turn the multi-file picker into ProductImage rows, appended after any
-        gallery rows the inline created, then generate every missing set of widths.
-
-        The search document is rebuilt here too, after the M2M rows are written, so a staff
-        edit is searchable at once. This is a staff request, never a customer's (M3 task 3).
-        """
+        """Turn the multi-file picker into ProductImage rows, generate every missing set of
+        widths, and rebuild the search document, all through the one service the back-office
+        product form shares (`index_product_images`). A staff edit is searchable at once; this is
+        never a customer request (M3 task 3)."""
         super().save_related(request, form, formsets, change)
-        product = form.instance
-        uploads = request.FILES.getlist("gallery")
-        if uploads:
-            start = product.images.count()
-            ProductImage.objects.bulk_create(
-                [
-                    ProductImage(
-                        product=product,
-                        image=upload,
-                        alt_text=product.name,
-                        display_order=start + offset,
-                    )
-                    for offset, upload in enumerate(uploads)
-                ]
-            )
-        for image in product.images.filter(width_variants={}):
-            services.build_image_widths(image)
-        search_services.refresh(product)
+        services.index_product_images(form.instance, request.FILES.getlist("gallery"))
 
 
 @admin.register(ProductVariant)
