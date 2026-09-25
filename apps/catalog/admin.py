@@ -62,6 +62,7 @@ class ProductVariantForm(forms.ModelForm):
             "sku",
             "price_override",
             "stock_quantity",
+            "low_stock_threshold",
             "is_active",
         ]
 

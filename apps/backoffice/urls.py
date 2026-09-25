@@ -38,4 +38,6 @@ urlpatterns = [
     path("products/new/", views.ProductCreateView.as_view(), name="product_new"),
     path("products/<uuid:pk>/", views.ProductEditView.as_view(), name="product_edit"),
     path("products/<uuid:pk>/action/", views.ProductActionView.as_view(), name="product_action"),
+    path("inventory/", views.InventoryView.as_view(), name="inventory"),
+    path("inventory/<uuid:pk>/adjust/", views.StockAdjustView.as_view(), name="inventory_adjust"),
 ]

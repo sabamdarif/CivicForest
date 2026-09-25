@@ -12,7 +12,6 @@ from collections.abc import Iterator
 from datetime import timedelta
 from decimal import Decimal
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.paginator import Page, Paginator
 from django.db.models import Count, Q, Sum
@@ -23,6 +22,7 @@ from django.utils.dateparse import parse_date
 
 from apps.cart import services as cart_services
 from apps.cart.models import Cart, CouponRedemption
+from apps.catalog import services as catalog_services
 from apps.catalog.models import Product, ProductVariant
 from apps.common.formatting import rupees
 from apps.custom_orders.models import CustomDesignOrder, DesignUpload
@@ -157,9 +157,7 @@ def dashboard_context() -> dict:
             .annotate(units=Sum("quantity"))
             .order_by("-units")[:8]
         ),
-        "low_stock": ProductVariant.objects.filter(
-            is_active=True, stock_quantity__lte=settings.LOW_STOCK_THRESHOLD
-        )
+        "low_stock": catalog_services.low_stock_variants()
         .select_related("product")
         .order_by("stock_quantity")[:8],
         "recent_orders": Order.objects.select_related("user")[:10],
@@ -331,3 +329,45 @@ def product_admin_list(params, page) -> Page:
     elif status == "active":
         qs = qs.filter(is_active=True)
     return Paginator(qs, PRODUCT_LIST_PAGE_SIZE).get_page(page)
+
+
+# ── Inventory (M8.8) ────────────────────────────────────────────────────────────
+INVENTORY_PAGE_SIZE = 50
+INVENTORY_CSV_HEADER = [
+    "sku",
+    "product",
+    "size",
+    "color",
+    "stock_quantity",
+    "low_stock_threshold",
+    "is_active",
+]
+
+
+def _inventory_qs(params):
+    qs = ProductVariant.objects.select_related("product").order_by("product__name", "size", "color")
+    q = (params.get("q") or "").strip()
+    if q:
+        qs = qs.filter(Q(sku__icontains=q) | Q(product__name__icontains=q))
+    if params.get("low") == "1":
+        qs = catalog_services.low_stock_variants(qs)
+    return qs
+
+
+def inventory_list(params, page) -> Page:
+    """One page of variants with their stock on hand, searchable and filterable to low stock."""
+    return Paginator(_inventory_qs(params), INVENTORY_PAGE_SIZE).get_page(page)
+
+
+def inventory_rows(params):
+    """Stock-on-hand CSV rows for the current filter, streamed off a queryset iterator."""
+    for v in _inventory_qs(params).iterator():
+        yield [
+            v.sku,
+            v.product.name,
+            v.size,
+            v.color,
+            v.stock_quantity,
+            "" if v.low_stock_threshold is None else v.low_stock_threshold,
+            v.is_active,
+        ]

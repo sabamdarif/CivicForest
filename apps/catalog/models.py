@@ -7,6 +7,7 @@ stored, only derived from `mrp` against the selling price (C2).
 
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.text import slugify
@@ -256,6 +257,11 @@ class ProductVariant(UUIDTimestampedModel):
     )
     price_override = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stock_quantity = models.PositiveIntegerField(default=0)
+    low_stock_threshold = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Warn at or below this on-hand count. Blank uses the store default (O6).",
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -291,6 +297,17 @@ class ProductVariant(UUIDTimestampedModel):
     def effective_price(self) -> Decimal:
         """Override if set, else the product base price."""
         return self.price_override if self.price_override is not None else self.product.base_price
+
+    @property
+    def low_stock_at(self) -> int:
+        """The threshold this variant warns at: its own, or the store default when blank (O6)."""
+        if self.low_stock_threshold is not None:
+            return self.low_stock_threshold
+        return settings.LOW_STOCK_THRESHOLD
+
+    @property
+    def is_low_stock(self) -> bool:
+        return self.stock_quantity <= self.low_stock_at
 
 
 class ProductImage(UUIDTimestampedModel):

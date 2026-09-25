@@ -18,9 +18,10 @@ from django.urls import reverse
 from django.views.generic import TemplateView, View
 
 from apps.catalog import services as catalog_services
-from apps.catalog.forms import ImageFormSet, ProductForm, VariantFormSet
-from apps.catalog.models import Product
+from apps.catalog.forms import ImageFormSet, ProductForm, StockAdjustmentForm, VariantFormSet
+from apps.catalog.models import Product, ProductVariant
 from apps.common.email import ORDER_EMAIL_KINDS
+from apps.common.models import StockAdjustment
 from apps.custom_orders import services as custom_services
 from apps.custom_orders.models import DesignUpload
 from apps.orders import services as order_services
@@ -484,6 +485,62 @@ class ProductImportView(StaffRequiredMixin, View):
 
     def _context(self, plan=None, csv_text=""):
         return {"header": catalog_services.PRODUCT_CSV_HEADER, "plan": plan, "csv_text": csv_text}
+
+
+class InventoryView(StaffRequiredMixin, TemplateView):
+    """Stock on hand (M8.8, O6): every variant with its count and threshold, searchable and
+    filterable to low stock, with a per-row adjustment form and a streamed CSV export. Viewing
+    needs ``view_productvariant``; the adjustment posts to its own guarded endpoint."""
+
+    template_name = "backoffice/inventory.html"
+    permission_required = "catalog.view_productvariant"
+
+    def get(self, request, *args, **kwargs):
+        if request.GET.get("export") == "csv":
+            return stream_csv(
+                "inventory.csv", services.INVENTORY_CSV_HEADER, services.inventory_rows(request.GET)
+            )
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        return {
+            **super().get_context_data(**kwargs),
+            "variants": services.inventory_list(self.request.GET, self.request.GET.get("page")),
+            "q": self.request.GET.get("q", ""),
+            "low": self.request.GET.get("low", ""),
+            "reasons": StockAdjustment.Reason.choices,
+            "query": params.urlencode(),
+        }
+
+
+class StockAdjustView(StaffRequiredMixin, View):
+    """Apply one stock adjustment (O6), gated by ``add_stockadjustment`` so only a stock role can
+    reach it. The change and its reason are written together; a change below zero is refused."""
+
+    permission_required = "common.add_stockadjustment"
+
+    def post(self, request, pk):
+        variant = get_object_or_404(ProductVariant, pk=pk)
+        form = StockAdjustmentForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Enter a non-zero change and a reason.")
+        else:
+            try:
+                catalog_services.adjust_stock(
+                    variant,
+                    form.cleaned_data["delta"],
+                    reason=form.cleaned_data["reason"],
+                    actor=request.user,
+                    note=form.cleaned_data["note"],
+                )
+                messages.success(request, "Stock adjusted.")
+            except catalog_services.StockError as exc:
+                messages.error(request, exc.message)
+        query = request.POST.get("next", "").lstrip("?")
+        url = reverse("backoffice:inventory")
+        return redirect(f"{url}?{query}" if query else url)
 
 
 def styleguide(request):

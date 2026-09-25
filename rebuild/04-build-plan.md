@@ -386,7 +386,7 @@ Tasks:
 6. [x] Design review queue (built in M7, surfaced here alongside everything else).
 7. [x] Product management: list with inline stock and price editing, full form with variant matrix,
    drag-reorder images, duplicate, archive, CSV import with a dry-run diff before committing.
-8. [ ] Inventory: stock-on-hand report, adjustment form that always records a reason into
+8. [x] Inventory: stock-on-hand report, adjustment form that always records a reason into
    `StockAdjustment`, low-stock list with thresholds.
 9. [ ] Coupons: CRUD plus a usage report per coupon and per customer.
 10. [ ] Customers: list, detail with orders and lifetime value, block, CSV export.

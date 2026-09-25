@@ -13,6 +13,7 @@ from django import forms
 from django.forms import inlineformset_factory
 from django.utils.text import slugify
 
+from apps.common.models import StockAdjustment
 from apps.custom_orders.uploads import UploadError, validate_product_image
 
 from .models import Color, Product, ProductImage, ProductVariant, Size
@@ -123,6 +124,7 @@ class VariantMatrixForm(forms.ModelForm):
             "sku",
             "price_override",
             "stock_quantity",
+            "low_stock_threshold",
             "is_active",
         ]
 
@@ -155,3 +157,19 @@ ImageFormSet = inlineformset_factory(
     extra=0,
     can_delete=True,
 )
+
+
+class StockAdjustmentForm(forms.Form):
+    """A single stock change on the inventory page (O6): how much, why, and an optional note. The
+    view resolves the variant from the URL and calls ``adjust_stock``; the delta may be negative
+    but the service refuses to drive stock below zero."""
+
+    delta = forms.IntegerField(label="Change", help_text="Positive adds stock, negative removes.")
+    reason = forms.ChoiceField(choices=StockAdjustment.Reason.choices)
+    note = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 2}))
+
+    def clean_delta(self):
+        delta = self.cleaned_data["delta"]
+        if delta == 0:
+            raise forms.ValidationError("Enter a non-zero change.")
+        return delta

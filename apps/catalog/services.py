@@ -19,6 +19,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.paginator import Page, Paginator
 from django.db import transaction
@@ -1110,3 +1111,47 @@ def apply_product_import(text: str) -> dict:
         search_services.refresh(product)
     errors = sum(1 for row in plan if row.action == "error")
     return {"created": created, "updated": updated, "errors": errors}
+
+
+# ── Inventory (M8.8, O6) ──────────────────────────────────────────────────────
+class StockError(Exception):
+    """A stock adjustment that would drive the on-hand count below zero."""
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
+def low_stock_variants(
+    queryset: QuerySet[ProductVariant] | None = None,
+) -> QuerySet[ProductVariant]:
+    """Active variants at or below their low-stock threshold, the per-variant value falling back
+    to the store default (O6). One queryset the dashboard tile and the inventory list both read."""
+    qs = queryset if queryset is not None else ProductVariant.objects.filter(is_active=True)
+    threshold = Coalesce("low_stock_threshold", Value(settings.LOW_STOCK_THRESHOLD))
+    return qs.filter(stock_quantity__lte=threshold)
+
+
+def adjust_stock(variant: ProductVariant, delta: int, *, reason: str, actor=None, note: str = ""):
+    """Apply a stock delta and record why, in one transaction (O6). The row is locked for the
+    update so two concurrent adjustments cannot both read the same starting count; a change that
+    would go below zero is refused rather than clamped, so the ledger never lies about what
+    happened."""
+    from apps.common.models import StockAdjustment
+
+    with transaction.atomic():
+        locked = ProductVariant.objects.select_for_update().get(pk=variant.pk)
+        resulting = locked.stock_quantity + delta
+        if resulting < 0:
+            raise StockError(f"Only {locked.stock_quantity} in stock; cannot remove {abs(delta)}.")
+        locked.stock_quantity = resulting
+        locked.save(update_fields=["stock_quantity", "updated_at"])
+        StockAdjustment.objects.create(
+            variant=locked,
+            delta=delta,
+            resulting_quantity=resulting,
+            reason=reason,
+            note=note,
+            actor=actor,
+        )
+    return locked

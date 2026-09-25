@@ -354,6 +354,22 @@ a.bo-tile:hover {
   color: var(--muted);
 }
 
+/* Inventory (M8.8): the per-row stock adjustment form sits inline and wraps on a phone. */
+.bo-adjust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.bo-adjust input[name="delta"] {
+  width: 5rem;
+}
+
+.bo-adjust input[name="note"] {
+  min-width: 8rem;
+}
+
 
 
 
