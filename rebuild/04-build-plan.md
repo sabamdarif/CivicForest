@@ -401,7 +401,7 @@ Tasks:
     registry, backoff or dead-letter); see the override in `01-decisions.md` Part 5.
 14. [x] Reports: sales by day, product and category; coupon performance; inventory valuation;
     zero-result search terms. Each exportable. GST summary dropped with GST (Part 5).
-15. [ ] Django admin hardening underneath: obscure URL from env, TOTP required, 1 h session,
+15. [x] Django admin hardening underneath: obscure URL from env, TOTP required, 1 h session,
     `django-auditlog` on every model, read-only fields for money, no bulk delete on orders.
 16. [x] A real TOTP enrolment page so bootstrapping the first staff account needs no shell.
     (Delivered in M5: allauth's `mfa/totp/activate_form.html` is mounted and styled at

@@ -51,7 +51,7 @@ class OrderAdmin(admin.ModelAdmin):
         "mark_cancelled",
         "mark_refunded",
     ]
-    # Totals and the address snapshot are immutable history — never editable in admin.
+    # Totals and the address snapshot are immutable history: never editable in admin.
     # ``status`` is read-only too: changes go through the actions below so the state
     # machine (and its emails) can't be bypassed with the raw dropdown.
     readonly_fields = [
@@ -80,6 +80,13 @@ class OrderAdmin(admin.ModelAdmin):
         "cancel_reason",
         "created_at",
     ]
+
+    def get_actions(self, request):
+        # No bulk delete on orders (M8.15): they are immutable financial history. Status changes
+        # go through the guarded actions above; deletion is not offered here.
+        actions = super().get_actions(request)
+        actions.pop("delete_selected", None)
+        return actions
 
     def _transition(self, request, queryset, to_status):
         moved = 0

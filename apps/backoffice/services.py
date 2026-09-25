@@ -12,6 +12,7 @@ from collections.abc import Iterator
 from datetime import timedelta
 from decimal import Decimal
 
+from auditlog.models import LogEntry
 from django.contrib.auth import get_user_model
 from django.core.paginator import Page, Paginator
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
@@ -620,3 +621,15 @@ def report_view(name: str) -> dict:
     """One report resolved for the hub: its title, column labels and rows."""
     title, columns, builder = REPORTS[name]
     return {"name": name, "title": title, "columns": columns, "rows": builder()}
+
+
+# ── Audit log (M8.15, O12) ────────────────────────────────────────────────────
+AUDIT_PAGE_SIZE = 50
+
+
+def audit_log(page) -> Page:
+    """Recent django-auditlog entries for the back-office viewer (O12): who changed what, when."""
+    return Paginator(
+        LogEntry.objects.select_related("actor", "content_type").order_by("-timestamp"),
+        AUDIT_PAGE_SIZE,
+    ).get_page(page)

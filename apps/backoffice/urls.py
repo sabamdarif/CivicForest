@@ -63,4 +63,5 @@ urlpatterns = [
     path("jobs/run/", views.JobRunNowView.as_view(), name="job_run"),
     path("jobs/email/<uuid:pk>/resend/", views.EmailResendView.as_view(), name="email_resend"),
     path("reports/", views.ReportsView.as_view(), name="reports"),
+    path("audit/", views.AuditLogView.as_view(), name="audit"),
 ]

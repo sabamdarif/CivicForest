@@ -847,6 +847,20 @@ class ReportsView(StaffRequiredMixin, TemplateView):
         }
 
 
+class AuditLogView(StaffRequiredMixin, TemplateView):
+    """The back-office audit-log viewer (M8.15, O12): recent django-auditlog entries, who changed
+    what and when. Gated by ``auditlog.view_logentry``, which only Owner holds."""
+
+    template_name = "backoffice/audit_log.html"
+    permission_required = "auditlog.view_logentry"
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(**kwargs),
+            "entries": services.audit_log(self.request.GET.get("page")),
+        }
+
+
 def styleguide(request):
     """Every component in every state, staff only.
 
