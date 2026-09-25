@@ -14,8 +14,8 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.core.paginator import Page, Paginator
-from django.db.models import Count, Q, Sum
-from django.db.models.functions import TruncDate
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
+from django.db.models.functions import Coalesce, TruncDate
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -490,3 +490,133 @@ def recent_job_runs(page) -> Page:
 
 def recent_emails(page) -> Page:
     return Paginator(OutboundEmail.objects.order_by("-created_at"), JOB_PAGE_SIZE).get_page(page)
+
+
+# ── Reports (M8.14, O13) ──────────────────────────────────────────────────────
+# GST summary by rate is omitted (Part 5). Each report returns (columns, rows): columns are
+# (key, label) pairs so one hub template renders any of them and the CSV export reuses the keys.
+REPORT_WINDOW_DAYS = 30
+
+
+def _window_start():
+    return timezone.localdate() - timedelta(days=REPORT_WINDOW_DAYS - 1)
+
+
+def _revenue_items():
+    return OrderItem.objects.filter(
+        order__status__in=REVENUE_STATUSES, order__created_at__date__gte=_window_start()
+    )
+
+
+def sales_by_day() -> list[dict]:
+    return list(
+        Order.objects.filter(status__in=REVENUE_STATUSES, created_at__date__gte=_window_start())
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(orders=Count("id"), revenue=Sum("total"))
+        .order_by("-day")
+    )
+
+
+def sales_by_product() -> list[dict]:
+    return list(
+        _revenue_items()
+        .values("product_name")
+        .annotate(units=Sum("quantity"), revenue=Sum("line_total"))
+        .order_by("-revenue")[:100]
+    )
+
+
+def sales_by_category() -> list[dict]:
+    return list(
+        _revenue_items()
+        .values("variant__product__category__name")
+        .annotate(units=Sum("quantity"), revenue=Sum("line_total"))
+        .order_by("-revenue")
+    )
+
+
+def coupon_performance() -> list[dict]:
+    return list(
+        Coupon.objects.annotate(
+            uses=Count("redemptions", distinct=True),
+            discount=Sum("redemptions__order__discount"),
+        )
+        .values("code", "uses", "discount")
+        .order_by("-uses")
+    )
+
+
+def inventory_valuation() -> list[dict]:
+    value = ExpressionWrapper(
+        F("stock_quantity") * Coalesce("price_override", "product__base_price"),
+        output_field=DecimalField(max_digits=14, decimal_places=2),
+    )
+    return list(
+        ProductVariant.objects.filter(is_active=True)
+        .values("product__name")
+        .annotate(units=Sum("stock_quantity"), value=Sum(value))
+        .order_by("-value")
+    )
+
+
+def zero_result_terms() -> list[dict]:
+    return list(
+        SearchQueryLog.objects.filter(result_count=0)
+        .values("query")
+        .annotate(searches=Count("id"))
+        .order_by("-searches")[:100]
+    )
+
+
+# name -> (title, columns, builder). Columns are (row-key, header-label) pairs.
+REPORTS = {
+    "sales_by_day": (
+        "Sales by day",
+        [("day", "Day"), ("orders", "Orders"), ("revenue", "Revenue")],
+        sales_by_day,
+    ),
+    "sales_by_product": (
+        "Sales by product",
+        [("product_name", "Product"), ("units", "Units"), ("revenue", "Revenue")],
+        sales_by_product,
+    ),
+    "sales_by_category": (
+        "Sales by category",
+        [
+            ("variant__product__category__name", "Category"),
+            ("units", "Units"),
+            ("revenue", "Revenue"),
+        ],
+        sales_by_category,
+    ),
+    "coupon_performance": (
+        "Coupon performance",
+        [("code", "Coupon"), ("uses", "Uses"), ("discount", "Discount given")],
+        coupon_performance,
+    ),
+    "inventory_valuation": (
+        "Inventory valuation",
+        [("product__name", "Product"), ("units", "Units in stock"), ("value", "Stock value")],
+        inventory_valuation,
+    ),
+    "zero_result_searches": (
+        "Zero-result searches",
+        [("query", "Search term"), ("searches", "Searches")],
+        zero_result_terms,
+    ),
+}
+
+
+def report_export(name: str):
+    """A report's (header labels, row-value generator) for the streamed CSV export."""
+    _title, columns, builder = REPORTS[name]
+    header = [label for _key, label in columns]
+    rows = ([row.get(key) for key, _label in columns] for row in builder())
+    return header, rows
+
+
+def report_view(name: str) -> dict:
+    """One report resolved for the hub: its title, column labels and rows."""
+    title, columns, builder = REPORTS[name]
+    return {"name": name, "title": title, "columns": columns, "rows": builder()}

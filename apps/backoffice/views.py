@@ -824,6 +824,29 @@ class EmailResendView(StaffRequiredMixin, View):
         return redirect("backoffice:jobs")
 
 
+class ReportsView(StaffRequiredMixin, TemplateView):
+    """Reports hub (M8.14, O13): sales by day, product and category, coupon performance, inventory
+    valuation and zero-result searches, each exportable via the shared streamed CSV. GST summary by
+    rate is omitted (Part 5). Needs ``view_order`` (these are sales and stock figures)."""
+
+    template_name = "backoffice/reports.html"
+    permission_required = "orders.view_order"
+
+    def get(self, request, *args, **kwargs):
+        report = request.GET.get("report")
+        if request.GET.get("export") == "csv" and report in services.REPORTS:
+            header, rows = services.report_export(report)
+            return stream_csv(f"{report}.csv", header, rows)
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(**kwargs),
+            "reports": [services.report_view(name) for name in services.REPORTS],
+            "window_days": services.REPORT_WINDOW_DAYS,
+        }
+
+
 def styleguide(request):
     """Every component in every state, staff only.
 

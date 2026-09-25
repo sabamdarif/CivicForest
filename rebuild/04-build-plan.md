@@ -399,7 +399,7 @@ Tasks:
 13. [x] Jobs panel: `JobRun` rows by status, full error text, "run now" per job, `OutboundEmail` list
     with resend. Built as a run ledger, not the full `03-architecture.md` §7 engine (no handler
     registry, backoff or dead-letter); see the override in `01-decisions.md` Part 5.
-14. [ ] Reports: sales by day, product and category; coupon performance; inventory valuation;
+14. [x] Reports: sales by day, product and category; coupon performance; inventory valuation;
     zero-result search terms. Each exportable. GST summary dropped with GST (Part 5).
 15. [ ] Django admin hardening underneath: obscure URL from env, TOTP required, 1 h session,
     `django-auditlog` on every model, read-only fields for money, no bulk delete on orders.

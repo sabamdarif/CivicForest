@@ -1,0 +1,32 @@
+{# Back-office reports (M8.14, O13): sales by day/product/category, coupon performance, inventory
+   valuation and zero-result searches, each with a streamed CSV export. No GST summary (Part 5). #}
+{% extends "base.html" %}
+
+{% block title %}Reports, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Reports</h1>
+  <p class="field__hint">Sales figures cover the last {{ window_days }} days.</p>
+
+  {% for report in reports %}
+    <section class="bo-card">
+      <h2 class="bo-card__title">{{ report.title }}</h2>
+      <p><a class="btn btn--ghost btn--sm" href="?report={{ report.name }}&export=csv">Export CSV</a></p>
+      <table class="bo-table">
+        <thead>
+          <tr>{% for key, label in report.columns %}<th>{{ label }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for row in report.rows %}
+            <tr>{% for key, label in report.columns %}<td>{{ row[key] if row[key] is not none else '' }}</td>{% endfor %}</tr>
+          {% else %}
+            <tr><td colspan="{{ report.columns|length }}" class="bo-empty">No data yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endfor %}
+</div>
+{% endblock %}
