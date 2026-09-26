@@ -29,6 +29,7 @@ STORE_APPS = {
     "payments",
     "custom_orders",
     "content",
+    "reviews",
     "common",
     "search",
     "accounts",

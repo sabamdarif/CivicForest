@@ -69,6 +69,7 @@ LOCAL_APPS = [
     "apps.payments",
     "apps.custom_orders",
     "apps.content",
+    "apps.reviews",
     "apps.search",
     "apps.backoffice",
 ]

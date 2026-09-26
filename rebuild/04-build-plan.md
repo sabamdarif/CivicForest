@@ -419,7 +419,7 @@ touching Django admin, and every one of those actions appears in the audit log.
 
 Tasks:
 
-1. `apps/reviews`: `Review` tied to an `OrderItem` so only verified purchasers can write one, star
+1. [x] `apps/reviews`: `Review` tied to an `OrderItem` so only verified purchasers can write one, star
    rating, title, body, fit feedback, moderation status. Aggregate rating cached on the product and
    recomputed on publish.
 2. Review UI: form reachable from order detail and from the review-request email, list on the product

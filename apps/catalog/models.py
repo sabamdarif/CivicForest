@@ -218,6 +218,11 @@ class Product(UUIDTimestampedModel):
     meta_title = models.CharField(max_length=180, blank=True)
     meta_description = models.CharField(max_length=300, blank=True)
 
+    # Denormalised rating, recomputed by reviews.services when a review is published or hidden
+    # (K1). Cached here so the shop grid and JSON-LD read one column, not an aggregate per card.
+    rating_average = models.DecimalField(max_digits=3, decimal_places=2, default=0, editable=False)
+    rating_count = models.PositiveIntegerField(default=0, editable=False)
+
     class Meta:
         ordering = ["-created_at"]
         indexes = [
