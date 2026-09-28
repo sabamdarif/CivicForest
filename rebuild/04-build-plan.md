@@ -430,7 +430,7 @@ Tasks:
    queue, refund trigger, customer emails at each transition.
 4. [x] `apps/content`: `Page`, `FaqEntry`, `AnnouncementBar`, `HomeSection`, `ContactMessage`,
    `NewsletterSubscriber`, all editable in the back-office.
-5. Write the twelve content pages. Returns & Exchanges must state both policies side by side, and the
+5. [x] Write the twelve content pages. Returns & Exchanges must state both policies side by side, and the
    custom-line policy must reflect Qikink's actual terms (defect-only,
    7 days, unboxing video, no size swap), not a softer promise you cannot fund.
 6. Grievance Redressal page: named officer, email, phone, postal address, response timeline.

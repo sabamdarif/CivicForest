@@ -61,6 +61,7 @@ urlpatterns = [
     path("", include("apps.custom_orders.storefront_urls")),
     path("", include("apps.reviews.urls")),
     path("", include("apps.search.urls")),
+    path("", include("apps.content.urls")),
     # allauth owns login, signup, logout, email verification, passwords, 2FA, the session
     # list and the Google flow. Its pages are Django Template Language, rendered from
     # templates/django/ (rebuild/03-architecture.md §3).

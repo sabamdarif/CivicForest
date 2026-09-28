@@ -1,0 +1,17 @@
+{# A static content page (L2, M9.5). The body is staff HTML already sanitised on save, so it is
+   the one sanctioned use of |safe (§12: no |safe on user content, page bodies sanitised on save). #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+
+{% block title %}{{ page.meta_title or page.title ~ " | CivicForest Clothing" }}{% endblock %}
+{% block description %}{{ page.meta_description or page.title }}{% endblock %}
+
+{% block content %}
+  <div class="container">
+    {{ breadcrumbs(trail, current) }}
+    <article class="prose">
+      <h1>{{ page.title }}</h1>
+      {{ page.body|safe }}
+    </article>
+  </div>
+{% endblock %}

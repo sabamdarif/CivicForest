@@ -60,6 +60,24 @@ def website(request) -> dict:
     }
 
 
+def faq_page(request, groups: dict) -> dict:
+    """`FAQPage` for the FAQ page (N3). ``groups`` is the category-to-entries map the view builds;
+    the markup needs the flat list of questions and their answers."""
+    return {
+        "@context": SCHEMA,
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": entry.question,
+                "acceptedAnswer": {"@type": "Answer", "text": entry.answer},
+            }
+            for entries in groups.values()
+            for entry in entries
+        ],
+    }
+
+
 def product_offer(request, product, panel: dict, currency: str) -> dict:
     """`Product` plus one `Offer`, and an `aggregateRating` only once the product has published
     reviews (see the module note).

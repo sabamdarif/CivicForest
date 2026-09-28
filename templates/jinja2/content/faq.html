@@ -1,0 +1,31 @@
+{# The FAQ (N3), grouped by category and rendered as native <details> accordions so it works with
+   no JavaScript. FAQPage markup ships in the head via structured_data. Answers are sanitised on
+   save, so |safe is the sanctioned use here (§12). #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+
+{% block title %}FAQ | CivicForest Clothing{% endblock %}
+{% block description %}Answers to common questions about orders, delivery and returns.{% endblock %}
+
+{% block content %}
+  <div class="container">
+    {{ breadcrumbs([("Home", "/")], "FAQ") }}
+    <h1>Frequently asked questions</h1>
+
+    {%- if faq_groups %}
+      {%- for category, entries in faq_groups.items() %}
+        <section class="faq-group">
+          <h2>{{ category }}</h2>
+          {%- for entry in entries %}
+            <details class="faq-item">
+              <summary>{{ entry.question }}</summary>
+              <div class="faq-item__answer prose">{{ entry.answer|safe }}</div>
+            </details>
+          {%- endfor %}
+        </section>
+      {%- endfor %}
+    {%- else %}
+      <p>No questions have been published yet.</p>
+    {%- endif %}
+  </div>
+{% endblock %}
