@@ -27,7 +27,8 @@ from apps.catalog import services as catalog_services
 from apps.catalog.models import Category, Collection, Product, ProductVariant
 from apps.common.formatting import rupees
 from apps.common.models import JobRun, OutboundEmail
-from apps.content.models import AnnouncementBar, HomeSection
+from apps.content.models import AnnouncementBar, FaqEntry, HomeSection
+from apps.content.models import Page as ContentPage
 from apps.custom_orders.models import CustomDesignOrder, DesignUpload
 from apps.orders.models import Order, OrderItem, ReturnRequest
 from apps.payments.models import Payment
@@ -506,13 +507,15 @@ def customer_detail(user) -> dict:
 
 # ── Content (M8.12, O10) ──────────────────────────────────────────────────────
 def content_overview() -> dict:
-    """The editable content the storefront renders: the announcement bars, the home page sections
-    and the category and collection imagery (O10). Pages and FAQ entries land with M9."""
+    """The editable content the storefront renders: the announcement bars, the home page sections,
+    the category and collection imagery (O10), and the static pages and FAQ entries (M9.4)."""
     return {
         "bars": AnnouncementBar.objects.all(),
         "sections": HomeSection.objects.all(),
         "categories": Category.objects.order_by("display_order", "name"),
         "collections": Collection.objects.order_by("display_order", "name"),
+        "pages": ContentPage.objects.all(),
+        "faqs": FaqEntry.objects.all(),
     }
 
 

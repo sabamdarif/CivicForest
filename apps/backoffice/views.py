@@ -34,8 +34,8 @@ from apps.common import email as common_email
 from apps.common import r2
 from apps.common.email import ORDER_EMAIL_KINDS
 from apps.common.models import StockAdjustment
-from apps.content.forms import AnnouncementBarForm, HomeSectionForm
-from apps.content.models import AnnouncementBar, HomeSection
+from apps.content.forms import AnnouncementBarForm, FaqEntryForm, HomeSectionForm, PageForm
+from apps.content.models import AnnouncementBar, FaqEntry, HomeSection, Page
 from apps.custom_orders import services as custom_services
 from apps.custom_orders.models import DesignUpload
 from apps.orders import services as order_services
@@ -894,6 +894,26 @@ class CategoryEditView(_ContentEditMixin, View):
 class CollectionEditView(_ContentEditMixin, View):
     model, form_class, title = Collection, CollectionForm, "Collection"
     permission_required = "catalog.change_collection"
+
+
+class PageCreateView(_ContentEditMixin, View):
+    model, form_class, title = Page, PageForm, "New page"
+    permission_required = "content.add_page"
+
+
+class PageEditView(_ContentEditMixin, View):
+    model, form_class, title = Page, PageForm, "Page"
+    permission_required = "content.change_page"
+
+
+class FaqCreateView(_ContentEditMixin, View):
+    model, form_class, title = FaqEntry, FaqEntryForm, "New FAQ entry"
+    permission_required = "content.add_faqentry"
+
+
+class FaqEditView(_ContentEditMixin, View):
+    model, form_class, title = FaqEntry, FaqEntryForm, "FAQ entry"
+    permission_required = "content.change_faqentry"
 
 
 class JobsPanelView(StaffRequiredMixin, TemplateView):

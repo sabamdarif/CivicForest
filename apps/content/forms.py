@@ -11,7 +11,7 @@ from django import forms
 
 from apps.custom_orders.uploads import UploadError, validate_product_image
 
-from .models import AnnouncementBar, HomeSection
+from .models import AnnouncementBar, FaqEntry, HomeSection, Page
 
 
 def _validate_image_field(form: forms.ModelForm, field: str):
@@ -49,3 +49,17 @@ class HomeSectionForm(forms.ModelForm):
 
     def clean_image(self):
         return _validate_image_field(self, "image")
+
+
+class PageForm(forms.ModelForm):
+    class Meta:
+        model = Page
+        fields = ["slug", "title", "body", "meta_title", "meta_description", "is_published"]
+        widgets = {"body": forms.Textarea(attrs={"rows": 16})}
+
+
+class FaqEntryForm(forms.ModelForm):
+    class Meta:
+        model = FaqEntry
+        fields = ["question", "answer", "category", "display_order", "is_active"]
+        widgets = {"answer": forms.Textarea(attrs={"rows": 6})}

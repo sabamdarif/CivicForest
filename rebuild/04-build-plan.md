@@ -428,7 +428,7 @@ Tasks:
 3. [x] Returns: request form with reason, comment and photo upload (direct to R2), eligibility computed
    from delivery date and the 7-day window, **different rules for stock and custom lines**, admin
    queue, refund trigger, customer emails at each transition.
-4. `apps/content`: `Page`, `FaqEntry`, `AnnouncementBar`, `HomeSection`, `ContactMessage`,
+4. [x] `apps/content`: `Page`, `FaqEntry`, `AnnouncementBar`, `HomeSection`, `ContactMessage`,
    `NewsletterSubscriber`, all editable in the back-office.
 5. Write the twelve content pages. Returns & Exchanges must state both policies side by side, and the
    custom-line policy must reflect Qikink's actual terms (defect-only,

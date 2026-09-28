@@ -64,6 +64,10 @@ urlpatterns = [
     path(
         "content/collection/<uuid:pk>/", views.CollectionEditView.as_view(), name="collection_edit"
     ),
+    path("content/page/new/", views.PageCreateView.as_view(), name="page_new"),
+    path("content/page/<uuid:pk>/", views.PageEditView.as_view(), name="page_edit"),
+    path("content/faq/new/", views.FaqCreateView.as_view(), name="faq_new"),
+    path("content/faq/<uuid:pk>/", views.FaqEditView.as_view(), name="faq_edit"),
     path("jobs/", views.JobsPanelView.as_view(), name="jobs"),
     path("jobs/run/", views.JobRunNowView.as_view(), name="job_run"),
     path("jobs/email/<uuid:pk>/resend/", views.EmailResendView.as_view(), name="email_resend"),

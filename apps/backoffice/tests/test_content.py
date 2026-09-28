@@ -1,7 +1,7 @@
-"""Content management (M8.12, O10): the hub gate and the guarded editors.
+"""Content management (M8.12, O10; M9.4 pages and FAQ): the hub gate and the guarded editors.
 
 Content edits are gated per model, so a role without the content or catalog permission cannot
-reach the editors. Pages and FAQ entries are not covered here; their models arrive with M9.
+reach the editors.
 """
 
 import pytest
@@ -9,7 +9,7 @@ from django.contrib.auth.models import Permission
 from django.urls import reverse
 
 from apps.common.factories import CategoryFactory, StaffUserFactory, login_staff_with_mfa
-from apps.content.models import AnnouncementBar, HomeSection
+from apps.content.models import AnnouncementBar, FaqEntry, HomeSection, Page
 
 pytestmark = pytest.mark.django_db
 
@@ -88,3 +88,33 @@ def test_home_section_edit_updates(client):
 
     section.refresh_from_db()
     assert section.title == "New hero"
+
+
+def test_page_create_requires_add(client):
+    _staff_with(client, "view_announcementbar")  # no content.add_page
+    assert client.get(reverse("backoffice:page_new")).status_code == 404
+
+
+def test_page_create_saves_and_sanitises(client):
+    _staff_with(client, "add_page")
+    client.post(
+        reverse("backoffice:page_new"),
+        {
+            "slug": "about",
+            "title": "About us",
+            "body": "<p>Made in India</p><script>evil()</script>",
+            "is_published": "on",
+        },
+    )
+    page = Page.objects.get(slug="about")
+    assert page.is_published is True
+    assert "<script>" not in page.body
+
+
+def test_faq_create_saves(client):
+    _staff_with(client, "add_faqentry")
+    client.post(
+        reverse("backoffice:faq_new"),
+        {"question": "Do you ship overseas?", "answer": "Not yet.", "display_order": "0"},
+    )
+    assert FaqEntry.objects.filter(question="Do you ship overseas?").exists()

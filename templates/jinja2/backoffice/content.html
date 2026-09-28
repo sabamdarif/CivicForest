@@ -1,5 +1,5 @@
-{# Back-office content hub (M8.12, O10): the announcement bars, the home sections, and the category
-   and collection imagery, each linking to its editor. Pages and FAQ entries arrive with M9. #}
+{# Back-office content hub (M8.12, O10; M9.4 pages and FAQ): the announcement bars, home sections,
+   category and collection imagery, static pages and FAQ entries, each linking to its editor. #}
 {% extends "base.html" %}
 
 {% block title %}Content, CivicForest back-office{% endblock %}
@@ -52,6 +52,28 @@
     <ul class="bo-list">
       {% for c in collections %}
         <li><a href="{{ url('backoffice:collection_edit', kwargs={'pk': c.id}) }}">{{ c.name }}</a></li>
+      {% else %}<li class="bo-empty">None yet.</li>{% endfor %}
+    </ul>
+  </section>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Pages</h2>
+    <p><a class="btn btn--primary btn--sm" href="{{ url('backoffice:page_new') }}">New page</a></p>
+    <ul class="bo-list">
+      {% for p in pages %}
+        <li><a href="{{ url('backoffice:page_edit', kwargs={'pk': p.id}) }}">{{ p.title }}</a>
+          <span class="bo-list__num">{{ 'published' if p.is_published else 'draft' }}</span></li>
+      {% else %}<li class="bo-empty">None yet.</li>{% endfor %}
+    </ul>
+  </section>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">FAQ entries</h2>
+    <p><a class="btn btn--primary btn--sm" href="{{ url('backoffice:faq_new') }}">New FAQ entry</a></p>
+    <ul class="bo-list">
+      {% for f in faqs %}
+        <li><a href="{{ url('backoffice:faq_edit', kwargs={'pk': f.id}) }}">{{ f.question }}</a>
+          <span class="bo-list__num">{{ f.category or 'General' }}</span></li>
       {% else %}<li class="bo-empty">None yet.</li>{% endfor %}
     </ul>
   </section>
