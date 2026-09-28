@@ -34,6 +34,20 @@ class TrackThrottle(UserRateThrottle):
     scope = "track"
 
 
+class ContactThrottle(UserRateThrottle):
+    """The public contact form is a spam target, so it is rate-limited on top of the honeypot
+    (N1). Counted per account for a signed-in sender, per IP for a guest."""
+
+    scope = "contact"
+
+
+class NewsletterThrottle(UserRateThrottle):
+    """The newsletter subscribe endpoint is public and triggers an email, so it is rate-limited to
+    stop it being used to spray confirmation mail (J5)."""
+
+    scope = "newsletter"
+
+
 def exceeded(request, throttle_class) -> bool:
     """Apply a DRF throttle scope to a plain Django view.
 

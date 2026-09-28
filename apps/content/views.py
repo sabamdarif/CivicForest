@@ -6,13 +6,16 @@ by slug (a draft or missing slug is a 404); `faq` renders the active FAQ entries
 """
 
 from django.conf import settings
+from django.contrib import messages
 from django.http import Http404
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 from apps.catalog import services as catalog
 from apps.common import seo
+from apps.common.throttles import ContactThrottle, exceeded
 
 from . import services
+from .forms import ContactForm
 
 
 def home(request):
@@ -56,6 +59,24 @@ def faq(request):
         "content/faq.html",
         {"faq_groups": groups, "structured_data": [seo.faq_page(request, groups)]},
     )
+
+
+def contact(request):
+    """The contact form (N1): honeypot plus rate limit, no CAPTCHA, works without JavaScript. A
+    tripped honeypot returns success so a bot learns nothing; the message is stored and the support
+    inbox notified only on a clean, in-limit, valid submission."""
+    form = ContactForm(request.POST or None)
+    if request.method == "POST":
+        if request.POST.get("website"):  # honeypot: a human never fills this
+            messages.success(request, "Thanks for your message. We'll be in touch soon.")
+            return redirect("contact")
+        if exceeded(request, ContactThrottle):
+            messages.error(request, "Too many messages just now. Please wait a minute and retry.")
+        elif form.is_valid():
+            services.record_contact_message(**form.cleaned_data)
+            messages.success(request, "Thanks for your message. We'll be in touch soon.")
+            return redirect("contact")
+    return render(request, "content/contact.html", {"form": form})
 
 
 def grievance(request):

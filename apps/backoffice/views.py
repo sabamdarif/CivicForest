@@ -16,6 +16,7 @@ from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import TemplateView, View
 
 from apps.cart.forms import CouponForm
@@ -35,7 +36,7 @@ from apps.common import r2
 from apps.common.email import ORDER_EMAIL_KINDS
 from apps.common.models import StockAdjustment
 from apps.content.forms import AnnouncementBarForm, FaqEntryForm, HomeSectionForm, PageForm
-from apps.content.models import AnnouncementBar, FaqEntry, HomeSection, Page
+from apps.content.models import AnnouncementBar, ContactMessage, FaqEntry, HomeSection, Page
 from apps.custom_orders import services as custom_services
 from apps.custom_orders.models import DesignUpload
 from apps.orders import services as order_services
@@ -914,6 +915,44 @@ class FaqCreateView(_ContentEditMixin, View):
 class FaqEditView(_ContentEditMixin, View):
     model, form_class, title = FaqEntry, FaqEntryForm, "FAQ entry"
     permission_required = "content.change_faqentry"
+
+
+class ContactInboxView(StaffRequiredMixin, TemplateView):
+    """The support inbox (N2): contact messages, defaulting to the unhandled ones. Viewing needs
+    ``content.view_contactmessage``."""
+
+    template_name = "backoffice/messages.html"
+    permission_required = "content.view_contactmessage"
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(**kwargs),
+            "inbox": services.contact_inbox(self.request.GET, self.request.GET.get("page")),
+            "handled": self.request.GET.get("handled", ""),
+        }
+
+
+class ContactDetailView(StaffRequiredMixin, View):
+    """One message: read it, add an internal note, mark it handled. Viewing needs
+    ``view_contactmessage``; saving a note or marking handled needs ``change_contactmessage``."""
+
+    permission_required = "content.view_contactmessage"
+
+    def get(self, request, pk):
+        msg = get_object_or_404(ContactMessage, pk=pk)
+        return render(request, "backoffice/message_detail.html", {"msg": msg})
+
+    def post(self, request, pk):
+        if not request.user.has_perm("content.change_contactmessage"):
+            raise Http404
+        msg = get_object_or_404(ContactMessage, pk=pk)
+        msg.internal_note = (request.POST.get("internal_note", "") or "").strip()
+        if request.POST.get("action") == "mark_handled" and not msg.handled_at:
+            msg.handled_by = request.user
+            msg.handled_at = timezone.now()
+        msg.save(update_fields=["internal_note", "handled_by", "handled_at", "updated_at"])
+        messages.success(request, "Saved.")
+        return redirect("backoffice:message_detail", pk=pk)
 
 
 class JobsPanelView(StaffRequiredMixin, TemplateView):

@@ -11,7 +11,7 @@ from django import forms
 
 from apps.custom_orders.uploads import UploadError, validate_product_image
 
-from .models import AnnouncementBar, FaqEntry, HomeSection, Page
+from .models import AnnouncementBar, ContactMessage, FaqEntry, HomeSection, Page
 
 
 def _validate_image_field(form: forms.ModelForm, field: str):
@@ -63,3 +63,14 @@ class FaqEntryForm(forms.ModelForm):
         model = FaqEntry
         fields = ["question", "answer", "category", "display_order", "is_active"]
         widgets = {"answer": forms.Textarea(attrs={"rows": 6})}
+
+
+class ContactForm(forms.ModelForm):
+    """The public contact form (N1). The honeypot is a separate hidden field checked in the view,
+    not here, so a tripped honeypot looks like success to a bot rather than a validation error."""
+
+    class Meta:
+        model = ContactMessage
+        fields = ["name", "email", "order_number", "subject", "message"]
+        labels = {"order_number": "Order number (optional)"}
+        widgets = {"message": forms.Textarea(attrs={"rows": 6})}

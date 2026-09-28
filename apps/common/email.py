@@ -273,6 +273,23 @@ def send_return_email(return_id: str, kind: str) -> str:
     )
 
 
+def send_contact_notification(message_id: str) -> str:
+    """Email the support inbox that a contact message arrived (N1). Ledgered like every send, so a
+    dead mail server does not lose the enquiry: it is stored either way and worked from the
+    inbox."""
+    from apps.content.models import ContactMessage
+
+    msg = ContactMessage.objects.filter(pk=message_id).first()
+    if msg is None:
+        return "skipped"
+    order_line = f"\nOrder number: {msg.order_number}" if msg.order_number else ""
+    subject = f"[Contact] {msg.subject}"
+    body = f"From: {msg.name} <{msg.email}>{order_line}\n\n{msg.message}"
+    return _deliver(
+        settings.SUPPORT_EMAIL, "contact:new", {"message_id": str(message_id)}, subject, body
+    )
+
+
 def resend(email_id: str) -> str:
     """Re-render and re-send a ledgered email (M8.13). It re-runs the original sender from the
     stored ids, so the resend reflects live data and writes its own fresh ledger row."""

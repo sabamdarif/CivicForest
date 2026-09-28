@@ -11,7 +11,7 @@ from django.contrib.sitemaps import Sitemap
 from apps.catalog.sitemaps import CategorySitemap, CollectionSitemap, ProductSitemap
 from apps.content.urls import MOUNTED_PAGE_SLUGS
 
-STATIC_ROUTES = ["/", "/shop/", "/collections/", "/faq/", "/grievance-redressal/"]
+STATIC_ROUTES = ["/", "/shop/", "/collections/", "/faq/", "/contact/", "/grievance-redressal/"]
 
 
 class StaticViewSitemap(Sitemap):

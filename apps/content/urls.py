@@ -26,6 +26,7 @@ MOUNTED_PAGE_SLUGS = tuple(_PAGES)
 
 urlpatterns = [
     path("faq/", views.faq, name="faq"),
+    path("contact/", views.contact, name="contact"),
     path("grievance-redressal/", views.grievance, name="grievance"),
 ]
 urlpatterns += [

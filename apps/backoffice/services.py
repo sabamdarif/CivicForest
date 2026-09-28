@@ -27,7 +27,7 @@ from apps.catalog import services as catalog_services
 from apps.catalog.models import Category, Collection, Product, ProductVariant
 from apps.common.formatting import rupees
 from apps.common.models import JobRun, OutboundEmail
-from apps.content.models import AnnouncementBar, FaqEntry, HomeSection
+from apps.content.models import AnnouncementBar, ContactMessage, FaqEntry, HomeSection
 from apps.content.models import Page as ContentPage
 from apps.custom_orders.models import CustomDesignOrder, DesignUpload
 from apps.orders.models import Order, OrderItem, ReturnRequest
@@ -517,6 +517,20 @@ def content_overview() -> dict:
         "pages": ContentPage.objects.all(),
         "faqs": FaqEntry.objects.all(),
     }
+
+
+CONTACT_PAGE_SIZE = 50
+
+
+def contact_inbox(params, page) -> Page:
+    """One page of contact messages for the support inbox (N2). Defaults to the unhandled ones a
+    staffer must work; ``?handled=1`` shows the handled ones."""
+    qs = ContactMessage.objects.order_by("-created_at")
+    if params.get("handled") == "1":
+        qs = qs.filter(handled_at__isnull=False)
+    else:
+        qs = qs.filter(handled_at__isnull=True)
+    return Paginator(qs, CONTACT_PAGE_SIZE).get_page(page)
 
 
 # ── Jobs and outbound email (M8.13) ───────────────────────────────────────────
