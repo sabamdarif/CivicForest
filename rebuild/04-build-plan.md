@@ -422,7 +422,7 @@ Tasks:
 1. [x] `apps/reviews`: `Review` tied to an `OrderItem` so only verified purchasers can write one, star
    rating, title, body, fit feedback, moderation status. Aggregate rating cached on the product and
    recomputed on publish.
-2. Review UI: form reachable from order detail and from the review-request email, list on the product
+2. [x] Review UI: form reachable from order detail and from the review-request email, list on the product
    page with distribution bars, aggregated fit feedback ("72% say true to size"), `AggregateRating`
    markup, moderation queue in the back-office.
 3. Returns: request form with reason, comment and photo upload (direct to R2), eligibility computed

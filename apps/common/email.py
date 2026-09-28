@@ -114,6 +114,18 @@ def _order_refunded(order) -> tuple[str, str]:
     return f"Refund processed for order {order.order_number}", body
 
 
+def _review_request(order) -> tuple[str, str]:
+    link = f"https://{settings.SITE_DOMAIN}/account/orders/{order.order_number}/"
+    body = (
+        f"Hi {order.ship_full_name},\n\n"
+        f"We hope you're enjoying order {order.order_number}. Only verified buyers can review, so "
+        f"your words carry weight: tell other shoppers how it fits and how it wears.\n\n"
+        f"Write a review: {link}\n\n"
+        f"Thanks,\nThe CivicForest team"
+    )
+    return "How did we do? Leave a review", body
+
+
 _BUILDERS = {
     "confirmation": _order_confirmation,
     "shipped": _order_shipped,
@@ -121,6 +133,7 @@ _BUILDERS = {
     "payment_failed": _payment_failed,
     "cancelled": _order_cancelled,
     "refunded": _order_refunded,
+    "review_request": _review_request,
 }
 
 # The order-level emails staff can resend from the back-office order detail (M8.5).

@@ -31,6 +31,7 @@ CRON_JOBS = {
     "expire_carts": lambda: cart_services.expire_dormant(500),
     "cart_reminders": lambda: cart_services.carts_awaiting_reminder()[:500].count(),
     "cancel_stale_orders": lambda: order_services.cancel_stale_pending_orders(500),
+    "review_requests": lambda: order_services.send_pending_review_requests(500),
     "sanitise_designs": lambda: custom_services.sanitise_pending(50),
     "poll_qikink": custom_services.poll_open_orders,
     "reindex_search": lambda: search_services.reindex(stale=True, batch=500),

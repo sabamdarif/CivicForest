@@ -30,6 +30,8 @@
     {% include "product/_related.html" %}
   {% endwith %}
 
+  {% include "product/_reviews.html" %}
+
   {% with products = recent, heading = "Recently viewed" %}
     {% include "product/_related.html" %}
   {% endwith %}

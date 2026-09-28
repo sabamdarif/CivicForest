@@ -101,6 +101,9 @@ class Order(UUIDTimestampedModel):
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.CharField(max_length=200, blank=True)
 
+    # Stamped when the review-request email is sent, so the sweep asks exactly once (I10).
+    review_requested_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-created_at"]
         # Back-office actions that map to no add/change/delete: refund and status change are

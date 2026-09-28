@@ -42,6 +42,8 @@ from apps.orders.models import Order
 from apps.payments import gateway as payment_gateway
 from apps.payments import services as payment_services
 from apps.payments.models import Payment
+from apps.reviews import services as review_services
+from apps.reviews.models import Review
 
 from . import cron, services
 from .exports import stream_csv
@@ -315,6 +317,42 @@ class DesignReviewActionView(StaffRequiredMixin, View):
             messages.success(request, f"Resubmitted {submitted} line(s) to Qikink.")
         else:
             messages.warning(request, "Nothing to resubmit (unpaid or already submitted).")
+
+
+class ReviewQueueView(StaffRequiredMixin, TemplateView):
+    """The review moderation queue (M9.2, K4): nothing publishes unseen. Defaults to pending;
+    ``?status=`` switches the filter. Viewing needs ``reviews.view_review``."""
+
+    template_name = "backoffice/reviews.html"
+    permission_required = "reviews.view_review"
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(**kwargs),
+            "reviews": review_services.review_queue(self.request.GET, self.request.GET.get("page")),
+            "status": self.request.GET.get("status", ""),
+            "status_choices": Review.Status.choices,
+        }
+
+
+class ReviewActionView(StaffRequiredMixin, View):
+    """Publish or reject one review, gated by ``reviews.change_review`` so a view-only role reaches
+    neither. Both go through the service, which recomputes the product's cached rating."""
+
+    permission_required = "reviews.change_review"
+
+    def post(self, request, pk):
+        action = request.POST.get("action", "")
+        if action not in ("publish", "reject"):
+            raise Http404
+        review = get_object_or_404(Review, pk=pk)
+        if action == "publish":
+            review_services.publish_review(review)
+            messages.success(request, "Review published.")
+        else:
+            review_services.reject_review(review)
+            messages.success(request, "Review rejected.")
+        return redirect("backoffice:reviews")
 
 
 def _product_decimal(raw):

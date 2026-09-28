@@ -1,9 +1,9 @@
 """JSON-LD and canonical URLs, in one place because L4 lists them together.
 
 Two rules hold here. Every URL is absolute, because a relative one in JSON-LD is ignored. And
-nothing is asserted that the site cannot back: no `aggregateRating` until `apps/reviews` exists
-in M9, because an invented one is both a Google manual action and the sort of fabrication J9
-forbids everywhere else on the page.
+nothing is asserted that the site cannot back: `aggregateRating` is emitted only once the product
+has published reviews (`rating_count > 0`), from the same cached figures the page shows, because an
+invented rating is both a Google manual action and the sort of fabrication J9 forbids elsewhere.
 """
 
 SCHEMA = "https://schema.org"
@@ -61,7 +61,8 @@ def website(request) -> dict:
 
 
 def product_offer(request, product, panel: dict, currency: str) -> dict:
-    """`Product` plus one `Offer`, and deliberately no `aggregateRating` (see the module note).
+    """`Product` plus one `Offer`, and an `aggregateRating` only once the product has published
+    reviews (see the module note).
 
     The price is the one the panel resolved, so the markup and the page can never quote
     different numbers.
@@ -92,6 +93,12 @@ def product_offer(request, product, panel: dict, currency: str) -> dict:
         data["sku"] = variant.sku
     if product.material:
         data["material"] = product.material.name
+    if product.rating_count:
+        data["aggregateRating"] = {
+            "@type": "AggregateRating",
+            "ratingValue": f"{product.rating_average:.1f}",
+            "reviewCount": product.rating_count,
+        }
     if panel["mrp"]:
         data["offers"]["priceSpecification"] = {
             "@type": "PriceSpecification",

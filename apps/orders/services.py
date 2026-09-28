@@ -11,7 +11,7 @@ import uuid
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Max, Q
 from django.utils import timezone
 
 from apps.cart import services as cart_services
@@ -478,3 +478,28 @@ def cancel_stale_pending_orders(limit: int) -> int:
             # Raced with a webhook that just paid it; leave it alone.
             continue
     return cancelled
+
+
+# ─── Review request sweep (I10) ───────────────────────────────────────────────
+# How long after delivery to ask for a review, once.
+REVIEW_REQUEST_DELAY = timedelta(days=3)
+
+
+def send_pending_review_requests(limit: int) -> int:
+    """Email the one-time review request (I10) for orders delivered at least the delay ago that
+    have not had one. Stamps ``review_requested_at`` on the attempt, so a re-run never asks twice;
+    a failed send stays visible and resendable in the OutboundEmail ledger. Returns the count."""
+    from apps.common.email import send_order_email
+
+    cutoff = timezone.now() - REVIEW_REQUEST_DELAY
+    candidates = (
+        Order.objects.filter(status=Order.Status.DELIVERED, review_requested_at__isnull=True)
+        .annotate(last_delivered=Max("shipments__delivered_at"))
+        .filter(last_delivered__lte=cutoff)[:limit]
+    )
+    sent = 0
+    for order in candidates:
+        send_order_email(str(order.pk), "review_request")
+        Order.objects.filter(pk=order.pk).update(review_requested_at=timezone.now())
+        sent += 1
+    return sent

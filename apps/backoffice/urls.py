@@ -32,6 +32,8 @@ urlpatterns = [
         views.DesignReviewActionView.as_view(),
         name="design_action",
     ),
+    path("reviews/", views.ReviewQueueView.as_view(), name="reviews"),
+    path("reviews/<uuid:pk>/action/", views.ReviewActionView.as_view(), name="review_action"),
     path("products/", views.ProductListView.as_view(), name="products"),
     path("products/bulk/", views.ProductBulkUpdateView.as_view(), name="product_bulk"),
     path("products/import/", views.ProductImportView.as_view(), name="product_import"),

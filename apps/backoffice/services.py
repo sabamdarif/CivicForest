@@ -31,6 +31,7 @@ from apps.content.models import AnnouncementBar, HomeSection
 from apps.custom_orders.models import CustomDesignOrder, DesignUpload
 from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment
+from apps.reviews.models import Review
 from apps.search.models import SearchQueryLog
 
 # Money captured and not reversed. Refunded and cancelled are excluded on purpose.
@@ -308,6 +309,21 @@ def design_queue(params, page) -> Page:
         elif review != "all":
             qs = qs.filter(review_status=DesignUpload.ReviewStatus.FLAGGED)
     return Paginator(qs, DESIGN_QUEUE_PAGE_SIZE).get_page(page)
+
+
+REVIEW_QUEUE_PAGE_SIZE = 50
+
+
+def review_queue(params, page) -> Page:
+    """One page of reviews for moderation (M9.2), defaulting to the pending ones a moderator must
+    act on; ``?status=`` switches to published, rejected or all."""
+    qs = Review.objects.select_related("product", "user").order_by("-created_at")
+    status = params.get("status") or Review.Status.PENDING
+    if status in Review.Status.values:
+        qs = qs.filter(status=status)
+    elif status != "all":
+        qs = qs.filter(status=Review.Status.PENDING)
+    return Paginator(qs, REVIEW_QUEUE_PAGE_SIZE).get_page(page)
 
 
 # ── Product management (M8.7) ───────────────────────────────────────────────────

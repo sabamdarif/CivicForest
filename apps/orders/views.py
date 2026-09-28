@@ -208,6 +208,14 @@ def account_order_detail(request, order_number):
         base.prefetch_related("items", "shipments__items", "status_events"),
         order_number=order_number,
     )
+
+    from apps.reviews import services as review_services
+
+    reviewable_ids = set(
+        review_services.eligible_items(request.user)
+        .filter(order=order)
+        .values_list("id", flat=True)
+    )
     return render(
         request,
         "account/order_detail.html",
@@ -215,6 +223,7 @@ def account_order_detail(request, order_number):
             "order": order,
             "can_cancel": services.can_customer_cancel(order),
             "can_retry": order.status == Order.Status.PAYMENT_PENDING and order.payments.exists(),
+            "reviewable_ids": reviewable_ids,
             "source_labels": {
                 "stock": "Shipped by CivicForest",
                 "custom": "Printed and shipped by Qikink",

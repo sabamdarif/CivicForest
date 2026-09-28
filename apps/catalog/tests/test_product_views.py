@@ -180,9 +180,10 @@ def test_the_related_row_leaves_out_the_product_itself(client, catalogue):
 
 
 def test_the_page_costs_a_bounded_number_of_queries(client, catalogue, django_assert_num_queries):
-    # Two of the eight are chrome (the announcement bar and the SHOP menu). If this climbs,
-    # something started querying inside a loop over the variants or the gallery.
-    with django_assert_num_queries(8):
+    # Two of the nine are chrome (the announcement bar and the SHOP menu), and one is the
+    # published-reviews lookup (M9.2). If this climbs, something started querying inside a loop
+    # over the variants or the gallery.
+    with django_assert_num_queries(9):
         client.get("/product/plain-tee/")
 
 

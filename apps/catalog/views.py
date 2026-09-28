@@ -131,6 +131,8 @@ def product_detail(request, slug: str):
     if category:
         trail.append((category.name, category.get_absolute_url()))
 
+    from apps.reviews import services as review_services
+
     response = render(
         request,
         "product/detail.html",
@@ -139,6 +141,7 @@ def product_detail(request, slug: str):
             "panel": panel,
             "low_stock": services.low_stock_note(panel["variant"], settings.LOW_STOCK_THRESHOLD),
             "size_chart": services.size_chart_for(product),
+            "reviews": review_services.product_review_summary(product),
             "promise": {
                 "dispatch": settings.DISPATCH_DAYS,
                 "delivery": settings.DELIVERY_DAYS,
