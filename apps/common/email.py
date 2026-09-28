@@ -228,6 +228,51 @@ def send_design_review_email(design_id: str, kind: str) -> str:
     )
 
 
+def send_return_email(return_id: str, kind: str) -> str:
+    """Tell the customer where their return stands (M9.3). ``kind`` is one of "requested",
+    "approved", "rejected" or "refunded". Swallowed on failure, like every transactional mail
+    here, and ledgered so it is resendable."""
+    from apps.orders.models import ReturnRequest
+
+    rr = ReturnRequest.objects.filter(pk=return_id).select_related("order").first()
+    if rr is None or kind not in ("requested", "approved", "rejected", "refunded"):
+        return "skipped"
+    order = rr.order
+    name = order.ship_full_name
+    num = order.order_number
+    if kind == "requested":
+        subject = f"We've received your return request for {num}"
+        body = (
+            f"Hi {name},\n\nWe've received your request to return part of order {num} and our team "
+            f"will review it shortly. We'll email you once it has been reviewed.\n\n"
+            f"Thanks,\nThe CivicForest team"
+        )
+    elif kind == "approved":
+        note = f"\n\n{rr.resolution}" if rr.resolution else ""
+        subject = f"Your return for {num} is approved"
+        body = (
+            f"Hi {name},\n\nYour return for order {num} has been approved. Please send the item(s) "
+            f"back as set out in our returns policy.{note}\n\nThanks,\nThe CivicForest team"
+        )
+    elif kind == "rejected":
+        note = f"\n\nReason: {rr.resolution}" if rr.resolution else ""
+        subject = f"Your return for {num} could not be approved"
+        body = (
+            f"Hi {name},\n\nWe were unable to approve your return for order {num}.{note}\n\n"
+            f"If you have questions, contact support.\n\nThanks,\nThe CivicForest team"
+        )
+    else:  # refunded
+        subject = f"Refund processed for your return of {num}"
+        body = (
+            f"Hi {name},\n\nWe've processed a refund of {order.currency} {rr.refund_amount or 0} "
+            f"for your return of order {num}. It should reach your account in 5 to 7 working days."
+            f"\n\nThanks,\nThe CivicForest team"
+        )
+    return _deliver(
+        order.email, f"return:{kind}", {"return_id": str(return_id), "kind": kind}, subject, body
+    )
+
+
 def resend(email_id: str) -> str:
     """Re-render and re-send a ledgered email (M8.13). It re-runs the original sender from the
     stored ids, so the resend reflects live data and writes its own fresh ledger row."""
@@ -245,4 +290,6 @@ def resend(email_id: str) -> str:
         return send_shipment_email(context["shipment_id"], kind)
     if prefix == "design" and context.get("design_id"):
         return send_design_review_email(context["design_id"], kind)
+    if prefix == "return" and context.get("return_id"):
+        return send_return_email(context["return_id"], kind)
     return "skipped"

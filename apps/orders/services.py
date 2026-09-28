@@ -9,7 +9,9 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import timedelta
+from decimal import Decimal
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import F, Max, Q
 from django.utils import timezone
@@ -17,7 +19,7 @@ from django.utils import timezone
 from apps.cart import services as cart_services
 from apps.catalog.models import ProductVariant
 
-from .models import Order, OrderItem, Shipment, StatusEvent
+from .models import Order, OrderItem, ReturnRequest, Shipment, StatusEvent
 
 logger = logging.getLogger("orders")
 
@@ -503,3 +505,127 @@ def send_pending_review_requests(limit: int) -> int:
         Order.objects.filter(pk=order.pk).update(review_requested_at=timezone.now())
         sent += 1
     return sent
+
+
+# ─── Returns (I4, I5, F13) ─────────────────────────────────────────────────────
+def _item_delivered_at(item: OrderItem):
+    """When the shipment carrying this line was delivered, or None if it has not been."""
+    shipment = item.shipments.first()
+    return shipment.delivered_at if shipment else None
+
+
+def _active_returned_item_ids(order: Order) -> set:
+    """Ids of lines already inside a return that has not been rejected, so a line cannot be put in
+    two live returns at once."""
+    return set(
+        ReturnRequest.objects.filter(order=order)
+        .exclude(status=ReturnRequest.Status.REJECTED)
+        .values_list("items__id", flat=True)
+    )
+
+
+def returnable_items(order: Order) -> list[OrderItem]:
+    """Lines eligible to return now: delivered, still inside the 7-day window from their own
+    delivery date (I5), and not already in a live return. Custom-vs-stock reason rules are enforced
+    at creation, not here, so the form can show a custom line with its narrower reason set."""
+    now = timezone.now()
+    window = timedelta(days=settings.RETURN_WINDOW_DAYS)
+    already = _active_returned_item_ids(order)
+    out = []
+    for item in order.items.all():
+        if item.id in already:
+            continue
+        delivered = _item_delivered_at(item)
+        if delivered and now <= delivered + window:
+            out.append(item)
+    return out
+
+
+def can_request_return(order: Order) -> bool:
+    return bool(returnable_items(order))
+
+
+@transaction.atomic
+def create_return_request(
+    order: Order, *, item_ids, reason: str, comment: str = "", photo_keys=None
+) -> ReturnRequest:
+    """Open a return over the chosen delivered lines. Rejects a reason a custom line may not use
+    (defect only, F13) and any line outside its window. Sends the acknowledgement email."""
+    if reason not in ReturnRequest.Reason.values:
+        raise OrderError("Choose a reason for the return.", code="bad_reason")
+    returnable = {item.id: item for item in returnable_items(order)}
+    wanted = {uuid.UUID(str(raw)) for raw in item_ids if _is_uuid(raw)}
+    chosen = [returnable[i] for i in wanted if i in returnable]
+    if not chosen:
+        raise OrderError(
+            "Select at least one item that is still within its return window.",
+            code="nothing_returnable",
+        )
+    if any(item.is_custom for item in chosen) and reason not in ReturnRequest.DEFECT_REASONS:
+        raise OrderError(
+            "Custom printed items can only be returned for a defect, damage or a wrong item.",
+            code="custom_defect_only",
+        )
+    rr = ReturnRequest.objects.create(
+        order=order,
+        reason=reason,
+        comment=(comment or "").strip(),
+        photo_keys=list(photo_keys or []),
+    )
+    rr.items.set(chosen)
+
+    from apps.common.email import send_return_email
+
+    send_return_email(str(rr.pk), "requested")
+    return rr
+
+
+def _is_uuid(raw) -> bool:
+    try:
+        uuid.UUID(str(raw))
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
+def suggested_refund(rr: ReturnRequest):
+    """The default refund a staffer sees: the returned lines' total. Shipping is added back only
+    for a defect (I8), which staff decide by editing the amount, so it is not added here."""
+    return sum((item.line_total for item in rr.items.all()), Decimal("0.00"))
+
+
+def _set_return_status(rr: ReturnRequest, status: str, resolution: str) -> None:
+    rr.status = status
+    if resolution:
+        rr.resolution = resolution
+    rr.save(update_fields=["status", "resolution", "updated_at"])
+
+
+def approve_return(rr: ReturnRequest, *, actor=None, resolution: str = "") -> ReturnRequest:
+    _set_return_status(rr, ReturnRequest.Status.APPROVED, resolution)
+    add_note(rr.order, actor=actor, note=(f"Return approved. {resolution}").strip())
+    _notify_return(rr, "approved")
+    return rr
+
+
+def reject_return(rr: ReturnRequest, *, actor=None, resolution: str = "") -> ReturnRequest:
+    _set_return_status(rr, ReturnRequest.Status.REJECTED, resolution)
+    add_note(rr.order, actor=actor, note=(f"Return rejected. {resolution}").strip())
+    _notify_return(rr, "rejected")
+    return rr
+
+
+def receive_return(rr: ReturnRequest, *, actor=None) -> ReturnRequest:
+    """Mark the goods physically back (O9). No customer email: the refund is the next, notified
+    step, and a bare 'we have it' adds nothing they act on."""
+    rr.status = ReturnRequest.Status.RECEIVED
+    rr.received_at = timezone.now()
+    rr.save(update_fields=["status", "received_at", "updated_at"])
+    add_note(rr.order, actor=actor, note="Return marked received")
+    return rr
+
+
+def _notify_return(rr: ReturnRequest, kind: str) -> None:
+    from apps.common.email import send_return_email
+
+    send_return_email(str(rr.pk), kind)

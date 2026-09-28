@@ -6,9 +6,11 @@ class OrdersConfig(AppConfig):
     name = "apps.orders"
 
     def ready(self):
-        # Audit trail on order status changes (who moved it, when — plan.md §11).
+        # Audit trail on order status changes (who moved it and when, plan.md §11), and on returns,
+        # which move money and stock (M9.3).
         from auditlog.registry import auditlog
 
-        from .models import Order
+        from .models import Order, ReturnRequest
 
         auditlog.register(Order)
+        auditlog.register(ReturnRequest)

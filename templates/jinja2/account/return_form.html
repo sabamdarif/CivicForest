@@ -1,0 +1,61 @@
+{# Request a return (I4). A plain form that works without JavaScript: tick the lines, choose a
+   reason, add a comment, submit. Photos are optional and, where scripting is on, upload straight
+   to R2 (never through Django, the 4.5 MB cap). Custom lines are defect-only (F13). #}
+{% extends "account/base.html" %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Return an item | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>Return items from order {{ order.order_number }}</h1>
+  {{ notices(request) }}
+
+  <p class="field__hint">
+    Stock items can be returned within {{ window_days }} days of delivery. Custom printed items can
+    only be returned for a defect, damage or a wrong item, never a size swap or change of mind. See
+    our <a href="/returns-exchanges/">Returns and Exchanges</a> policy.
+  </p>
+
+  <form class="auth-form" method="post" data-return-form>
+    {{ csrf_input }}
+
+    <fieldset class="return-items">
+      <legend>Which items?</legend>
+      {%- for item in items %}
+        <label class="return-item">
+          <input type="checkbox" name="items" value="{{ item.id }}">
+          <span>{{ item.product_name }}{% if item.size %}, {{ item.size }}{% endif %}{% if item.color %}, {{ item.color }}{% endif %} × {{ item.quantity }}
+            {%- if item.is_custom %} <em>(custom print, defect only)</em>{% endif %}</span>
+        </label>
+      {%- endfor %}
+    </fieldset>
+
+    {%- for f in form %}
+      <div class="field">
+        <label class="field__label" for="{{ f.id_for_label }}">
+          {{ f.label }}{% if f.field.required %} <span class="field__required" aria-hidden="true">*</span>{% endif %}
+        </label>
+        {{ f }}
+        {% if f.errors %}<p class="field__error">{{ f.errors }}</p>{% endif %}
+      </div>
+    {%- endfor %}
+
+    {# Optional evidence photos. The input has no name, so nothing is posted through Django without
+       JavaScript; the uploader adds hidden photo_key inputs after each file reaches R2. #}
+    <div class="field" data-return-photos data-photo-url="{{ url('return-photo-url') }}" hidden>
+      <label class="field__label" for="return-photos">Photos (optional, helps a defect claim)</label>
+      <input type="file" id="return-photos" accept="image/png,image/jpeg,image/webp" multiple>
+      <ul class="return-photos__list" data-photo-list></ul>
+    </div>
+
+    <div class="account-panel__actions">
+      {{ button("Request return", type="submit") }}
+      {{ button("Cancel", variant="secondary", href="/account/orders/" ~ order.order_number ~ "/") }}
+    </div>
+  </form>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ static('js/return-photos.js') }}"></script>
+{% endblock %}

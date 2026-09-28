@@ -25,18 +25,22 @@ from rest_framework.views import APIView
 
 from apps.cart import services as cart_services
 from apps.cart.views import cart_context
+from apps.common import r2
 from apps.common.throttles import (
     CheckoutDayThrottle,
     CheckoutMinuteThrottle,
+    CustomOrderCreateThrottle,
     TrackThrottle,
     exceeded,
 )
+from apps.custom_orders.serializers import UploadUrlSerializer
+from apps.custom_orders.uploads import sanitise_return_photo
 from apps.payments import gateway as payment_gateway
 from apps.payments import services as payment_services
 
 from . import services
-from .forms import CheckoutForm
-from .models import Order
+from .forms import CheckoutForm, ReturnForm
+from .models import Order, ReturnRequest
 from .serializers import CheckoutSerializer, OrderSerializer
 
 logger = logging.getLogger("orders")
@@ -223,12 +227,68 @@ def account_order_detail(request, order_number):
             "order": order,
             "can_cancel": services.can_customer_cancel(order),
             "can_retry": order.status == Order.Status.PAYMENT_PENDING and order.payments.exists(),
+            "can_return": services.can_request_return(order),
             "reviewable_ids": reviewable_ids,
             "source_labels": {
                 "stock": "Shipped by CivicForest",
                 "custom": "Printed and shipped by Qikink",
             },
         },
+    )
+
+
+@login_required
+def account_returns(request):
+    """The customer's return requests (I4): status per request and the lines it covers."""
+    returns = (
+        ReturnRequest.objects.filter(order__user=request.user)
+        .select_related("order")
+        .prefetch_related("items")
+    )
+    return render(request, "account/returns.html", {"returns": returns})
+
+
+# At most this many evidence photos per return, to bound the sanitise work and the stored keys.
+_MAX_RETURN_PHOTOS = 6
+
+
+@login_required
+def account_order_return(request, order_number):
+    """Open a return against a delivered order (I4). A plain form: the returnable lines are
+    checkboxes and the reason and comment are fields, so it submits without JavaScript. Photos are
+    optional and, where scripting is on, are uploaded straight to R2 and posted here as keys, which
+    are validated and re-encoded before they are stored (never trusting the posted key)."""
+    order = get_object_or_404(Order.objects.filter(user=request.user), order_number=order_number)
+    items = services.returnable_items(order)
+    if not items:
+        messages.info(request, "This order has no items that can be returned right now.")
+        return redirect("account-order-detail", order_number=order_number)
+
+    form = ReturnForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        photo_keys = [
+            clean
+            for raw in request.POST.getlist("photo_key")[:_MAX_RETURN_PHOTOS]
+            if (clean := sanitise_return_photo(raw))
+        ]
+        try:
+            services.create_return_request(
+                order,
+                item_ids=request.POST.getlist("items"),
+                reason=form.cleaned_data["reason"],
+                comment=form.cleaned_data["comment"],
+                photo_keys=photo_keys,
+            )
+        except services.OrderError as exc:
+            messages.error(request, exc.message)
+        else:
+            messages.success(request, "Return requested. We'll email you once it's reviewed.")
+            return redirect("account-returns")
+
+    return render(
+        request,
+        "account/return_form.html",
+        {"order": order, "items": items, "form": form, "window_days": settings.RETURN_WINDOW_DAYS},
     )
 
 
@@ -290,6 +350,35 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Ge
             Order.objects.filter(user=self.request.user)
             .prefetch_related("items")
             .order_by("-created_at")
+        )
+
+
+_RETURN_PHOTO_EXT = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}
+
+
+class ReturnPhotoUrlView(APIView):
+    """Mint a short-lived presigned PUT for a return-evidence photo (M9.3), so the browser uploads
+    it straight to private R2 and Django never receives the bytes (Vercel's 4.5 MB cap). The key
+    is not trusted on its own: the return form re-fetches, content-sniffs and re-encodes it before
+    it is stored. Authenticated and throttled, like the design-upload token."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [CustomOrderCreateThrottle]
+
+    def post(self, request):
+        form = UploadUrlSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+        content_type = form.validated_data["content_type"]
+        key = r2.return_photo_raw_key(_RETURN_PHOTO_EXT[content_type])
+        return Response(
+            {
+                "key": key,
+                "upload_url": r2.presigned_put(key, content_type, expires=300),
+                "method": "PUT",
+                "headers": {"Content-Type": content_type},
+                "expires_in": 300,
+            },
+            status=status.HTTP_201_CREATED,
         )
 
 

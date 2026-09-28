@@ -106,6 +106,26 @@ def validate_product_image(uploaded_file) -> None:
     uploaded_file.seek(0)
 
 
+def sanitise_return_photo(raw_key: str) -> str | None:
+    """Fetch a return-evidence photo the browser PUT to R2, validate and re-encode it to a clean
+    PNG written back to R2, then delete the raw upload (M9.3). Returns the clean key, or None when
+    the object is missing or is not a valid image, so a bad or tampered key is simply dropped rather
+    than raised. Same content-sniff, Pillow verify and re-encode gate as the design path (§12)."""
+    if not raw_key or not raw_key.startswith("returns/raw/"):
+        return None
+    max_bytes = getattr(settings, "DESIGN_UPLOAD_MAX_BYTES", 15 * 1024 * 1024)
+    max_dim = getattr(settings, "DESIGN_UPLOAD_MAX_DIMENSION", 8000)
+    try:
+        raw = r2.read_bytes(raw_key)
+        _, image = _inspect_bytes(raw, max_bytes, max_dim)
+    except (UploadError, FileNotFoundError, OSError):
+        return None
+    clean_key = r2.return_photo_key()
+    r2.write_bytes(clean_key, _reencode_png(image))
+    r2.delete(raw_key)
+    return clean_key
+
+
 def sanitise_upload(design) -> str:
     """Fetch a raw upload from private R2, validate and re-encode it to a clean print-ready
     PNG written back to R2, then delete the raw file (M7.3). Records the real dimensions and

@@ -92,4 +92,11 @@
       <p class="field__hint">You can cancel until the order ships. Any payment is refunded.</p>
     </form>
   {%- endif %}
+
+  {%- if can_return %}
+    <div class="account-panel__actions">
+      {{ button("Return an item", href="/account/orders/" ~ order.order_number ~ "/return/", variant="secondary") }}
+      <p class="field__hint">Delivered items can be returned within the return window.</p>
+    </div>
+  {%- endif %}
 {% endblock %}

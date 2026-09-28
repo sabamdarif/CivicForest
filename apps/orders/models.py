@@ -191,3 +191,52 @@ class StatusEvent(UUIDTimestampedModel):
 
     def __str__(self):
         return f"{self.order.order_number}: {self.from_status}→{self.to_status}"
+
+
+class ReturnRequest(UUIDTimestampedModel):
+    """A customer's request to return one or more lines of a delivered order (I4).
+
+    Its own lifecycle, kept off ``Order.status`` so the order state machine is untouched: a stock
+    line returns for any reason inside the 7-day window, a custom line only for a defect (Qikink's
+    terms, F13). Photos are R2 keys, never files through Django. The refund is a partial gateway
+    refund recorded here, so returning two lines of a five-line order does not mark the whole order
+    refunded (see ``payments.services.refund_return``)."""
+
+    class Reason(models.TextChoices):
+        DEFECTIVE = "defective", "Defective or faulty"
+        DAMAGED = "damaged", "Arrived damaged"
+        WRONG_ITEM = "wrong_item", "Wrong item sent"
+        NOT_AS_DESCRIBED = "not_as_described", "Not as described"
+        CHANGED_MIND = "changed_mind", "Changed my mind"
+        SIZE_ISSUE = "size_issue", "Size or fit"
+        OTHER = "other", "Other"
+
+    # The only reasons a custom (print-on-demand) line may be returned: Qikink refunds a seller
+    # for a defect, never a change of mind or a size swap (rebuild/02-research.md §3, F13).
+    DEFECT_REASONS = (Reason.DEFECTIVE, Reason.DAMAGED, Reason.WRONG_ITEM)
+
+    class Status(models.TextChoices):
+        REQUESTED = "requested", "Requested"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+        RECEIVED = "received", "Received"
+        REFUNDED = "refunded", "Refunded"
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="returns")
+    items = models.ManyToManyField(OrderItem, related_name="return_requests")
+    reason = models.CharField(max_length=20, choices=Reason.choices)
+    comment = models.TextField(blank=True)
+    # Sanitised R2 keys of the evidence photos (browser to R2, never through Django). Keys only.
+    photo_keys = models.JSONField(default=list, blank=True)
+    status = models.CharField(
+        max_length=12, choices=Status.choices, default=Status.REQUESTED, db_index=True
+    )
+    resolution = models.TextField(blank=True)
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    received_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Return for {self.order.order_number} ({self.status})"

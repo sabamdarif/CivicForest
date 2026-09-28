@@ -34,6 +34,15 @@ def mockup_key() -> str:
     return f"designs/mockup/{uuid.uuid4().hex}.png"
 
 
+def return_photo_raw_key(ext: str = "bin") -> str:
+    """Where the browser PUTs a raw return-evidence photo before it is sanitised (M9.3)."""
+    return f"returns/raw/{uuid.uuid4().hex}.{ext}"
+
+
+def return_photo_key() -> str:
+    return f"returns/photo/{uuid.uuid4().hex}.png"
+
+
 def read_bytes(key: str) -> bytes:
     with _storage().open(key, "rb") as handle:
         return handle.read()

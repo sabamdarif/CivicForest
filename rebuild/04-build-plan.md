@@ -425,7 +425,7 @@ Tasks:
 2. [x] Review UI: form reachable from order detail and from the review-request email, list on the product
    page with distribution bars, aggregated fit feedback ("72% say true to size"), `AggregateRating`
    markup, moderation queue in the back-office.
-3. Returns: request form with reason, comment and photo upload (direct to R2), eligibility computed
+3. [x] Returns: request form with reason, comment and photo upload (direct to R2), eligibility computed
    from delivery date and the 7-day window, **different rules for stock and custom lines**, admin
    queue, refund trigger, customer emails at each transition.
 4. `apps/content`: `Page`, `FaqEntry`, `AnnouncementBar`, `HomeSection`, `ContactMessage`,

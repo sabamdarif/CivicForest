@@ -58,6 +58,40 @@ def refund_order(order: Order, *, actor=None) -> Order:
     )
 
 
+def refund_return(rr, *, amount, actor=None):
+    """Issue a partial refund for a return and record it on the request (M9.3).
+
+    Gateway first, exactly like ``refund_order``: only once Razorpay accepts is the request marked
+    refunded. A return refund is partial by nature, so the order keeps its delivered state and the
+    refund is recorded as a status-event note; flipping the whole order to REFUNDED is the separate
+    order-level action. Raises ``PaymentError`` if there is nothing to refund or the amount is out
+    of range (never more than the order total)."""
+    from apps.orders.models import ReturnRequest
+
+    if rr.status == ReturnRequest.Status.REFUNDED:
+        raise gateway.PaymentError("This return is already refunded.", code="already_refunded")
+    if amount is None or amount <= 0 or amount > rr.order.total:
+        raise gateway.PaymentError("Refund amount is out of range.", code="bad_amount")
+    payment = (
+        rr.order.payments.filter(status=Payment.Status.CAPTURED).order_by("-created_at").first()
+    )
+    if payment is None:
+        raise gateway.PaymentError("No captured payment to refund.", code="no_payment")
+
+    gateway.refund_payment(payment.gateway_payment_id, amount)
+    rr.status = ReturnRequest.Status.REFUNDED
+    rr.refund_amount = amount
+    rr.save(update_fields=["status", "refund_amount", "updated_at"])
+    order_services.add_note(
+        rr.order, actor=actor, note=f"Return refund of {rr.order.currency} {amount} issued"
+    )
+
+    from apps.common.email import send_return_email
+
+    send_return_email(str(rr.pk), "refunded")
+    return rr
+
+
 def verify_callback(order_id: str, payment_id: str, signature: str) -> bool:
     """Verify the browser checkout callback. Advisory: it may mark the payment row as
     captured for UI feedback, but it does **not** fulfil the order — the webhook does."""

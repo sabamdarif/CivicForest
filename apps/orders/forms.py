@@ -13,6 +13,8 @@ from django import forms
 
 from apps.accounts.forms import PINCODE, _clean_phone
 
+from .models import ReturnRequest
+
 
 class CheckoutForm(forms.Form):
     phone = forms.CharField(max_length=20, label="Phone number")
@@ -63,3 +65,16 @@ class CheckoutForm(forms.Form):
                 "postal_code", "An Indian pincode is six digits and cannot start with 0."
             )
         return cleaned
+
+
+class ReturnForm(forms.Form):
+    """The return-request fields that are not per-item: the reason and an optional comment. Which
+    lines are returned comes from checkboxes the view reads, and photos are R2 keys posted by the
+    optional uploader, so the core form still submits without JavaScript."""
+
+    reason = forms.ChoiceField(choices=ReturnRequest.Reason.choices, label="Reason for return")
+    comment = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 4}),
+        label="Anything else? (optional)",
+    )

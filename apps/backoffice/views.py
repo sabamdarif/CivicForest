@@ -31,6 +31,7 @@ from apps.catalog.forms import (
 )
 from apps.catalog.models import Category, Collection, Product, ProductVariant
 from apps.common import email as common_email
+from apps.common import r2
 from apps.common.email import ORDER_EMAIL_KINDS
 from apps.common.models import StockAdjustment
 from apps.content.forms import AnnouncementBarForm, HomeSectionForm
@@ -38,7 +39,7 @@ from apps.content.models import AnnouncementBar, HomeSection
 from apps.custom_orders import services as custom_services
 from apps.custom_orders.models import DesignUpload
 from apps.orders import services as order_services
-from apps.orders.models import Order
+from apps.orders.models import Order, ReturnRequest
 from apps.payments import gateway as payment_gateway
 from apps.payments import services as payment_services
 from apps.payments.models import Payment
@@ -353,6 +354,89 @@ class ReviewActionView(StaffRequiredMixin, View):
             review_services.reject_review(review)
             messages.success(request, "Review rejected.")
         return redirect("backoffice:reviews")
+
+
+class ReturnQueueView(StaffRequiredMixin, TemplateView):
+    """The returns queue (M9.3, O9). Defaults to requests awaiting a decision; ``?status=``
+    switches the filter. Viewing needs ``orders.view_returnrequest``."""
+
+    template_name = "backoffice/returns.html"
+    permission_required = "orders.view_returnrequest"
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(**kwargs),
+            "returns": services.return_queue(self.request.GET, self.request.GET.get("page")),
+            "status": self.request.GET.get("status", ""),
+            "status_choices": ReturnRequest.Status.choices,
+        }
+
+
+class ReturnDetailView(StaffRequiredMixin, TemplateView):
+    """One return: the lines, the reason and comment, the evidence photos through short-lived
+    signed GETs, and the approve/reject/receive/refund forms. Viewing needs ``view_returnrequest``;
+    the actions carry their own permission (see ``ReturnActionView``)."""
+
+    template_name = "backoffice/return_detail.html"
+    permission_required = "orders.view_returnrequest"
+
+    def get_context_data(self, **kwargs):
+        rr = get_object_or_404(
+            ReturnRequest.objects.select_related("order").prefetch_related("items"),
+            pk=kwargs["pk"],
+        )
+        return {
+            **super().get_context_data(**kwargs),
+            "rr": rr,
+            "photos": [r2.signed_get_url(key) for key in rr.photo_keys or []],
+            "suggested_refund": order_services.suggested_refund(rr),
+        }
+
+
+class ReturnActionView(StaffRequiredMixin, View):
+    """Every mutating action on a return, each behind its own permission so a view-only role
+    reaches none. Approve/reject/receive need ``change_returnrequest``; the refund moves money and
+    needs ``refund_order``, the same gate as an order refund."""
+
+    _ACTION_PERMS = {
+        "approve": "orders.change_returnrequest",
+        "reject": "orders.change_returnrequest",
+        "receive": "orders.change_returnrequest",
+        "refund": "orders.refund_order",
+    }
+
+    def post(self, request, pk):
+        action = request.POST.get("action", "")
+        perm = self._ACTION_PERMS.get(action)
+        if perm is None or not request.user.has_perm(perm):
+            raise Http404
+        rr = get_object_or_404(ReturnRequest.objects.select_related("order"), pk=pk)
+        getattr(self, f"_do_{action}")(request, rr)
+        return redirect("backoffice:return_detail", pk=pk)
+
+    def _do_approve(self, request, rr):
+        order_services.approve_return(
+            rr, actor=request.user, resolution=request.POST.get("resolution", "")
+        )
+        messages.success(request, "Return approved.")
+
+    def _do_reject(self, request, rr):
+        order_services.reject_return(
+            rr, actor=request.user, resolution=request.POST.get("resolution", "")
+        )
+        messages.success(request, "Return rejected.")
+
+    def _do_receive(self, request, rr):
+        order_services.receive_return(rr, actor=request.user)
+        messages.success(request, "Return marked received.")
+
+    def _do_refund(self, request, rr):
+        amount = _product_decimal(request.POST.get("amount"))
+        try:
+            payment_services.refund_return(rr, amount=amount, actor=request.user)
+            messages.success(request, "Refund issued and the customer notified.")
+        except payment_gateway.PaymentError as exc:
+            messages.error(request, exc.message)
 
 
 def _product_decimal(raw):

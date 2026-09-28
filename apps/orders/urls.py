@@ -23,5 +23,11 @@ urlpatterns = [
         views.account_order_detail,
         name="account-order-detail",
     ),
+    path("account/returns/", views.account_returns, name="account-returns"),
+    path(
+        "account/orders/<str:order_number>/return/",
+        views.account_order_return,
+        name="account-order-return",
+    ),
     path("track/", views.track_order, name="track-order"),
 ]

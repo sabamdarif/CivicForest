@@ -1,0 +1,29 @@
+{# The customer's returns (I4): one row per request, its status, the lines it covers and any
+   refund. Opening a new return happens from the order detail page. #}
+{% extends "account/base.html" %}
+{% from "_macros/card.html" import card %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Returns | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>Returns</h1>
+  {{ notices(request) }}
+
+  {%- if returns %}
+    {%- for r in returns %}
+      {% call card("Order " ~ r.order.order_number) %}
+        <p><strong>{{ r.get_status_display() }}</strong> · {{ r.get_reason_display() }} · {{ r.created_at.strftime("%d %b %Y") }}</p>
+        <ul class="account-lines">
+          {%- for item in r.items.all() %}
+            <li><span>{{ item.product_name }}{% if item.size %}, {{ item.size }}{% endif %} × {{ item.quantity }}</span></li>
+          {%- endfor %}
+        </ul>
+        {%- if r.refund_amount %}<p>Refund: {{ r.refund_amount|rupees }}</p>{% endif %}
+        {%- if r.resolution %}<p class="field__hint">{{ r.resolution }}</p>{% endif %}
+      {% endcall %}
+    {%- endfor %}
+  {%- else %}
+    <p>You have no returns. You can request one from a delivered order.</p>
+  {%- endif %}
+{% endblock %}

@@ -389,3 +389,16 @@ rules) are one unit, and M9 task 3 owns the customer-facing half. Building a sta
 against a model nothing can yet write rows to is half a feature, so M8 ships only the direct refund
 action on order detail (task 5) and M9 builds the model, the queue and the customer side together.
 
+**2026-09-28, returns built (I4, I5, I8, F13, O9).** `orders.ReturnRequest` carries its own status
+(requested, approved, rejected, received, refunded) kept off `Order.status`, so the order state
+machine is untouched: a return is a separate record against a delivered order. Eligibility is per
+line, from that line's own shipment delivery date plus `RETURN_WINDOW_DAYS` (7). Stock lines return
+for any reason inside the window; custom lines only for a defect, damage or wrong item (Qikink's
+terms). The refund is a partial gateway refund recorded on the request and added to the order as a
+status-event note; it does not move the whole order to REFUNDED, because a return is usually part of
+an order (the whole-order refund stays the separate order-detail action). Photos are optional: the
+core request is a plain no-JS form, and where scripting is on the browser uploads straight to R2 and
+posts only keys, which the server content-sniffs and re-encodes before storing (never trusting a
+posted key). The refund action is gated by `orders.refund_order`, the same permission as an order
+refund; approve, reject and receive by `orders.change_returnrequest`.
+

@@ -1,0 +1,84 @@
+{# Back-office return detail (M9.3, O9): the request, its lines, the evidence photos, and the
+   guarded approve / reject / receive / refund actions. Each posts to the one action endpoint,
+   which re-checks the per-action permission. #}
+{% extends "base.html" %}
+
+{% block title %}Return {{ rr.order.order_number }}, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <p><a href="{{ url('backoffice:returns') }}">&larr; Returns</a></p>
+  <h1 class="bo__title">Return for {{ rr.order.order_number }}</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <section class="bo-card">
+    <p><strong>Status:</strong> {{ rr.get_status_display() }}</p>
+    <p><strong>Reason:</strong> {{ rr.get_reason_display() }}</p>
+    <p><strong>Order:</strong> <a href="{{ url('backoffice:order_detail', kwargs={'order_number': rr.order.order_number}) }}">{{ rr.order.order_number }}</a> ({{ rr.order.total|rupees }})</p>
+    {% if rr.comment %}<p><strong>Comment:</strong> {{ rr.comment }}</p>{% endif %}
+    {% if rr.resolution %}<p><strong>Resolution:</strong> {{ rr.resolution }}</p>{% endif %}
+    {% if rr.refund_amount %}<p><strong>Refunded:</strong> {{ rr.refund_amount|rupees }}</p>{% endif %}
+
+    <h2>Items</h2>
+    <ul class="account-lines">
+      {% for item in rr.items.all() %}
+        <li><span>{{ item.product_name }}{% if item.size %}, {{ item.size }}{% endif %} × {{ item.quantity }}{% if item.is_custom %} (custom){% endif %}</span><strong>{{ item.line_total|rupees }}</strong></li>
+      {% endfor %}
+    </ul>
+
+    {% if photos %}
+      <h2>Evidence photos</h2>
+      <div class="bo-photos">
+        {% for photo_url in photos %}<a href="{{ photo_url }}"><img src="{{ photo_url }}" alt="Return evidence photo" width="120"></a>{% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  {% if rr.status == 'requested' %}
+    <section class="bo-card">
+      <h2>Decision</h2>
+      <form method="post" action="{{ url('backoffice:return_action', kwargs={'pk': rr.id}) }}">
+        {{ csrf_input }}
+        <div class="field">
+          <label class="field__label" for="resolution">Note to the customer (optional)</label>
+          <textarea class="field__control" id="resolution" name="resolution" rows="3"></textarea>
+        </div>
+        <button class="btn btn--primary" type="submit" name="action" value="approve">Approve</button>
+        <button class="btn btn--ghost" type="submit" name="action" value="reject">Reject</button>
+      </form>
+    </section>
+  {% endif %}
+
+  {% if rr.status == 'approved' %}
+    <section class="bo-card">
+      <form method="post" action="{{ url('backoffice:return_action', kwargs={'pk': rr.id}) }}">
+        {{ csrf_input }}
+        <button class="btn btn--primary" type="submit" name="action" value="receive">Mark received</button>
+      </form>
+    </section>
+  {% endif %}
+
+  {% if rr.status in ['approved', 'received'] %}
+    <section class="bo-card">
+      <h2>Refund</h2>
+      <form method="post" action="{{ url('backoffice:return_action', kwargs={'pk': rr.id}) }}">
+        {{ csrf_input }}
+        <div class="field">
+          <label class="field__label" for="amount">Amount ({{ rr.order.currency }})</label>
+          <input class="field__control" id="amount" name="amount" type="number" step="0.01" min="0"
+            max="{{ rr.order.total }}" value="{{ suggested_refund }}">
+          <p class="field__hint">Suggested: the returned lines' total. Add shipping only if the item was defective (I8).</p>
+        </div>
+        <button class="btn btn--primary" type="submit" name="action" value="refund">Issue refund</button>
+      </form>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

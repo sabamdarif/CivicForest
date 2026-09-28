@@ -29,7 +29,7 @@ from apps.common.formatting import rupees
 from apps.common.models import JobRun, OutboundEmail
 from apps.content.models import AnnouncementBar, HomeSection
 from apps.custom_orders.models import CustomDesignOrder, DesignUpload
-from apps.orders.models import Order, OrderItem
+from apps.orders.models import Order, OrderItem, ReturnRequest
 from apps.payments.models import Payment
 from apps.reviews.models import Review
 from apps.search.models import SearchQueryLog
@@ -324,6 +324,25 @@ def review_queue(params, page) -> Page:
     elif status != "all":
         qs = qs.filter(status=Review.Status.PENDING)
     return Paginator(qs, REVIEW_QUEUE_PAGE_SIZE).get_page(page)
+
+
+RETURN_QUEUE_PAGE_SIZE = 50
+
+
+def return_queue(params, page) -> Page:
+    """One page of returns for the queue (M9.3), defaulting to the ones awaiting a decision;
+    ``?status=`` switches to approved, received, refunded, rejected or all."""
+    qs = (
+        ReturnRequest.objects.select_related("order")
+        .prefetch_related("items")
+        .order_by("-created_at")
+    )
+    status = params.get("status") or ReturnRequest.Status.REQUESTED
+    if status in ReturnRequest.Status.values:
+        qs = qs.filter(status=status)
+    elif status != "all":
+        qs = qs.filter(status=ReturnRequest.Status.REQUESTED)
+    return Paginator(qs, RETURN_QUEUE_PAGE_SIZE).get_page(page)
 
 
 # ── Product management (M8.7) ───────────────────────────────────────────────────
