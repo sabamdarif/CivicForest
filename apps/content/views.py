@@ -5,6 +5,7 @@ goes inside them is catalogue. Neither service calls the other. `page` renders a
 by slug (a draft or missing slug is a 404); `faq` renders the active FAQ entries as an accordion.
 """
 
+from django.conf import settings
 from django.http import Http404
 from django.shortcuts import render
 
@@ -54,4 +55,27 @@ def faq(request):
         request,
         "content/faq.html",
         {"faq_groups": groups, "structured_data": [seo.faq_page(request, groups)]},
+    )
+
+
+def grievance(request):
+    """The Grievance Redressal page (L1), legally required. Driven by settings so the named officer
+    and contact details are always present and cannot be blanked by a content edit (research §5)."""
+    trail = [("Home", "/")]
+    return render(
+        request,
+        "content/grievance.html",
+        {
+            "officer": {
+                "name": settings.GRIEVANCE_OFFICER_NAME,
+                "email": settings.GRIEVANCE_EMAIL,
+                "phone": settings.GRIEVANCE_PHONE,
+                "address": settings.GRIEVANCE_ADDRESS,
+                "response_hours": settings.GRIEVANCE_RESPONSE_HOURS,
+            },
+            "seller": {"name": settings.SELLER_LEGAL_NAME, "address": settings.SELLER_ADDRESS},
+            "trail": trail,
+            "current": "Grievance Redressal",
+            "structured_data": [seo.breadcrumb_list(request, trail, "Grievance Redressal")],
+        },
     )

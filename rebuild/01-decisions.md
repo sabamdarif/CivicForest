@@ -402,3 +402,11 @@ posts only keys, which the server content-sniffs and re-encodes before storing (
 posted key). The refund action is gated by `orders.refund_order`, the same permission as an order
 refund; approve, reject and receive by `orders.change_returnrequest`.
 
+**2026-09-28, grievance page and seller identity from settings (L1, research §5).** The Grievance
+Redressal page is legally required and must always carry the named officer's real contact details,
+so it renders straight from env settings (`GRIEVANCE_OFFICER_NAME`, `GRIEVANCE_EMAIL`,
+`GRIEVANCE_PHONE`, `GRIEVANCE_ADDRESS`, `GRIEVANCE_RESPONSE_HOURS`, plus `SELLER_LEGAL_NAME` and
+`SELLER_ADDRESS`) rather than an editable `Page`, which staff could unpublish or blank. The twelve
+content pages that are policy copy are `Page` rows (L2, editable without a redeploy); grievance is
+the deliberate exception because a missing grievance officer is a compliance failure, not a typo.
+

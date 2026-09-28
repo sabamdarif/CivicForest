@@ -54,3 +54,13 @@ def test_the_sitemap_lists_published_pages_only(seeded):
     assert "/about/" in body
     Page.objects.filter(slug="about").update(is_published=False)
     assert "/about/" not in _body(Client(), "/sitemap.xml")
+
+
+def test_the_grievance_page_shows_the_named_officer(settings):
+    settings.GRIEVANCE_OFFICER_NAME = "Asha Rao"
+    settings.GRIEVANCE_EMAIL = "grievance@civicforest.com"
+    settings.GRIEVANCE_RESPONSE_HOURS = 48
+    body = _body(Client(), "/grievance-redressal/")
+    assert "Asha Rao" in body
+    assert "grievance@civicforest.com" in body
+    assert "48 hours" in body

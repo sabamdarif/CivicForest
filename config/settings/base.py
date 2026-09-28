@@ -364,6 +364,18 @@ DISPATCH_DAYS = env("DISPATCH_DAYS", default="1 to 2")
 DELIVERY_DAYS = env("DELIVERY_DAYS", default="3 to 7")
 RETURN_WINDOW_DAYS = env.int("RETURN_WINDOW_DAYS", default=7)
 
+# ─── Seller identity and grievance officer (Consumer Protection Rules, research §5) ──
+# Legally required on-site: the seller's legal name and address, and a named grievance officer
+# with contact details and a stated response time. Env-driven, and the grievance page renders
+# straight from these, so it is always present and cannot be blanked by a content edit.
+SELLER_LEGAL_NAME = env("SELLER_LEGAL_NAME", default="CivicForest Clothing")
+SELLER_ADDRESS = env("SELLER_ADDRESS", default="")
+GRIEVANCE_OFFICER_NAME = env("GRIEVANCE_OFFICER_NAME", default="")
+GRIEVANCE_EMAIL = env("GRIEVANCE_EMAIL", default=SUPPORT_EMAIL)
+GRIEVANCE_PHONE = env("GRIEVANCE_PHONE", default="")
+GRIEVANCE_ADDRESS = env("GRIEVANCE_ADDRESS", default="")
+GRIEVANCE_RESPONSE_HOURS = env.int("GRIEVANCE_RESPONSE_HOURS", default=48)
+
 # ─── Payments (Razorpay) ─────────────────────────────────────────────────────
 # Raw card data never reaches this app; Razorpay's hosted checkout keeps PCI scope at
 # SAQ-A. The webhook secret is separate from the API secret.

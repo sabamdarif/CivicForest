@@ -433,7 +433,7 @@ Tasks:
 5. [x] Write the twelve content pages. Returns & Exchanges must state both policies side by side, and the
    custom-line policy must reflect Qikink's actual terms (defect-only,
    7 days, unboxing video, no size swap), not a softer promise you cannot fund.
-6. Grievance Redressal page: named officer, email, phone, postal address, response timeline.
+6. [x] Grievance Redressal page: named officer, email, phone, postal address, response timeline.
 7. Contact form with honeypot and rate limit; support inbox in the back-office.
 8. Newsletter: double opt-in, welcome code issued only after confirmation, one-click unsubscribe.
 9. Cookie banner gating GA4; analytics does not load before consent.

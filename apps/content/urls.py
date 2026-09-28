@@ -24,7 +24,10 @@ _PAGES = [
 # The slugs that actually have a route, so the sitemap never lists a page it cannot serve.
 MOUNTED_PAGE_SLUGS = tuple(_PAGES)
 
-urlpatterns = [path("faq/", views.faq, name="faq")]
+urlpatterns = [
+    path("faq/", views.faq, name="faq"),
+    path("grievance-redressal/", views.grievance, name="grievance"),
+]
 urlpatterns += [
     path(f"{slug}/", views.page, {"slug": slug}, name=f"page-{slug}") for slug in _PAGES
 ]
