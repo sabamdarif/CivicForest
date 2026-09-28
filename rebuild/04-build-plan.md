@@ -435,7 +435,7 @@ Tasks:
    7 days, unboxing video, no size swap), not a softer promise you cannot fund.
 6. [x] Grievance Redressal page: named officer, email, phone, postal address, response timeline.
 7. [x] Contact form with honeypot and rate limit; support inbox in the back-office.
-8. Newsletter: double opt-in, welcome code issued only after confirmation, one-click unsubscribe.
+8. [x] Newsletter: double opt-in, welcome code issued only after confirmation, one-click unsubscribe.
 9. Cookie banner gating GA4; analytics does not load before consent.
 10. SEO pass: meta on every page, OG images, canonicals, `sitemap.xml`, `robots.txt`, all JSON-LD.
 11. Compliance sweep against `02-research.md` §5: walk the entire journey logged in and logged out

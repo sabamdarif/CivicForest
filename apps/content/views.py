@@ -7,12 +7,15 @@ by slug (a draft or missing slug is a 404); `faq` renders the active FAQ entries
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.http import Http404
 from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from apps.catalog import services as catalog
 from apps.common import seo
-from apps.common.throttles import ContactThrottle, exceeded
+from apps.common.throttles import ContactThrottle, NewsletterThrottle, exceeded
 
 from . import services
 from .forms import ContactForm
@@ -99,4 +102,72 @@ def grievance(request):
             "current": "Grievance Redressal",
             "structured_data": [seo.breadcrumb_list(request, trail, "Grievance Redressal")],
         },
+    )
+
+
+def _back(request):
+    """Redirect to the page the subscribe form was posted from, guarding against an open redirect
+    to another host. Anything off-site falls back to home."""
+    ref = request.META.get("HTTP_REFERER", "")
+    if ref and url_has_allowed_host_and_scheme(
+        ref, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return redirect(ref)
+    return redirect("home")
+
+
+def _newsletter_result(request, title: str, body: str, status: int = 200):
+    return render(
+        request, "content/newsletter_result.html", {"heading": title, "body": body}, status=status
+    )
+
+
+def newsletter_subscribe(request):
+    """Footer subscribe (J5): a plain POST that mails a confirm link. The reply is the same for a
+    new, known or invalid address, so the endpoint cannot be used to learn who is subscribed, and
+    no code is issued until the address is confirmed."""
+    if request.method != "POST":
+        return redirect("home")
+    if exceeded(request, NewsletterThrottle):
+        messages.error(request, "Too many requests just now. Please wait a minute and retry.")
+        return _back(request)
+    email = (request.POST.get("email") or "").strip()
+    try:
+        validate_email(email)
+        services.subscribe(email, source="footer")
+    except ValidationError:
+        pass
+    messages.success(request, "Almost there: check your inbox to confirm your subscription.")
+    return _back(request)
+
+
+def newsletter_confirm(request, token):
+    """Open the signed confirm link (J5). First confirmation mints and mails the welcome code."""
+    if services.confirm_subscription(token) is None:
+        return _newsletter_result(
+            request,
+            "This link is invalid or has expired",
+            "Confirmation links last seven days. Please subscribe again from any page footer.",
+            status=400,
+        )
+    return _newsletter_result(
+        request,
+        "You're subscribed",
+        "Thanks for confirming. Your 10% welcome code is on its way to your inbox.",
+    )
+
+
+def newsletter_unsubscribe(request, token):
+    """One-click unsubscribe from the signed link in every newsletter (J5), no login."""
+    if services.unsubscribe(token) is None:
+        return _newsletter_result(
+            request,
+            "This link is not recognised",
+            "If you keep receiving newsletters, contact support and we'll remove you.",
+            status=400,
+        )
+    return _newsletter_result(
+        request,
+        "You've been unsubscribed",
+        "You won't receive any more newsletters. You can resubscribe any time.",
     )

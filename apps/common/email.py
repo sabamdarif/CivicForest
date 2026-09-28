@@ -290,6 +290,42 @@ def send_contact_notification(message_id: str) -> str:
     )
 
 
+def send_newsletter_email(subscriber_id: str, kind: str, coupon_code: str = "") -> str:
+    """Newsletter double opt-in mail (J5). ``kind`` is "confirm" (a signed link to opt in) or
+    "welcome" (the one-time code plus a one-click unsubscribe link). Ledgered and swallowed on
+    failure like every send here; resend re-mails the same stored code."""
+    from apps.content import services as content_services
+    from apps.content.models import NewsletterSubscriber
+
+    sub = NewsletterSubscriber.objects.filter(pk=subscriber_id).first()
+    if sub is None or kind not in ("confirm", "welcome"):
+        return "skipped"
+    if kind == "confirm":
+        link = f"https://{settings.SITE_DOMAIN}/newsletter/confirm/{content_services.confirm_token(sub.email)}/"
+        subject = "Confirm your CivicForest newsletter subscription"
+        body = (
+            "Hi,\n\nPlease confirm you'd like CivicForest newsletters by opening this link:\n\n"
+            f"{link}\n\n"
+            "Confirm within seven days to claim 10% off your first order. If you didn't ask for "
+            "this, ignore this email and nothing happens.\n\nThanks,\nThe CivicForest team"
+        )
+    else:  # welcome
+        unsub = f"https://{settings.SITE_DOMAIN}/newsletter/unsubscribe/{content_services.unsubscribe_token(sub.email)}/"
+        subject = "Welcome to CivicForest: your 10% code is inside"
+        body = (
+            f"Hi,\n\nYou're on the list. Here's 10% off your first order:\n\n  {coupon_code}\n\n"
+            "It works once, on your first order. See you soon.\n\n"
+            f"Unsubscribe any time, one click, no login: {unsub}\n\nThanks,\nThe CivicForest team"
+        )
+    return _deliver(
+        sub.email,
+        f"newsletter:{kind}",
+        {"subscriber_id": str(subscriber_id), "kind": kind, "coupon_code": coupon_code},
+        subject,
+        body,
+    )
+
+
 def resend(email_id: str) -> str:
     """Re-render and re-send a ledgered email (M8.13). It re-runs the original sender from the
     stored ids, so the resend reflects live data and writes its own fresh ledger row."""
@@ -309,4 +345,6 @@ def resend(email_id: str) -> str:
         return send_design_review_email(context["design_id"], kind)
     if prefix == "return" and context.get("return_id"):
         return send_return_email(context["return_id"], kind)
+    if prefix == "newsletter" and context.get("subscriber_id"):
+        return send_newsletter_email(context["subscriber_id"], kind, context.get("coupon_code", ""))
     return "skipped"
