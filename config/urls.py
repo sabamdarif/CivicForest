@@ -10,7 +10,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.urls import include, path
 
 from apps.backoffice.cron import run_job as cron_run_job
@@ -52,6 +52,21 @@ def _health_authorized(request) -> bool:
     return bool(expected) and secrets.compare_digest(supplied, expected)
 
 
+def robots_txt(request):
+    """Keep crawlers out of the private and transactional areas and point them at the sitemap.
+    The admin and back-office are deliberately absent: they sit on secret, env-driven paths, and
+    naming them here would publish the one thing their secrecy depends on."""
+    lines = [
+        "User-agent: *",
+        "Disallow: /account/",
+        "Disallow: /api/",
+        "Disallow: /cart/",
+        "Disallow: /checkout/",
+        f"Sitemap: {request.build_absolute_uri('/sitemap.xml')}",
+    ]
+    return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
+
+
 urlpatterns = [
     path("", home, name="home"),
     path("", include("apps.catalog.urls")),
@@ -69,6 +84,7 @@ urlpatterns = [
     path("healthz/", healthz, name="healthz"),
     path("internal/cron/<str:name>/", cron_run_job, name="cron_run"),
     path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
+    path("robots.txt", robots_txt, name="robots"),
     # Staff-only, and the regression surface for every stylesheet.
     path("styleguide/", styleguide, name="styleguide"),
     path(settings.BACKOFFICE_URL, include("apps.backoffice.urls")),

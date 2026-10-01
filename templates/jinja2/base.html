@@ -25,6 +25,19 @@
     {# Canonical drops the query string on purpose: one filter combination is not a page worth
        indexing separately from the grid it filters (L4). #}
     <link rel="canonical" href="{{ request.build_absolute_uri(request.path) }}">
+    {# Open Graph and Twitter, so a shared link previews well everywhere. Title and description
+       default to the page's own blocks; a page with its own hero (product, collection) overrides
+       og_image. Twitter mirrors the OG values rather than repeating them (L4). #}
+    <meta property="og:site_name" content="CivicForest">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.description() }}{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri(request.path) }}">
+    <meta property="og:image" content="{% block og_image %}{{ request.build_absolute_uri(static('img/og-default.png')) }}{% endblock %}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ self.og_title() }}">
+    <meta name="twitter:description" content="{{ self.og_description() }}">
+    <meta name="twitter:image" content="{{ self.og_image() }}">
     {%- for node in structured_data|default([]) %}
       <script type="application/ld+json">{{ node|json_ld }}</script>
     {%- endfor %}

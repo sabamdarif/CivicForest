@@ -9,6 +9,9 @@
 
 {% block title %}{{ product.meta_title or product.name ~ " | CivicForest Clothing" }}{% endblock %}
 {% block description %}{{ product.meta_description or product.description|truncate(160) }}{% endblock %}
+{# A shared product link should preview with the product's own photo, not the brand card. #}
+{% block og_type %}product{% endblock %}
+{% block og_image %}{% if panel.images and panel.images[0].image %}{{ request.build_absolute_uri(panel.images[0].image.url) }}{% else %}{{ super() }}{% endif %}{% endblock %}
 {% block page_css %}<link rel="stylesheet" href="{{ static('css/product.css') }}">{% endblock %}
 
 {% block content %}
