@@ -452,9 +452,9 @@ and a review cannot be posted by someone who did not buy the product.
 
 Tasks:
 
-1. [ ] Test suite to target: unit, integration, and the three Playwright flows green in CI.
-2. [ ] axe pass on home, shop, product, cart, checkout, login, account, customise, contact.
-3. [ ] Performance: Lighthouse on the five heaviest pages, CSS and JS size budgets enforced in CI, image
+1. [x] Test suite to target: unit, integration, and the three Playwright flows green in CI.
+2. [x] axe pass on home, shop, product, cart, checkout, login, account, customise, contact.
+3. [x] Performance: Lighthouse on the five heaviest pages, CSS and JS size budgets enforced in CI, image
    dimensions everywhere, fonts preloaded, LCP under 2.5 s.
 4. [ ] Load check: the search-suggest and shop-list endpoints under sustained concurrency, p95 under
    500 ms.

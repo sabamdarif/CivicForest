@@ -188,7 +188,19 @@ uv run pip-audit --strict        # known advisories in the locked dependency set
 
 Tests run on `config.settings.test`, which is SQLite unless `DATABASE_URL` is set. CI sets
 it to a Postgres service so PG-specific behaviour is exercised, and also runs `ruff`,
-`pip-audit` and CodeQL.
+`pip-audit`, `check --deploy`, a gitleaks secret scan, the Playwright flows, the axe sweep,
+a Lighthouse report and CodeQL.
+
+End-to-end and accessibility (Playwright is the one Node dev dependency):
+
+```bash
+npm ci && npx playwright install chromium   # once
+npm run e2e            # signup/login, checkout via a signed webhook, custom design upload, axe
+npm run lighthouse     # Lighthouse report on the five heaviest pages (report, not a gate)
+```
+
+`e2e/serve.sh` boots Django on SQLite with `RAZORPAY_FAKE_MODE`, so the suite needs no Postgres
+and no real keys; it signs its own webhook exactly as the pytest suite does.
 
 Load check (not in CI, run against a local or preview server):
 

@@ -90,3 +90,48 @@ jobs:
             | tar -xz gitleaks
           sudo mv gitleaks /usr/local/bin/
       - run: gitleaks detect --source=. --redact --no-banner
+
+  e2e:
+    runs-on: ubuntu-latest
+    # The three Playwright flows (M10.1) and the axe sweep of nine pages (M10.2). e2e/serve.sh
+    # boots Django on sqlite with RAZORPAY_FAKE_MODE, so no Postgres service and no real keys.
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: uv sync --dev
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+        env:
+          CI: "true"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    # Performance report only, never a gate (M10.3): LHCI assertions are warn level, so a slow
+    # shared runner cannot fail the build. The report is kept as an artifact.
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: uv sync --dev
+      - run: npm ci
+      - run: npx lhci autorun
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 7

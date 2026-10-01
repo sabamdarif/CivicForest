@@ -22,6 +22,11 @@ media/
 
 # Node (Playwright is the only Node dependency)
 node_modules/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+.lighthouseci/
 
 # Databases
 *.sqlite3
@@ -34,6 +39,7 @@ Thumbs.db
 *.log
 /.agents/skills
 /designs
+/designfiles
 /images
 /skills-lock.json
 

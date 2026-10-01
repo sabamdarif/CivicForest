@@ -1180,17 +1180,14 @@ select.field__control {
   margin: 0;
 }
 
-.trust-strip__item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-}
-
 .trust-strip__icon {
   color: var(--gold-deep);
 }
 
 .trust-strip__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
   font-size: var(--step--1);
   font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-wide);

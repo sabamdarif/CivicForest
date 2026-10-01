@@ -14,11 +14,10 @@
     <dl class="trust-strip__list grid grid--auto" style="--col-min: 13rem">
       {%- for name, title, detail in promises %}
         <div class="trust-strip__item">
-          <span class="trust-strip__icon">{{ icon(name, 32) }}</span>
-          <div>
-            <dt class="trust-strip__title">{{ title }}</dt>
-            <dd class="trust-strip__detail">{{ detail }}</dd>
-          </div>
+          <dt class="trust-strip__title">
+            <span class="trust-strip__icon">{{ icon(name, 32) }}</span>{{ title }}
+          </dt>
+          <dd class="trust-strip__detail">{{ detail }}</dd>
         </div>
       {%- endfor %}
     </dl>

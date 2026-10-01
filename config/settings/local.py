@@ -18,3 +18,8 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 TEMPLATES[0]["OPTIONS"]["undefined"] = StrictUndefined
 
 INTERNAL_IPS = ["127.0.0.1"]
+
+# Off by default; the Playwright e2e server turns it on so checkout reaches fulfilment without
+# a Razorpay account (it signs its own webhook, as the pytest suite does). Never set in
+# production: production.py does not read it.
+RAZORPAY_FAKE_MODE = env.bool("RAZORPAY_FAKE_MODE", default=False)
