@@ -50,3 +50,43 @@ jobs:
       - run: uv sync --dev
       # Fail the build on a known-vulnerable Python dependency.
       - run: uv run pip-audit --strict --desc
+
+  deploy-check:
+    runs-on: ubuntu-latest
+    # Django's own deployment checklist against the production settings, with dummy secrets:
+    # it reads settings, never connects. Any WARNING fails the build (M10.5).
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DJANGO_SECRET_KEY: ci-deploy-check-dummy-key-not-a-real-secret
+      DATABASE_URL: postgres://u:p@localhost:5432/db
+      DJANGO_ALLOWED_HOSTS: example.com
+      CSRF_TRUSTED_ORIGINS: https://example.com
+      DJANGO_ADMIN_URL: ci-admin/
+      S3_ACCESS_KEY_ID: dummy
+      S3_SECRET_ACCESS_KEY: dummy
+      S3_BUCKET_NAME: media
+      S3_PRIVATE_BUCKET_NAME: designs
+      S3_ENDPOINT_URL: https://account.r2.cloudflarestorage.com
+      S3_REGION: auto
+      R2_PUBLIC_BASE_URL: https://cdn.example.com
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --dev
+      - run: uv run python manage.py check --deploy --fail-level WARNING
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # full history, so a secret in any past commit is caught
+      # The gitleaks binary rather than the action: the action gates org repos behind a
+      # licence key, the binary does not. Git mode scans tracked history only, so the
+      # gitignored vendored django-allauth is never read.
+      - name: Install gitleaks
+        run: |
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          sudo mv gitleaks /usr/local/bin/
+      - run: gitleaks detect --source=. --redact --no-banner

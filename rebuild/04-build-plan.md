@@ -452,24 +452,24 @@ and a review cannot be posted by someone who did not buy the product.
 
 Tasks:
 
-1. Test suite to target: unit, integration, and the three Playwright flows green in CI.
-2. axe pass on home, shop, product, cart, checkout, login, account, customise, contact.
-3. Performance: Lighthouse on the five heaviest pages, CSS and JS size budgets enforced in CI, image
+1. [ ] Test suite to target: unit, integration, and the three Playwright flows green in CI.
+2. [ ] axe pass on home, shop, product, cart, checkout, login, account, customise, contact.
+3. [ ] Performance: Lighthouse on the five heaviest pages, CSS and JS size budgets enforced in CI, image
    dimensions everywhere, fonts preloaded, LCP under 2.5 s.
-4. Load check: the search-suggest and shop-list endpoints under sustained concurrency, p95 under
+4. [ ] Load check: the search-suggest and shop-list endpoints under sustained concurrency, p95 under
    500 ms.
-5. Security review: `manage.py check --deploy` clean, CSP without `unsafe-inline`, secret scan, a
+5. [x] Security review: `manage.py check --deploy` clean, CSP without `unsafe-inline`, secret scan, a
    deliberate attempt to tamper with a total and to replay a webhook.
-6. Restore rehearsal: take a `pg_dump`, restore it to a scratch Neon branch, confirm the site runs.
-7. Switch Qikink from sandbox to live and place one real low-value custom order end to end.
-8. Switch Razorpay to live keys, register the production webhook, place one real low-value order,
+6. [ ] Restore rehearsal: take a `pg_dump`, restore it to a scratch Neon branch, confirm the site runs.
+7. [ ] Switch Qikink from sandbox to live and place one real low-value custom order end to end.
+8. [ ] Switch Razorpay to live keys, register the production webhook, place one real low-value order,
    refund it.
-9. SPF, DKIM and DMARC on the sending domain; send one of each template to Gmail, Outlook and a
+9. [ ] SPF, DKIM and DMARC on the sending domain; send one of each template to Gmail, Outlook and a
    corporate mailbox and check placement.
-10. Upgrade to Vercel Pro, move the crons from daily to their real cadence, confirm each fires.
-11. Seed the real catalogue; delete all demo data; verify no seeded product survives.
-12. DNS cutover: apex plus `www` redirect, HSTS on, certificate confirmed.
-13. Post-launch watch: Sentry, the jobs panel and the failed-payment tile checked daily for the first
+10. [ ] Upgrade to Vercel Pro, move the crons from daily to their real cadence, confirm each fires.
+11. [ ] Seed the real catalogue; delete all demo data; verify no seeded product survives.
+12. [ ] DNS cutover: apex plus `www` redirect, HSTS on, certificate confirmed.
+13. [ ] Post-launch watch: Sentry, the jobs panel and the failed-payment tile checked daily for the first
     week.
 
 **Done when:** a real customer can buy a real product and a real custom print, both arrive, and every
