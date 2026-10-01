@@ -438,7 +438,7 @@ Tasks:
 8. [x] Newsletter: double opt-in, welcome code issued only after confirmation, one-click unsubscribe.
 9. [x] Cookie banner gating GA4; analytics does not load before consent.
 10. [x] SEO pass: meta on every page, OG images, canonicals, `sitemap.xml`, `robots.txt`, all JSON-LD.
-11. Compliance sweep against `02-research.md` §5: walk the entire journey logged in and logged out
+11. [x] Compliance sweep against `02-research.md` §5: walk the entire journey logged in and logged out
     looking for pre-ticked boxes, charges that appear late, urgency claims that are not true, and
     decline paths that are harder than accept paths.
 12. Branded 404, 500 and maintenance pages.

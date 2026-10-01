@@ -437,18 +437,18 @@ verifiable by reading code rather than by assertion.
 
 | Requirement | Where it lives |
 |---|---|
-| Total price with full breakdown before commitment | `price_cart` returns subtotal, discount, shipping, tax and total; the cart and checkout summaries render every line; nothing is added after the terms checkbox |
+| Total price with full breakdown before commitment | `price_cart` returns subtotal, discount, shipping and total; the cart and checkout summaries render every line; nothing is added after the terms checkbox |
 | Country of origin per product | `Product.country_of_origin`, required in the admin form, rendered in the product accordions and on the invoice |
 | Return / refund / exchange policy | `/returns-exchanges/` plus a per-line policy note on the product page, differing for stock and custom |
 | Delivery timelines | Pincode estimate on the product page, SLA on the shipping page, per-shipment estimate on the order |
 | Seller identity and contact | Footer, contact page, invoice header |
 | Named grievance officer with timelines | `/grievance-redressal/`, linked in the footer |
 | No pre-ticked consent | Newsletter, marketing opt-in and terms all default to unticked; a test asserts this |
-| No drip pricing | Shipping and tax are shown in the cart before login, let alone before payment |
+| No drip pricing | Shipping is shown in the cart before login, let alone before payment; prices carry no tax (GST dropped, Part 5 override) |
 | No false urgency | Low-stock messaging is derived from `stock_quantity` and `low_stock_threshold`; there is no countdown component in the codebase at all |
 | Equal-prominence decline | Shared button macro; secondary variant is the same size, not greyed into invisibility |
 | One-click unsubscribe | Signed token link in every marketing email; no login required |
-| GST invoice fields | `print/invoice.html` renders HSN, description, quantity with UQC, taxable value, rate, tax amount, place of supply and seller identity from snapshotted `OrderItem` fields |
+| GST invoice fields | Not applicable: the store is not GST-registered, so no tax invoice is issued (`01-decisions.md` Part 5, 2026-09-23 override; risk accepted there) |
 | DPDP consent and rights | `User.marketing_opt_in`, `/privacy/`, `/account/data/` for export and deletion requests |
 
 ## 14. Observability
