@@ -1295,3 +1295,24 @@ select.field__control {
   display: flex;
   gap: var(--space-3);
 }
+
+/* Error pages (M9.12): the branded 404 that renders inside the shell. */
+.error-page {
+  padding-block: var(--space-7);
+  text-align: center;
+}
+
+.error-page__code {
+  color: var(--gold-deep);
+  font-size: var(--step-5);
+  font-weight: var(--weight-bold);
+  margin: 0;
+}
+
+.error-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-block-start: var(--space-5);
+}

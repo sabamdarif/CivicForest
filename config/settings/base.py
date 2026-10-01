@@ -83,6 +83,8 @@ MIDDLEWARE = [
     "apps.common.middleware.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    # After WhiteNoise so static (the error page's own CSS) still serves during maintenance.
+    "apps.common.middleware.MaintenanceMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -153,6 +155,10 @@ SITE_DOMAIN = env("SITE_DOMAIN", default="civicforest.com")
 # Public GA4 measurement id. Blank by default: analytics only exists once this is set, and even
 # then gtag.js is loaded by the browser only after the visitor accepts the cookie banner (L5).
 GOOGLE_ANALYTICS_ID = env("GOOGLE_ANALYTICS_ID", default="")
+
+# Flip to true to serve a 503 maintenance page from the edge of the request path. healthz, the
+# admin and the back-office stay reachable so ops can work and monitors still poll (M9.12).
+MAINTENANCE_MODE = env.bool("MAINTENANCE_MODE", default=False)
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",

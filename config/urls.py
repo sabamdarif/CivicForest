@@ -16,7 +16,11 @@ from django.urls import include, path
 from apps.backoffice.cron import run_job as cron_run_job
 from apps.backoffice.views import styleguide
 from apps.common.sitemaps import SITEMAPS
+from apps.common.views import not_found, server_error
 from apps.content.views import home
+
+handler404 = not_found
+handler500 = server_error
 
 
 def healthz(request):

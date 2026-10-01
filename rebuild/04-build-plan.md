@@ -441,7 +441,7 @@ Tasks:
 11. [x] Compliance sweep against `02-research.md` §5: walk the entire journey logged in and logged out
     looking for pre-ticked boxes, charges that appear late, urgency claims that are not true, and
     decline paths that are harder than accept paths.
-12. Branded 404, 500 and maintenance pages.
+12. [x] Branded 404, 500 and maintenance pages.
 
 **Done when:** the compliance sweep is clean, every policy page matches what the system actually does,
 and a review cannot be posted by someone who did not buy the product.

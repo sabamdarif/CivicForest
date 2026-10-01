@@ -64,6 +64,25 @@ class RequestIDLogFilter(logging.Filter):
         return True
 
 
+class MaintenanceMiddleware:
+    """Serve a branded 503 for everyone while ``MAINTENANCE_MODE`` is on (M9.12).
+
+    healthz, the admin and the back-office are exempt, so an uptime monitor still gets its 200
+    and staff can keep working through the outage. The page is rendered without a database read,
+    because a dead database is a reason to be in maintenance in the first place."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.exempt = ("/healthz/", "/" + settings.ADMIN_URL, "/" + settings.BACKOFFICE_URL)
+
+    def __call__(self, request):
+        if settings.MAINTENANCE_MODE and not request.path.startswith(self.exempt):
+            from django.shortcuts import render
+
+            return render(request, "errors/maintenance.html", status=503)
+        return self.get_response(request)
+
+
 class StaffAdminMiddleware:
     """Harden the admin path: staff must have confirmed TOTP MFA, and staff sessions
     expire faster than customer sessions.
