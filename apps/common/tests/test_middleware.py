@@ -90,6 +90,32 @@ def test_invalid_inbound_request_id_is_replaced(request_id):
     assert resp["X-Request-ID"] != request_id
 
 
+# ─── Content-Security-Policy ─────────────────────────────────────────────────
+def _csp():
+    return Client().get("/healthz/")["Content-Security-Policy"]
+
+
+def test_csp_header_is_set():
+    policy = _csp()
+    assert "default-src 'self'" in policy
+    assert "object-src 'none'" in policy
+    assert "frame-ancestors 'none'" in policy
+
+
+def test_script_src_forbids_inline():
+    # The whole point of M10.5: no script-src 'unsafe-inline', so an injected inline <script>
+    # cannot run. Every script this site serves is an external file.
+    directive = next(d for d in _csp().split(";") if d.strip().startswith("script-src"))
+    assert "'unsafe-inline'" not in directive
+    assert "'self'" in directive
+
+
+def test_style_src_keeps_inline():
+    # Documented tradeoff: dynamic style= attributes are not an XSS vector worth refactoring out.
+    directive = next(d for d in _csp().split(";") if d.strip().startswith("style-src"))
+    assert "'unsafe-inline'" in directive
+
+
 # ─── Staff admin gate ────────────────────────────────────────────────────────
 # Driven through the real login form, never force_login: the gate reads allauth's authentication
 # records, which force_login never writes, so it would treat every session as un-authenticated.

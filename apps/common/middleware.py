@@ -1,9 +1,11 @@
-"""Request/correlation-ID plumbing and staff admin hardening.
+"""Request/correlation-ID plumbing, staff admin hardening and the response CSP.
 
 One request ID is generated (or taken from an inbound ``X-Request-ID``) per request,
 stashed on a contextvar so every log record carries it, and echoed back on the response,
 so a single failed checkout can be traced end to end. ``StaffAdminMiddleware`` gates the
 admin path on confirmed TOTP MFA and shortens staff sessions.
+``ContentSecurityPolicyMiddleware`` sets one strict policy whose ``script-src`` forbids
+inline script (every script this site serves is an external file).
 """
 
 from __future__ import annotations
@@ -12,6 +14,7 @@ import contextvars
 import logging
 import re
 import uuid
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.http import HttpResponseNotFound
@@ -123,3 +126,64 @@ class StaffAdminMiddleware:
         if request.user.is_superuser:
             return redirect(settings.LOGIN_URL)
         return HttpResponseNotFound()
+
+
+def _origin(url: str) -> str | None:
+    """The ``scheme://host`` of a configured URL, or None when it is unset. R2 and the
+    gateway come from env, so the policy allowlists their real origin without hardcoding it."""
+    if not url:
+        return None
+    parts = urlsplit(url)
+    return f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else None
+
+
+class ContentSecurityPolicyMiddleware:
+    """Set the response CSP (M10.5). ``script-src`` has no ``'unsafe-inline'``: every script
+    the site serves is an external file, so inline injection cannot execute. ``style-src``
+    keeps ``'unsafe-inline'`` because dynamic ``style=`` attributes (swatch colours, meters)
+    are not an XSS vector worth a template-wide refactor. GA hosts are added only when
+    analytics is configured; the gateway and R2 origins come from settings."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.policy = self._build()
+
+    @staticmethod
+    def _build() -> str:
+        gateway = "https://checkout.razorpay.com"
+        r2_public = _origin(getattr(settings, "R2_PUBLIC_BASE_URL", ""))
+        r2_endpoint = _origin(getattr(settings, "S3_ENDPOINT_URL", ""))
+        ga = ["https://www.googletagmanager.com", "https://www.google-analytics.com"]
+        analytics_on = bool(getattr(settings, "GOOGLE_ANALYTICS_ID", ""))
+
+        script = ["'self'", gateway]
+        img = ["'self'", "data:"]
+        connect = ["'self'"]
+        if analytics_on:
+            script.append("https://www.googletagmanager.com")
+            img += ga
+            connect += ga
+        if r2_public:
+            img.append(r2_public)
+        if r2_endpoint:
+            connect.append(r2_endpoint)
+
+        directives = {
+            "default-src": ["'self'"],
+            "script-src": script,
+            "style-src": ["'self'", "'unsafe-inline'"],
+            "img-src": img,
+            "font-src": ["'self'"],
+            "connect-src": connect,
+            "frame-src": [gateway],
+            "form-action": ["'self'"],
+            "base-uri": ["'self'"],
+            "object-src": ["'none'"],
+            "frame-ancestors": ["'none'"],
+        }
+        return "; ".join(f"{name} {' '.join(values)}" for name, values in directives.items())
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        response.setdefault("Content-Security-Policy", self.policy)
+        return response
