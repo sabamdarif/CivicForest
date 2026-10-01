@@ -190,6 +190,15 @@ Tests run on `config.settings.test`, which is SQLite unless `DATABASE_URL` is se
 it to a Postgres service so PG-specific behaviour is exercised, and also runs `ruff`,
 `pip-audit` and CodeQL.
 
+Load check (not in CI, run against a local or preview server):
+
+```bash
+uv run python scripts/loadtest.py                 # search-suggest and shop-list, p95 target 500 ms
+uv run python scripts/loadtest.py --concurrency 50 --requests 1000
+```
+
+It exits non-zero if either endpoint's p95 exceeds the threshold, so a manual run can gate.
+
 ---
 
 ## 7. Project layout
