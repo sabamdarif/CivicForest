@@ -51,6 +51,16 @@ def test_cron_runs_job_with_right_bearer(client, settings):
     assert run.status == JobRun.Status.DONE
 
 
+def test_cron_runs_job_over_get_too(client, settings):
+    # Vercel Cron invokes with GET, so the endpoint must answer it, still bearer-gated.
+    settings.CRON_SECRET = "s3cret"
+    response = client.get(
+        reverse("cron_run", kwargs={"name": "expire_carts"}), HTTP_AUTHORIZATION="Bearer s3cret"
+    )
+    assert response.status_code == 200
+    assert JobRun.objects.get().name == "expire_carts"
+
+
 def test_cron_unknown_job_is_404(client, settings):
     settings.CRON_SECRET = "s3cret"
     response = client.post(

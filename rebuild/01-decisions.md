@@ -410,3 +410,20 @@ so it renders straight from env settings (`GRIEVANCE_OFFICER_NAME`, `GRIEVANCE_E
 content pages that are policy copy are `Page` rows (L2, editable without a redeploy); grievance is
 the deliberate exception because a missing grievance officer is a compliance failure, not a typo.
 
+**2026-10-01, CSP shipped strict on script, permissive on style (M10.5, architecture §XSS row).**
+`script-src` carries no `'unsafe-inline'` and no nonce: every script the site serves is an external
+module, so the one remaining inline script (the admin dashboard chart) moved to a static file. The
+policy is one header set by `common.ContentSecurityPolicyMiddleware`, built from settings so the R2
+and gateway origins are not hardcoded. `style-src` keeps `'unsafe-inline'`: dynamic `style=`
+attributes (swatch colours, meters) are spread across templates and are not an XSS vector worth a
+template-wide refactor, so the "without unsafe-inline" rule is read as the script control it exists
+to be.
+
+**2026-10-01, cron endpoints answer GET as well as POST (M10.10, revises §7 deploy note).** Vercel
+Cron issues an HTTP GET and injects `Authorization: Bearer $CRON_SECRET` itself, so `run_job` accepts
+both methods behind the same bearer gate rather than POST only. `vercel.json` ships only daily cron
+entries, because Hobby rejects a sub-daily schedule at build time; the real Pro cadence (sanitise and
+reindex and poll on their minutes) is applied at the Pro upgrade, with the §7 on-demand piggyback
+covering the gap until then. The committed cron paths are the seven jobs that actually have endpoints
+(`CRON_JOBS`), not the aspirational §7 names in the architecture draft.
+

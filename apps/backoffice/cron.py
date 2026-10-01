@@ -17,7 +17,7 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods
 
 from apps.cart import services as cart_services
 from apps.common.models import JobRun
@@ -68,9 +68,13 @@ def _authorized(request) -> bool:
 
 
 @csrf_exempt
-@require_POST
+@require_http_methods(["GET", "POST"])
 def run_job(request, name):
-    """The external scheduler's entry point: `POST /internal/cron/<name>/` with a Bearer token."""
+    """The external scheduler's entry point: `/internal/cron/<name>/` with a Bearer token.
+
+    GET as well as POST: Vercel Cron issues a GET and injects `Authorization: Bearer
+    $CRON_SECRET` itself, so the bearer gate still guards a GET no anonymous caller can pass.
+    """
     if not _authorized(request):
         return HttpResponse(status=401)
     run = run_named_job(name)
