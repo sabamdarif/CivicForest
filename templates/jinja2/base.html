@@ -50,6 +50,8 @@
        the server-rendered cart on first open. #}
     {% with priced = none %}{% include "cart/_drawer.html" %}{% endwith %}
 
+    {% include "_partials/cookie_banner.html" %}
+
     {# Every page has the header, so these are the only modules the shell loads: the nav, the
        search overlay (which pulls in modal.js for the <dialog> wiring) and the cart drawer,
        which the header opens from every page. The rest are loaded by the pages that use them,

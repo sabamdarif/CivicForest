@@ -95,6 +95,7 @@ documented template and lists every variable with a comment. `.env` is git-ignor
 | Email | `RESEND_API_KEY` `DEFAULT_FROM_EMAIL` `SUPPORT_EMAIL`, or any `EMAIL_HOST` SMTP provider |
 | Compliance | `SELLER_LEGAL_NAME` `SELLER_ADDRESS` `GRIEVANCE_OFFICER_NAME` `GRIEVANCE_EMAIL` `GRIEVANCE_PHONE` `GRIEVANCE_ADDRESS` `GRIEVANCE_RESPONSE_HOURS` |
 | Social login | `GOOGLE_OAUTH_CLIENT_ID` `GOOGLE_OAUTH_CLIENT_SECRET` |
+| Analytics | `GOOGLE_ANALYTICS_ID` (public GA4 id; blank disables it; gtag.js loads only after cookie consent) |
 | Observability | `HEALTH_CHECK_TOKEN` `SENTRY_DSN` `SENTRY_ENVIRONMENT` `SENTRY_TRACES_SAMPLE_RATE` |
 
 Four settings modules, selected by `DJANGO_SETTINGS_MODULE`:

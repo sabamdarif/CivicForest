@@ -77,6 +77,15 @@ def cart_count(request):
     return item_count(request)
 
 
+def google_analytics_id():
+    """The public GA4 measurement id, or "" when analytics is off. The cookie banner reads it to
+    decide whether to render; gtag.js is never emitted server-side, only injected by the browser
+    after the visitor accepts (L5)."""
+    from django.conf import settings
+
+    return settings.GOOGLE_ANALYTICS_ID
+
+
 def environment(**options):
     # /tmp is the only writable path on Vercel and it survives inside a warm instance,
     # so compiled templates are cached there instead of recompiled per request.
@@ -91,6 +100,7 @@ def environment(**options):
             "nav_categories": nav_categories,
             "search_max_query": search_max_query,
             "cart_count": cart_count,
+            "google_analytics_id": google_analytics_id,
             # Jinja2 has no context processors, so a template asks for the request's messages
             # by hand. A form that posts and redirects is how feedback reaches a page with no
             # JavaScript (P6), so every such page renders these.

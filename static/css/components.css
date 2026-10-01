@@ -1266,3 +1266,32 @@ select.field__control {
 .on-dark .divider {
   color: var(--gold);
 }
+
+/* Cookie consent banner (M9.9): a bottom bar above everything, revealed by cookie-consent.js only
+   when no choice is stored. Accept and Decline share one weight, so neither path is easier. */
+.cookie-banner {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4) var(--space-5);
+  background: var(--paper);
+  border-block-start: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-2);
+}
+
+.cookie-banner__text {
+  margin: 0;
+  max-width: 60ch;
+  font-size: var(--step--1);
+}
+
+.cookie-banner__actions {
+  display: flex;
+  gap: var(--space-3);
+}

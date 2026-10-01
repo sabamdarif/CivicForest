@@ -150,6 +150,10 @@ SITE_ID = 1
 # advertising example.com. A migration in apps/common seeds it (A16).
 SITE_DOMAIN = env("SITE_DOMAIN", default="civicforest.com")
 
+# Public GA4 measurement id. Blank by default: analytics only exists once this is set, and even
+# then gtag.js is loaded by the browser only after the visitor accepts the cookie banner (L5).
+GOOGLE_ANALYTICS_ID = env("GOOGLE_ANALYTICS_ID", default="")
+
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
