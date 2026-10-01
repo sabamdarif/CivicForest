@@ -390,7 +390,7 @@ Tasks:
    `StockAdjustment`, low-stock list with thresholds.
 9. [x] Coupons: CRUD plus a usage report per coupon and per customer.
 10. [x] Customers: list, detail with orders and lifetime value, block, CSV export.
-11. [ ] Returns queue: approve, reject, mark received, trigger refund. **Deferred to M9 task 3**, which
+11. [x] Returns queue: approve, reject, mark received, trigger refund. **Deferred to M9 task 3**, which
     owns the `ReturnRequest` model and the customer-facing flow; the refund action lives on M8 order
     detail (task 5). See the override in `01-decisions.md` Part 5.
 12. [x] Content: announcement bar, homepage sections, category and collection imagery. Static pages
