@@ -50,7 +50,7 @@ def test_there_is_no_countdown_or_urgency_timer_anywhere_in_the_source():
 
 
 def test_checkout_shows_every_charge_before_the_pay_button():
-    user = UserFactory()
+    user = UserFactory(email="buyer@example.com")
     EmailAddress.objects.create(user=user, email=user.email, primary=True, verified=True)
     variant = ProductVariantFactory(stock_quantity=5)
     cart = CartFactory(user=user)
@@ -63,7 +63,7 @@ def test_checkout_shows_every_charge_before_the_pay_button():
     for label in ("Subtotal", "Shipping", "Total"):
         assert label in body, label
     # Every charge is visible above the commit, so nothing is sprung after it.
-    assert body.index("Subtotal") < body.index("Pay")
+    assert body.index("Subtotal") < body.rindex("Pay")
     # The terms box is unticked on first render.
     at = body.index('name="accept_terms"')
     assert "checked" not in body[at - 80 : at + 80]

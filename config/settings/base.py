@@ -331,7 +331,7 @@ if EMAIL_HOST:
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="CivicForest <no-reply@civicforest.com>")
-SUPPORT_EMAIL = env("SUPPORT_EMAIL", default=DEFAULT_FROM_EMAIL)
+SUPPORT_EMAIL = env("SUPPORT_EMAIL", default=DEFAULT_FROM_EMAIL) or DEFAULT_FROM_EMAIL
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -384,7 +384,7 @@ RETURN_WINDOW_DAYS = env.int("RETURN_WINDOW_DAYS", default=7)
 SELLER_LEGAL_NAME = env("SELLER_LEGAL_NAME", default="CivicForest Clothing")
 SELLER_ADDRESS = env("SELLER_ADDRESS", default="")
 GRIEVANCE_OFFICER_NAME = env("GRIEVANCE_OFFICER_NAME", default="")
-GRIEVANCE_EMAIL = env("GRIEVANCE_EMAIL", default=SUPPORT_EMAIL)
+GRIEVANCE_EMAIL = env("GRIEVANCE_EMAIL", default=SUPPORT_EMAIL) or SUPPORT_EMAIL
 GRIEVANCE_PHONE = env("GRIEVANCE_PHONE", default="")
 GRIEVANCE_ADDRESS = env("GRIEVANCE_ADDRESS", default="")
 GRIEVANCE_RESPONSE_HOURS = env.int("GRIEVANCE_RESPONSE_HOURS", default=48)

@@ -103,3 +103,6 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    designs_opts = settings.STORAGES.get("designs", {}).get("OPTIONS", {})
+    if "base_url" in designs_opts and "location" in designs_opts:
+        urlpatterns += static(designs_opts["base_url"], document_root=designs_opts["location"])
