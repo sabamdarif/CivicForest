@@ -76,8 +76,8 @@
         <legend>Colour</legend>
         <div class="designer__swatches">
           {% for name, hex in colours %}
-          <label class="swatch">
-            <input type="radio" name="color" value="{{ name }}" {% if loop.first %}checked{% endif %}>
+          <label class="designer__swatch">
+            <input class="sr-only" type="radio" name="color" value="{{ name }}" {% if loop.first %}checked{% endif %}>
             <span class="swatch__chip" style="background:{{ hex or '#ccc' }}" title="{{ name }}"></span>
             <span class="sr-only">{{ name }}</span>
           </label>
@@ -90,7 +90,7 @@
         <div class="designer__sizes">
           {% for size in sizes %}
           <label class="size-btn">
-            <input type="radio" name="size" value="{{ size }}" {% if loop.first %}checked{% endif %}>
+            <input class="sr-only" type="radio" name="size" value="{{ size }}" {% if loop.first %}checked{% endif %}>
             <span>{{ size }}</span>
           </label>
           {% endfor %}

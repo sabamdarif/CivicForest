@@ -103,36 +103,119 @@
   gap: var(--space-4, 1rem);
 }
 
+.designer__controls fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.designer__controls legend {
+  display: block;
+  font-size: var(--step--1, 0.875rem);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--ink, #0d0d0d);
+  margin-bottom: var(--space-2, 0.5rem);
+  padding: 0;
+}
+
 .designer__swatches,
 .designer__sizes {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2, 0.5rem);
+  align-items: center;
+}
+
+.designer__swatches input[type="radio"],
+.designer__sizes input[type="radio"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.designer__swatch,
+.designer__swatches .swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: var(--radius-pill, 999px);
+  cursor: pointer;
+  background: none;
+  transition: border-color var(--motion, 150ms) var(--ease, ease);
+}
+
+.designer__swatch:hover,
+.designer__swatches .swatch:hover {
+  border-color: var(--line-strong, #8c8578);
+}
+
+.designer__swatch:has(:focus-visible),
+.designer__swatches .swatch:has(:focus-visible) {
+  outline: var(--focus-width, 2px) solid var(--gold-deep, #8a6a14);
+  outline-offset: var(--focus-offset, 2px);
+}
+
+.designer__swatch:has(:checked),
+.designer__swatches .swatch:has(:checked) {
+  border-color: var(--ink, #0d0d0d);
 }
 
 .swatch__chip {
-  display: inline-block;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  border: 1px solid var(--color-border, #ddd);
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--line-strong, #8c8578);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 20%);
 }
-.swatch input:checked + .swatch__chip {
-  outline: 2px solid var(--color-accent, #c9a227);
-  outline-offset: 2px;
+
+.size-btn {
+  display: inline-flex;
+  cursor: pointer;
 }
 
 .size-btn span {
-  display: inline-block;
-  min-width: 2.5rem;
-  text-align: center;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: var(--radius-sm, 4px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  min-height: var(--tap-target, 44px);
+  padding-inline: var(--space-3, 0.75rem);
+  border: 1px solid var(--line-strong, #8c8578);
+  border-radius: var(--radius, 4px);
+  background: var(--paper, #fff);
+  color: var(--ink, #0d0d0d);
+  font-size: var(--step--1, 0.875rem);
+  font-weight: var(--weight-medium, 500);
+  transition: all var(--motion, 150ms) var(--ease, ease);
 }
+
+.size-btn:hover span {
+  border-color: var(--ink, #0d0d0d);
+}
+
+.size-btn:has(:checked) span,
 .size-btn input:checked + span {
-  border-color: var(--color-accent, #c9a227);
-  font-weight: 700;
+  border-color: var(--ink, #0d0d0d);
+  background: var(--ink, #0d0d0d);
+  color: var(--cream, #f7f4ef);
+  font-weight: var(--weight-semibold, 600);
+}
+
+.size-btn:has(:focus-visible) span,
+.size-btn input:focus-visible + span {
+  outline: var(--focus-width, 2px) solid var(--gold-deep, #8a6a14);
+  outline-offset: var(--focus-offset, 2px);
 }
 
 .designer__price {

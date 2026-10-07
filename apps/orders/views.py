@@ -68,7 +68,9 @@ def checkout_page(request):
         if not priced.lines:
             form.add_error(None, "Your cart is empty.")
         if form.is_valid():
-            return _place_order(request, form, addresses)
+            resp = _place_order(request, form, addresses)
+            if resp is not None:
+                return resp
     else:
         form = CheckoutForm(addresses=addresses, initial=_default_initial(request, addresses))
 
