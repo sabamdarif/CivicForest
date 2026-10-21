@@ -1,0 +1,108 @@
+"""Root URL configuration.
+
+The admin lives at a non-guessable, env-driven path, never /admin/. Everything else is
+mounted under a stable prefix: ``/api/v1/`` for this site's own JSON endpoints.
+"""
+
+import secrets
+
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
+from django.http import HttpResponse, JsonResponse
+from django.urls import include, path
+
+from apps.backoffice.cron import run_job as cron_run_job
+from apps.backoffice.views import styleguide
+from apps.common.sitemaps import SITEMAPS
+from apps.common.views import not_found, server_error
+from apps.content.views import home
+
+handler404 = not_found
+handler500 = server_error
+
+
+def healthz(request):
+    """Liveness for an external monitor, plus dependency detail for whoever holds the
+    token. The bare 200 leaks nothing, so it needs no secret to poll."""
+    if not _health_authorized(request):
+        return JsonResponse({"status": "ok"})
+
+    from django.core.cache import cache
+    from django.db import connection
+
+    checks = {}
+    try:
+        connection.cursor().execute("SELECT 1")
+        checks["database"] = "ok"
+    except Exception:  # noqa: BLE001
+        checks["database"] = "error"
+    try:
+        cache.set("healthz", "1", 5)
+        checks["cache"] = "ok" if cache.get("healthz") == "1" else "error"
+    except Exception:  # noqa: BLE001
+        checks["cache"] = "error"
+
+    ok = all(v == "ok" for v in checks.values())
+    return JsonResponse(
+        {"status": "ok" if ok else "degraded", "checks": checks}, status=200 if ok else 503
+    )
+
+
+def _health_authorized(request) -> bool:
+    expected = settings.HEALTH_CHECK_TOKEN
+    supplied = request.headers.get("X-Health-Token", "")
+    return bool(expected) and secrets.compare_digest(supplied, expected)
+
+
+def robots_txt(request):
+    """Keep crawlers out of the private and transactional areas and point them at the sitemap.
+    The admin and back-office are deliberately absent: they sit on secret, env-driven paths, and
+    naming them here would publish the one thing their secrecy depends on."""
+    lines = [
+        "User-agent: *",
+        "Disallow: /account/",
+        "Disallow: /api/",
+        "Disallow: /cart/",
+        "Disallow: /checkout/",
+        f"Sitemap: {request.build_absolute_uri('/sitemap.xml')}",
+    ]
+    return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
+
+
+urlpatterns = [
+    path("", home, name="home"),
+    path("", include("apps.catalog.urls")),
+    path("", include("apps.cart.urls")),
+    path("", include("apps.accounts.urls")),
+    path("", include("apps.orders.urls")),
+    path("", include("apps.custom_orders.storefront_urls")),
+    path("", include("apps.reviews.urls")),
+    path("", include("apps.search.urls")),
+    path("", include("apps.content.urls")),
+    # allauth owns login, signup, logout, email verification, passwords, 2FA, the session
+    # list and the Google flow. Its pages are Django Template Language, rendered from
+    # templates/django/ (rebuild/03-architecture.md §3).
+    path("accounts/", include("allauth.urls")),
+    path("healthz/", healthz, name="healthz"),
+    path("internal/cron/<str:name>/", cron_run_job, name="cron_run"),
+    path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
+    path("robots.txt", robots_txt, name="robots"),
+    # Staff-only, and the regression surface for every stylesheet.
+    path("styleguide/", styleguide, name="styleguide"),
+    path(settings.BACKOFFICE_URL, include("apps.backoffice.urls")),
+    path(settings.ADMIN_URL, admin.site.urls),
+    path("api/v1/", include("apps.accounts.api_urls")),
+    path("api/v1/", include("apps.cart.api_urls")),
+    path("api/v1/", include("apps.orders.api_urls")),
+    path("api/v1/", include("apps.payments.urls")),
+    path("api/v1/", include("apps.custom_orders.urls")),
+    path("api/v1/", include("apps.search.api_urls")),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    designs_opts = settings.STORAGES.get("designs", {}).get("OPTIONS", {})
+    if "base_url" in designs_opts and "location" in designs_opts:
+        urlpatterns += static(designs_opts["base_url"], document_root=designs_opts["location"])

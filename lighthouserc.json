@@ -1,0 +1,28 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "bash e2e/serve.sh",
+      "startServerReadyPattern": "Starting development server",
+      "startServerReadyTimeout": 120000,
+      "numberOfRuns": 1,
+      "url": [
+        "http://127.0.0.1:8000/",
+        "http://127.0.0.1:8000/shop/",
+        "http://127.0.0.1:8000/product/classic-black-tee/",
+        "http://127.0.0.1:8000/collections/",
+        "http://127.0.0.1:8000/cart/"
+      ]
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.8 }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": ".lighthouseci"
+    }
+  }
+}

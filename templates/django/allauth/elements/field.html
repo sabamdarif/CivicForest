@@ -1,0 +1,40 @@
+{% load allauth %}
+{% comment %} The single-field element, used where allauth builds a control by hand rather than from
+a form: the TOTP secret, the recovery-code textarea and its "I have saved these" checkbox. Same
+markup as _macros/field.html on the Jinja2 side. {% endcomment %}
+{{ attrs.errors }}
+<div class="field">
+  {% if attrs.type == "textarea" %}
+    <label class="field__label" for="{{ attrs.id }}">{% slot label %}{% endslot %}</label>
+    <textarea class="field__control" id="{{ attrs.id }}"
+      {% if attrs.name %} name="{{ attrs.name }}"{% endif %}
+      {% if attrs.rows %} rows="{{ attrs.rows }}"{% endif %}
+      {% if attrs.required %} required{% endif %}
+      {% if attrs.disabled %} disabled{% endif %}
+      {% if attrs.readonly %} readonly{% endif %}
+      {% if slots.help_text %} aria-describedby="{{ attrs.id }}-hint"{% endif %}>{% slot value %}{% endslot %}</textarea>
+  {% elif attrs.type == "checkbox" or attrs.type == "radio" %}
+    <label class="check" for="{{ attrs.id }}">
+      <input class="check__input" id="{{ attrs.id }}" type="{{ attrs.type }}"
+        {% if attrs.name %} name="{{ attrs.name }}"{% endif %}
+        {% if attrs.checked %} checked{% endif %}
+        {% if attrs.required %} required{% endif %}
+        {% if attrs.disabled %} disabled{% endif %}>
+      <span>{% slot label %}{% endslot %}</span>
+    </label>
+  {% else %}
+    <label class="field__label" for="{{ attrs.id }}">{% slot label %}{% endslot %}</label>
+    <input class="field__control" id="{{ attrs.id }}" type="{{ attrs.type|default:"text" }}"
+      {% if attrs.name %} name="{{ attrs.name }}"{% endif %}
+      {% if attrs.value is not None %} value="{{ attrs.value }}"{% endif %}
+      {% if attrs.placeholder %} placeholder="{{ attrs.placeholder }}"{% endif %}
+      {% if attrs.autocomplete %} autocomplete="{{ attrs.autocomplete }}"{% endif %}
+      {% if attrs.required %} required{% endif %}
+      {% if attrs.disabled %} disabled{% endif %}
+      {% if attrs.readonly %} readonly{% endif %}
+      {% if slots.help_text %} aria-describedby="{{ attrs.id }}-hint"{% endif %}>
+  {% endif %}
+  {% if slots.help_text %}
+    <p class="field__hint" id="{{ attrs.id }}-hint">{% slot help_text %}{% endslot %}</p>
+  {% endif %}
+</div>

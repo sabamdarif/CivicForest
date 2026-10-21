@@ -1,0 +1,43 @@
+{# Back-office message detail (M9.7, N2): read the enquiry, keep an internal note, mark it handled.
+   Saving is gated server-side by content.change_contactmessage. #}
+{% extends "base.html" %}
+
+{% block title %}Message from {{ msg.email }}, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <p><a href="{{ url('backoffice:messages') }}">&larr; Support inbox</a></p>
+  <h1 class="bo__title">{{ msg.subject }}</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <section class="bo-card">
+    <p><strong>From:</strong> {{ msg.name }} &lt;{{ msg.email }}&gt;</p>
+    {% if msg.order_number %}<p><strong>Order:</strong> {{ msg.order_number }}</p>{% endif %}
+    <p><strong>Received:</strong> {{ msg.created_at.strftime("%d %b %Y, %H:%M") }}</p>
+    {% if msg.handled_at %}<p><strong>Handled:</strong> {{ msg.handled_at.strftime("%d %b %Y") }}</p>{% endif %}
+    <hr>
+    <p style="white-space: pre-wrap">{{ msg.message }}</p>
+  </section>
+
+  <section class="bo-card">
+    <form method="post" action="{{ url('backoffice:message_detail', kwargs={'pk': msg.id}) }}">
+      {{ csrf_input }}
+      <div class="field">
+        <label class="field__label" for="internal_note">Internal note</label>
+        <textarea class="field__control" id="internal_note" name="internal_note" rows="4">{{ msg.internal_note }}</textarea>
+      </div>
+      <button class="btn btn--ghost" type="submit" name="action" value="save">Save note</button>
+      {% if not msg.handled_at %}
+        <button class="btn btn--primary" type="submit" name="action" value="mark_handled">Mark handled</button>
+      {% endif %}
+    </form>
+  </section>
+</div>
+{% endblock %}

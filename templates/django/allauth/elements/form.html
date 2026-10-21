@@ -1,0 +1,9 @@
+{% load allauth %}
+{% comment %} The actions slot is a row of its own so a form's buttons sit together at the foot of
+the card, whatever the page put in the body. {% endcomment %}
+<form class="auth-form" method="{{ attrs.method|default:"post" }}"
+  {% if attrs.action %} action="{{ attrs.action }}"{% endif %}
+  {% if attrs.id %} id="{{ attrs.id }}"{% endif %}>
+  {% slot body %}{% endslot %}
+  {% if slots.actions %}<div class="auth-form__actions">{% slot actions %}{% endslot %}</div>{% endif %}
+</form>

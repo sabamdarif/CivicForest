@@ -1,0 +1,467 @@
+"""Base settings shared by every environment.
+
+Everything reads from the environment through django-environ. Nothing here branches on
+DEBUG for security behaviour: transport security, R2 and the manifest static storage are
+turned on explicitly by ``production.py`` (rebuild/03-architecture.md §2).
+"""
+
+from pathlib import Path
+
+import environ
+
+# config/settings/base.py -> the repo root
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+env = environ.Env(
+    DJANGO_DEBUG=(bool, False),
+    DJANGO_ALLOWED_HOSTS=(list, []),
+    CSRF_TRUSTED_ORIGINS=(list, []),
+)
+
+# Read a local .env if present; the host supplies real env vars in deployment.
+env_file = BASE_DIR / ".env"
+if env_file.exists():
+    env.read_env(str(env_file))
+
+# No default: every environment, dev included, must set it.
+SECRET_KEY = env("DJANGO_SECRET_KEY")
+DEBUG = env("DJANGO_DEBUG")
+ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
+CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
+HEALTH_CHECK_TOKEN = env("HEALTH_CHECK_TOKEN", default="")
+
+# ─── Applications ────────────────────────────────────────────────────────────
+DJANGO_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django.contrib.sites",
+    "django.contrib.sitemaps",
+    # naturaltime, for the "signed in 3 hours ago" column on allauth's session list.
+    "django.contrib.humanize",
+    # Registers the trigram lookups the search query path uses. Harmless on SQLite: its
+    # connection hook checks the vendor and returns.
+    "django.contrib.postgres",
+]
+
+THIRD_PARTY_APPS = [
+    "rest_framework",
+    "allauth",
+    "allauth.account",
+    "allauth.mfa",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    # The account area's session list and its "sign out other sessions" button. A row is
+    # written by allauth's own user_logged_in receiver, so no middleware is needed.
+    "allauth.usersessions",
+    "auditlog",
+]
+
+LOCAL_APPS = [
+    "apps.common",
+    "apps.accounts",
+    "apps.catalog",
+    "apps.cart",
+    "apps.orders",
+    "apps.payments",
+    "apps.custom_orders",
+    "apps.content",
+    "apps.reviews",
+    "apps.search",
+    "apps.backoffice",
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# ─── Middleware ──────────────────────────────────────────────────────────────
+# WhiteNoise serves collected static files under `vercel dev`; in deployment the Vercel
+# CDN serves them and the middleware is a no-op (rebuild/02-research.md §1).
+MIDDLEWARE = [
+    "apps.common.middleware.RequestIDMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "apps.common.middleware.ContentSecurityPolicyMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    # After WhiteNoise so static (the error page's own CSS) still serves during maintenance.
+    "apps.common.middleware.MaintenanceMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+    # After auth (needs request.user): gates the admin path on staff MFA.
+    "apps.common.middleware.StaffAdminMiddleware",
+    # auditlog: records which user made a change (before/after diffs on registered models).
+    "auditlog.middleware.AuditlogMiddleware",
+]
+
+ROOT_URLCONF = "config.urls"
+# No ASGI_APPLICATION: Vercel prefers ASGI when both exist, and nothing here is async.
+WSGI_APPLICATION = "config.wsgi.application"
+
+# Two engines, split by ownership: Jinja2 renders every page we write, the Django
+# Template Language renders allauth and the admin, which ship DTL templates and tags.
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.jinja2.Jinja2",
+        "DIRS": [BASE_DIR / "templates" / "jinja2"],
+        "APP_DIRS": False,
+        "OPTIONS": {"environment": "config.jinja2.environment"},
+    },
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates" / "django"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+# ─── Database ────────────────────────────────────────────────────────────────
+DATABASES = {
+    "default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+}
+DATABASES["default"]["ATOMIC_REQUESTS"] = False
+# Neon pools connections itself, and a serverless instance dies between requests, so
+# holding a connection open only exhausts the pool (rebuild/04-build-plan.md risks).
+DATABASES["default"]["CONN_MAX_AGE"] = 0
+
+# Forces the local file database even when .env points at Postgres. This is what makes
+# the offline test run and `manage.py check` work with no services up.
+if env.bool("USE_SQLITE", default=False):
+    DATABASES = {
+        "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}
+    }
+
+# Per-instance cache by default; production swaps in the shared database cache, which is
+# what DRF throttling needs to count across function instances.
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
+# ─── Auth ────────────────────────────────────────────────────────────────────
+AUTH_USER_MODEL = "accounts.User"
+SITE_ID = 1
+# sitemap.xml builds every URL from the Site row, so this is what stops a deployment
+# advertising example.com. A migration in apps/common seeds it (A16).
+SITE_DOMAIN = env("SITE_DOMAIN", default="civicforest.com")
+
+# Public GA4 measurement id. Blank by default: analytics only exists once this is set, and even
+# then gtag.js is loaded by the browser only after the visitor accepts the cookie banner (L5).
+GOOGLE_ANALYTICS_ID = env("GOOGLE_ANALYTICS_ID", default="")
+
+# Flip to true to serve a 503 maintenance page from the edge of the request path. healthz, the
+# admin and the back-office stay reachable so ops can work and monitors still poll (M9.12).
+MAINTENANCE_MODE = env.bool("MAINTENANCE_MODE", default=False)
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# Argon2id first: stronger against GPU cracking than the PBKDF2 default.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+]
+
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# ─── allauth ─────────────────────────────────────────────────────────────────
+# Every allauth page is mounted under /accounts/, and LOGIN_URL is a literal path rather
+# than a route name because StaffAdminMiddleware redirects to it and its test compares the
+# Location header against this value.
+LOGIN_URL = "/accounts/login/"
+# Django's default is /accounts/profile/, which is not a route here: a login with no
+# ?next= lands on the account dashboard instead of a 404.
+LOGIN_REDIRECT_URL = "/account/"
+
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+# The custom User model has no username field. Without this, allauth's signup form
+# crashes looking it up.
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+# One email per account; changing it stages the new address until verified.
+ACCOUNT_CHANGE_EMAIL = True
+# "mandatory": allauth's email-enumeration prevention only fully works in this mode.
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_UNIQUE_EMAIL = True
+# Tighter than allauth's 30/min default on the credential-guessing surface.
+ACCOUNT_RATE_LIMITS = {
+    "login_failed": "10/5m/ip,5/5m/key",
+    "reset_password": "5/5m/ip,3/5m/key",
+    "signup": "10/5m/ip",
+    "manage_email": "5/5m/key",
+    "change_password": "5/5m/key",
+    "reauthenticate": "5/5m/user",
+}
+ACCOUNT_SESSION_REMEMBER = None  # honour the "remember me" checkbox
+
+MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+MFA_TOTP_ISSUER = "CivicForest"
+# "Trust this browser?" after a 2FA challenge (B6), on a signed cookie that expires in 14
+# days and inherits the session cookie's domain, secure and samesite flags.
+MFA_TRUST_ENABLED = True
+
+# Two defaults worth naming because they are security decisions, not oversights:
+# SOCIALACCOUNT_EMAIL_AUTHENTICATION stays False, so a Google login whose address already
+# belongs to a local account cannot silently take it over; SOCIALACCOUNT_LOGIN_ON_GET stays
+# False, and the login page posts a form to the provider URL so there is no extra page.
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": env("GOOGLE_OAUTH_CLIENT_ID", default=""),
+            "secret": env("GOOGLE_OAUTH_CLIENT_SECRET", default=""),
+            "key": "",
+        },
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    }
+}
+
+# ─── DRF ─────────────────────────────────────────────────────────────────────
+# Internal JSON for this site's own scripts: session cookie plus CSRF, same origin, no
+# public schema (decision A13).
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "apps.common.pagination.StandardResultsPagination",
+    "PAGE_SIZE": 12,
+    "DEFAULT_FILTER_BACKENDS": ["rest_framework.filters.OrderingFilter"],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "120/min",
+        "user": "600/min",
+        # Auth endpoints are allauth's, rate-limited via ACCOUNT_RATE_LIMITS above.
+        "search": "60/min",
+        # A coupon code is short, guessable, and worth money if you land one. The other cart
+        # endpoints are self-limiting and run on anon/user above.
+        "coupon": "20/min",
+        "checkout": "10/min",
+        "checkout_day": "60/day",
+        "custom_order_create": "20/hour",
+        "track": "5/min",
+        "contact": "5/min",
+        "newsletter": "5/min",
+    },
+    "EXCEPTION_HANDLER": "apps.common.exceptions.standard_exception_handler",
+}
+
+# ─── Sessions & cookie security ──────────────────────────────────────────────
+# Secure flags are set in production.py, because local development is plain HTTP and a
+# Secure cookie would never be stored.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # 2 weeks (decision B9)
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+CSRF_COOKIE_HTTPONLY = False  # JS must read the token to echo it back
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# ─── Security headers ────────────────────────────────────────────────────────
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# ─── i18n / tz ───────────────────────────────────────────────────────────────
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "Asia/Kolkata"
+USE_I18N = True
+USE_TZ = True
+
+# ─── Static / media ──────────────────────────────────────────────────────────
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Customer artwork: private in production, on-disk locally. Kept out of MEDIA_ROOT so a
+    # dev server never serves a raw design by a guessable path.
+    "designs": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "location": str(BASE_DIR / "designfiles"),
+            "base_url": "/designfiles/",
+        },
+    },
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "mediafiles"
+
+# Vercel rejects a request body over 4.5 MB before it reaches Django, so a larger cap
+# here would only be a lie. Artwork is uploaded straight to R2 instead.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 4 * 1024 * 1024
+
+# ─── Email ───────────────────────────────────────────────────────────────────
+# Console in development, Resend over SMTP in production (decision A4).
+EMAIL_HOST = env("EMAIL_HOST", default="")
+if EMAIL_HOST:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+    EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+    EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+    EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="CivicForest <no-reply@civicforest.com>")
+SUPPORT_EMAIL = env("SUPPORT_EMAIL", default=DEFAULT_FROM_EMAIL) or DEFAULT_FROM_EMAIL
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ─── Admin ───────────────────────────────────────────────────────────────────
+# Non-guessable admin path from the environment, never the default /admin/. Left unset
+# it serves on a path nobody can reach by guessing.
+ADMIN_URL = env("DJANGO_ADMIN_URL", default="__admin_disabled__/").strip("/") + "/"
+# Staff sessions expire faster than customer sessions (StaffAdminMiddleware enforces it).
+STAFF_SESSION_AGE = env.int("STAFF_SESSION_AGE", default=60 * 60)
+
+# ─── Back-office and cron ────────────────────────────────────────────────────
+# Custom staff pages sit under this env-driven prefix, never a guessable one, same as the
+# admin. The cron endpoints under /internal/cron/ require CRON_SECRET as a bearer token.
+BACKOFFICE_URL = env("BACKOFFICE_URL", default="__backoffice_disabled__/").strip("/") + "/"
+CRON_SECRET = env("CRON_SECRET", default="")
+
+# ─── Cart / checkout pricing rules ───────────────────────────────────────────
+# Server-side pricing constants: the client never sends shipping or totals.
+SHIPPING_FLAT_RATE = env("SHIPPING_FLAT_RATE", default="79.00")
+FREE_SHIPPING_THRESHOLD = env("FREE_SHIPPING_THRESHOLD", default="999.00")
+CURRENCY = env("CURRENCY", default="INR")
+# The exact wording the checkout terms checkbox shows and the order snapshots as the
+# consent record. Not pre-ticked, and its text is frozen per order (no dark patterns).
+CHECKOUT_TERMS_TEXT = (
+    "I have read and accept the Terms of Service, Privacy Policy, "
+    "and the Returns and Refunds policy."
+)
+# The rights acknowledgement the design tool shows, unticked, and snapshots onto each custom
+# line (M7.11). Frozen per line so a later wording change cannot rewrite what was agreed.
+CUSTOM_RIGHTS_TEXT = (
+    "I own or am licensed to print this artwork, it infringes no third-party rights, and I "
+    "accept that custom-printed items are made to order and returnable only if defective."
+)
+
+# ─── Catalogue display ───────────────────────────────────────────────────────
+# The only number that turns a real stock level into a "only N left" line (E4). Nothing
+# invents urgency: below this and the count is printed, above it and nothing is said. A
+# per-variant override lands with M8's inventory tools.
+LOW_STOCK_THRESHOLD = env.int("LOW_STOCK_THRESHOLD", default=5)
+# The delivery promise the product page prints before add-to-cart (L9). Decision 12 buys no
+# courier API, so these are the shop's own dispatch and transit commitment, not a quote.
+DISPATCH_DAYS = env("DISPATCH_DAYS", default="1 to 2")
+DELIVERY_DAYS = env("DELIVERY_DAYS", default="3 to 7")
+RETURN_WINDOW_DAYS = env.int("RETURN_WINDOW_DAYS", default=7)
+
+# ─── Seller identity and grievance officer (Consumer Protection Rules, research §5) ──
+# Legally required on-site: the seller's legal name and address, and a named grievance officer
+# with contact details and a stated response time. Env-driven, and the grievance page renders
+# straight from these, so it is always present and cannot be blanked by a content edit.
+SELLER_LEGAL_NAME = env("SELLER_LEGAL_NAME", default="CivicForest Clothing")
+SELLER_ADDRESS = env("SELLER_ADDRESS", default="")
+GRIEVANCE_OFFICER_NAME = env("GRIEVANCE_OFFICER_NAME", default="")
+GRIEVANCE_EMAIL = env("GRIEVANCE_EMAIL", default=SUPPORT_EMAIL) or SUPPORT_EMAIL
+GRIEVANCE_PHONE = env("GRIEVANCE_PHONE", default="")
+GRIEVANCE_ADDRESS = env("GRIEVANCE_ADDRESS", default="")
+GRIEVANCE_RESPONSE_HOURS = env.int("GRIEVANCE_RESPONSE_HOURS", default=48)
+
+# ─── Payments (Razorpay) ─────────────────────────────────────────────────────
+# Raw card data never reaches this app; Razorpay's hosted checkout keeps PCI scope at
+# SAQ-A. The webhook secret is separate from the API secret.
+RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", default="")
+RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", default="")
+RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET", default="")
+
+# ─── Print fulfilment (Qikink Open API) ──────────────────────────────────────
+# Base URL and paths are configurable so they can be corrected against Qikink's own
+# Postman reference without a deploy. Credentials stay server-side only.
+QIKINK_BASE_URL = env("QIKINK_BASE_URL", default="https://sandbox.qikink.com")
+QIKINK_CLIENT_ID = env("QIKINK_CLIENT_ID", default="")
+QIKINK_CLIENT_SECRET = env("QIKINK_CLIENT_SECRET", default="")
+QIKINK_TOKEN_PATH = env("QIKINK_TOKEN_PATH", default="/api/token")
+QIKINK_ORDER_CREATE_PATH = env("QIKINK_ORDER_CREATE_PATH", default="/api/order/create")
+QIKINK_ORDER_STATUS_PATH = env("QIKINK_ORDER_STATUS_PATH", default="/api/order/status")
+QIKINK_TOKEN_TTL = env.int("QIKINK_TOKEN_TTL", default=60 * 60)
+
+# ─── Object storage (Cloudflare R2) ──────────────────────────────────────────
+# Read here so one place documents them; production.py is what points file storage at
+# R2. Local development and tests stay on disk, which needs no credentials.
+S3_BUCKET_NAME = env("S3_BUCKET_NAME", default="")
+S3_PRIVATE_BUCKET_NAME = env("S3_PRIVATE_BUCKET_NAME", default="")
+S3_ACCESS_KEY_ID = env("S3_ACCESS_KEY_ID", default="")
+S3_SECRET_ACCESS_KEY = env("S3_SECRET_ACCESS_KEY", default="")
+S3_ENDPOINT_URL = env("S3_ENDPOINT_URL", default="")
+S3_REGION = env("S3_REGION", default="auto")
+S3_SIGNED_URL_TTL = env.int("S3_SIGNED_URL_TTL", default=3600)
+R2_PUBLIC_BASE_URL = env("R2_PUBLIC_BASE_URL", default="")
+DESIGN_UPLOAD_MAX_BYTES = env.int("DESIGN_UPLOAD_MAX_BYTES", default=15 * 1024 * 1024)
+DESIGN_UPLOAD_MAX_DIMENSION = env.int("DESIGN_UPLOAD_MAX_DIMENSION", default=8000)
+
+# ─── Logging (correlation ID on every line; JSON formatter wired in production) ─
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "request_id": {"()": "apps.common.middleware.RequestIDLogFilter"},
+    },
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {name} [{request_id}] {message}",
+            "style": "{",
+        },
+        "json": {
+            "()": "pythonjsonlogger.json.JsonFormatter",
+            "format": "%(levelname)s %(asctime)s %(name)s %(request_id)s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+            "filters": ["request_id"],
+        },
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {
+        "django.security": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+    },
+}
+
+# ─── Error tracking (Sentry), a no-op when SENTRY_DSN is unset ────────────────
+SENTRY_DSN = env("SENTRY_DSN", default="")
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.1),
+        environment=env("SENTRY_ENVIRONMENT", default="development"),
+        # PII (emails, addresses) must never leave our systems under the DPDP Act.
+        send_default_pii=False,
+    )

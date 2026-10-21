@@ -1,0 +1,90 @@
+{# Back-office product management (M8.7): search and status filter (GET), inline base-price and
+   active editing across the page (one POST to product_bulk), plus per-row duplicate/archive and
+   links to the full form, the CSV import and the export. Inputs bind to the bulk form by id, so
+   the row action forms are not nested inside it. Works with no JavaScript. #}
+{% extends "base.html" %}
+{% from "_macros/pagination.html" import pagination %}
+
+{% block title %}Products, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Products</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="bo-bulk">
+    <a class="btn btn--primary btn--sm" href="{{ url('backoffice:product_new') }}">New product</a>
+    <a class="btn btn--ghost btn--sm" href="{{ url('backoffice:product_import') }}">Import CSV</a>
+    <a class="btn btn--ghost btn--sm" href="{{ url('backoffice:product_import') }}?export=csv">Export CSV</a>
+  </div>
+
+  <form class="bo-filters" method="get" action="{{ url('backoffice:products') }}">
+    <label>Status
+      <select name="status">
+        <option value="">All</option>
+        <option value="active" {{ 'selected' if status == 'active' else '' }}>Active</option>
+        <option value="archived" {{ 'selected' if status == 'archived' else '' }}>Archived</option>
+      </select>
+    </label>
+    <label>Search <input type="search" name="q" value="{{ q }}" placeholder="Name or slug" maxlength="64"></label>
+    <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+  </form>
+
+  <form id="bulk" method="post" action="{{ url('backoffice:product_bulk') }}">
+    {{ csrf_input }}
+    <input type="hidden" name="next" value="{{ query }}">
+  </form>
+
+  <table class="bo-table">
+    <thead>
+      <tr>
+        <th scope="col">Product</th>
+        <th scope="col">Category</th>
+        <th scope="col">Base price</th>
+        <th scope="col">Stock</th>
+        <th scope="col">Active</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in products %}
+        {% set stock = p.variants.all()|selectattr('is_active')|map(attribute='stock_quantity')|sum %}
+        <tr class="{{ 'bo-row--archived' if not p.is_active else '' }}">
+          <td>
+            <input type="hidden" name="ids" value="{{ p.id }}" form="bulk">
+            <a href="{{ url('backoffice:product_edit', kwargs={'pk': p.id}) }}">{{ p.name }}</a>
+          </td>
+          <td>{{ p.category.name }}</td>
+          <td><input class="bo-inline" type="number" step="0.01" min="0" name="price-{{ p.id }}" value="{{ p.base_price }}" form="bulk" aria-label="Base price for {{ p.name }}"></td>
+          <td class="{{ 'bo-num--low' if stock <= low_stock_threshold else '' }}">{{ stock }}</td>
+          <td><input type="checkbox" name="active-{{ p.id }}" form="bulk" {{ 'checked' if p.is_active else '' }} aria-label="Active for {{ p.name }}"></td>
+          <td class="bo-actions">
+            <form method="post" action="{{ url('backoffice:product_action', kwargs={'pk': p.id}) }}">
+              {{ csrf_input }}
+              <button class="btn btn--ghost btn--sm" type="submit" name="action" value="duplicate">Duplicate</button>
+              {% if p.is_active %}
+                <button class="btn btn--ghost btn--sm" type="submit" name="action" value="archive">Archive</button>
+              {% else %}
+                <button class="btn btn--ghost btn--sm" type="submit" name="action" value="unarchive">Restore</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="bo-empty">No products match.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button type="submit" class="btn btn--primary btn--sm" form="bulk">Save price and active changes</button>
+
+  {{ pagination(products.number, products.paginator.num_pages, query) }}
+</div>
+{% endblock %}

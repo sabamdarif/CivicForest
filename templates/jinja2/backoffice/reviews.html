@@ -1,0 +1,61 @@
+{# Back-office review moderation (M9.2, K4): nothing publishes unseen. Status filter tabs, one row
+   per review with its rating and text, and per-row publish/reject forms guarded server-side. #}
+{% extends "base.html" %}
+{% from "_macros/pagination.html" import pagination %}
+{% from "_macros/rating.html" import rating %}
+
+{% block title %}Reviews, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Reviews</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <nav class="bo-tabs" aria-label="Filters">
+    <a class="bo-tab {{ 'bo-tab--on' if not status else '' }}" href="?">Pending</a>
+    {% for value, label in status_choices %}
+      <a class="bo-tab {{ 'bo-tab--on' if status == value else '' }}" href="?status={{ value }}">{{ label }}</a>
+    {% endfor %}
+    <a class="bo-tab {{ 'bo-tab--on' if status == 'all' else '' }}" href="?status=all">All</a>
+  </nav>
+
+  <table class="bo-table">
+    <thead>
+      <tr><th>Product</th><th>Rating</th><th>Review</th><th>Fit</th><th>Customer</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for review in reviews %}
+        <tr>
+          <td>{{ review.product.name if review.product else "(removed)" }}</td>
+          <td>{{ rating(review.rating) }}</td>
+          <td>
+            {% if review.title %}<strong>{{ review.title }}</strong><br>{% endif %}
+            {{ review.body|truncate(140) }}
+          </td>
+          <td>{{ review.get_fit_feedback_display() or "n/a" }}</td>
+          <td>{{ review.user.email }}</td>
+          <td><span class="bo-status">{{ review.get_status_display() }}</span></td>
+          <td>
+            <form method="post" action="{{ url('backoffice:review_action', kwargs={'pk': review.id}) }}">
+              {{ csrf_input }}
+              <button class="btn btn--sm btn--primary" type="submit" name="action" value="publish">Publish</button>
+              <button class="btn btn--sm btn--ghost" type="submit" name="action" value="reject">Reject</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="bo-empty">No reviews here.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {{ pagination(reviews.number, reviews.paginator.num_pages) }}
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "allauth/layouts/base.html" %}
+{% load dtl %}
+{% comment %} Everything you reach while signed in: email addresses, password change, the 2FA
+pages, recovery codes and the session list. They are part of the account area, so they get the
+account area's nav rather than a page that feels like a different site. {% endcomment %}
+
+{% block body %}
+  <div class="container account">
+    {% jinja_partial "_partials/account_nav.html" %}
+    <div class="account__main">
+      {% jinja_partial "_partials/notices.html" %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{# Grievance Redressal (L1), legally required under the Consumer Protection (E-commerce) Rules.
+   Rendered straight from settings so the named officer and contact details are always present. #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+
+{% block title %}Grievance redressal | CivicForest Clothing{% endblock %}
+{% block description %}Our grievance officer, contact details and response timeline.{% endblock %}
+
+{% block content %}
+  <div class="container">
+    {{ breadcrumbs(trail, current) }}
+    <article class="prose">
+      <h1>Grievance redressal</h1>
+      <p>
+        If something has gone wrong with your order or your data, contact our grievance officer.
+        We acknowledge every grievance within {{ officer.response_hours }} hours and work to
+        resolve it as quickly as we can.
+      </p>
+
+      <h2>Grievance officer</h2>
+      <dl>
+        {%- if officer.name %}<dt>Name</dt><dd>{{ officer.name }}</dd>{% endif %}
+        <dt>Email</dt><dd><a href="mailto:{{ officer.email }}">{{ officer.email }}</a></dd>
+        {%- if officer.phone %}<dt>Phone</dt><dd>{{ officer.phone }}</dd>{% endif %}
+        {%- if officer.address %}<dt>Address</dt><dd>{{ officer.address }}</dd>{% endif %}
+      </dl>
+
+      <h2>Seller</h2>
+      <p>{{ seller.name }}{% if seller.address %}<br>{{ seller.address }}{% endif %}</p>
+    </article>
+  </div>
+{% endblock %}

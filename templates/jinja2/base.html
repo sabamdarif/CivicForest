@@ -1,0 +1,77 @@
+{#
+  Shell for every page CivicForest owns. The Django Template Language twin at
+  templates/django/base.html loads the same four stylesheets, so allauth's pages and the
+  admin look like the rest of the site.
+
+  page_css is for the one page-area sheet a page may add on top of the shared four, which
+  is what keeps any single page inside the 60 KB CSS budget (P3, P11).
+#}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}CivicForest{% endblock %}</title>
+    <meta name="description" content="{% block description %}Premium menswear for India.{% endblock %}">
+    {# Both faces are used on every page, so both are worth a preload: without it the
+       browser only discovers them after the stylesheet parses. #}
+    <link rel="preload" href="{{ static('fonts/playfair-display-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ static('fonts/source-sans-3-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ static('css/tokens.css') }}">
+    <link rel="stylesheet" href="{{ static('css/base.css') }}">
+    <link rel="stylesheet" href="{{ static('css/components.css') }}">
+    <link rel="stylesheet" href="{{ static('css/layout.css') }}">
+    {% block page_css %}{% endblock %}
+    {# Canonical drops the query string on purpose: one filter combination is not a page worth
+       indexing separately from the grid it filters (L4). #}
+    <link rel="canonical" href="{{ request.build_absolute_uri(request.path) }}">
+    {# Open Graph and Twitter, so a shared link previews well everywhere. Title and description
+       default to the page's own blocks; a page with its own hero (product, collection) overrides
+       og_image. Twitter mirrors the OG values rather than repeating them (L4). #}
+    <meta property="og:site_name" content="CivicForest">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.description() }}{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri(request.path) }}">
+    <meta property="og:image" content="{% block og_image %}{{ request.build_absolute_uri(static('img/og-default.png')) }}{% endblock %}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ self.og_title() }}">
+    <meta name="twitter:description" content="{{ self.og_description() }}">
+    <meta name="twitter:image" content="{{ self.og_image() }}">
+    {%- for node in structured_data|default([]) %}
+      <script type="application/ld+json">{{ node|json_ld }}</script>
+    {%- endfor %}
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    {% include "_partials/icons.html" %}
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    {% include "_partials/announcement.html" %}
+    {% include "_partials/header.html" %}
+    {% include "_partials/search_overlay.html" %}
+
+    <main id="main">
+      {% block content %}{% endblock %}
+    </main>
+
+    {% include "_partials/footer.html" %}
+
+    {# The header opens the cart drawer on every page, so the dialog lives in the shell. priced
+       is cleared on the way in: the cart page has one in context, and rendering its lines twice
+       would put the whole cart in the page's accessibility tree a second time. cart.js swaps in
+       the server-rendered cart on first open. #}
+    {% with priced = none %}{% include "cart/_drawer.html" %}{% endwith %}
+
+    {% include "_partials/cookie_banner.html" %}
+
+    {# Every page has the header, so these are the only modules the shell loads: the nav, the
+       search overlay (which pulls in modal.js for the <dialog> wiring) and the cart drawer,
+       which the header opens from every page. The rest are loaded by the pages that use them,
+       through the scripts block. #}
+    <script type="module" src="{{ static('js/nav.js') }}"></script>
+    <script type="module" src="{{ static('js/search-overlay.js') }}"></script>
+    <script type="module" src="{{ static('js/cart.js') }}"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

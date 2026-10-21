@@ -1,0 +1,27 @@
+{# The measurement table for this product's category (C11). The header row is the first entry
+   in `rows`, which is what lets a chart grow a column without a migration. #}
+{% set rows = size_chart.rows %}
+
+{%- if rows|length > 1 %}
+  <table class="size-chart">
+    <caption class="sr-only">
+      {{ product.category.name }} measurements in {{ size_chart.get_unit_display() }}
+    </caption>
+    <thead>
+      <tr>
+        {%- for heading in rows[0] %}<th scope="col">{{ heading }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {%- for row in rows[1:] %}
+        <tr>
+          {%- for cell in row %}
+            {%- if loop.first %}<th scope="row">{{ cell }}</th>{% else %}<td>{{ cell }}</td>{% endif %}
+          {%- endfor %}
+        </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  <p class="size-chart__unit">All measurements in {{ size_chart.get_unit_display() }}.</p>
+  {%- if size_chart.notes %}<p>{{ size_chart.notes }}</p>{% endif %}
+{%- endif %}

@@ -1,0 +1,6 @@
+{% load allauth %}
+{% comment %} Several buttons on one row, or stacked when the page asks for it (the 2FA challenge's
+alternatives). Both decline and accept are the same size, per J9. {% endcomment %}
+<div class="auth-form__actions{% if attrs.vertical %} auth-form__actions--stacked{% endif %}">
+  {% slot %}{% endslot %}
+</div>

@@ -1,0 +1,30 @@
+{# The header's search overlay (D7).
+
+   A native <dialog>, so the focus trap, the inert page behind, the backdrop and Escape-to-close
+   are the element's job and not this project's. The header's search icon stays an ordinary link
+   to /search/: modal.js cancels the click and opens this instead, so with JavaScript off the
+   icon still navigates to a page with a working search form (P6).
+
+   search-overlay.js fills the results; everything here works without it, because the field is a
+   GET form that submits to /search/. #}
+{% from "_macros/icon.html" import icon %}
+
+<dialog class="modal search-overlay" id="search-overlay" aria-labelledby="search-overlay-title">
+  <h2 class="sr-only" id="search-overlay-title">Search</h2>
+  <form class="search-overlay__form" method="get" action="/search/" role="search" data-search>
+    <label class="sr-only" for="search-overlay-q">Search products</label>
+    <div class="search-bar">
+      <span class="search-bar__icon" aria-hidden="true">{{ icon("search", 18) }}</span>
+      {# autofocus is what puts the caret in the field: <dialog> honours it on showModal(). #}
+      <input class="field__control search-bar__input" id="search-overlay-q" name="q" type="search"
+        placeholder="Search hoodies, tees, colours" autocomplete="off" autofocus
+        maxlength="{{ search_max_query() }}" data-search-input>
+      <button class="search-bar__clear" type="button" data-dialog-close="search-overlay"
+        aria-label="Close search">{{ icon("close", 16) }}</button>
+    </div>
+    {# The design shows no button, and implicit submission still needs one to exist. #}
+    <button class="sr-only" type="submit">Search</button>
+    <p class="sr-only" role="status" data-search-count></p>
+    <div class="search-suggest" data-search-results></div>
+  </form>
+</dialog>

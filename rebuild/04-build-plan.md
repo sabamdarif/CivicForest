@@ -46,29 +46,29 @@ connects to Neon, and can write to R2.
 
 Tasks:
 
-1. Branch `rebuild/foundation`. Tag the current `main` as `v1-nextjs` so the old stack is recoverable.
-2. Delete `frontend/`, `caddy/`, `docker-compose.yml`, `docker-compose.prod.yml`, `config/celery.py`,
+1. [x] Branch `rebuild/foundation`. Tag the current `main` as `v1-nextjs` so the old stack is recoverable.
+2. [x] Delete `frontend/`, `caddy/`, `docker-compose.yml`, `docker-compose.prod.yml`, `config/celery.py`,
    `apps/search/`, `k6-search-suggest.js`, `Makefile`, `.env.render`, `django-allauth/`.
-3. Move everything from `backend/` to the repo root. Fix `pyproject.toml` paths, `manage.py`,
+3. [x] Move everything from `backend/` to the repo root. Fix `pyproject.toml` paths, `manage.py`,
    `DJANGO_SETTINGS_MODULE` references and the pytest config.
-4. Rewrite `pyproject.toml`: drop `celery`, `django-celery-beat`, `meilisearch`, `redis`,
+4. [x] Rewrite `pyproject.toml`: drop `celery`, `django-celery-beat`, `meilisearch`, `redis`,
    `django-cors-headers`, `gunicorn`, `uvicorn`. Add `django-allauth[socialaccount,mfa]==65.19.1`,
    `resend`, `jinja2`. Add `[tool.vercel]` and `[tool.vercel.scripts]`.
-5. Delete `config/asgi.py`; keep `config/wsgi.py` as the sole entrypoint.
-6. Rewrite the four `config/settings/` modules (`base`, `local`, `production`, `test`) per
+5. [x] Delete `config/asgi.py`; keep `config/wsgi.py` as the sole entrypoint.
+6. [x] Rewrite the four `config/settings/` modules (`base`, `local`, `production`, `test`) per
    `03-architecture.md` §2.
    Delete `e2e.py` and fold its fake-gateway switches into `test.py`.
-7. Add `config/jinja2.py` and register both template engines.
-8. Create `templates/jinja2/base.html` and `templates/django/base.html` sharing one stylesheet.
-9. Provision Neon, create the `main` and `preview` branches, set `DATABASE_URL`. Run migrations.
-10. Provision two R2 buckets (public `civicforest-media`, private `civicforest-designs`), an API
+7. [x] Add `config/jinja2.py` and register both template engines.
+8. [x] Create `templates/jinja2/base.html` and `templates/django/base.html` sharing one stylesheet.
+9. [ ] Provision Neon, create the `main` and `preview` branches, set `DATABASE_URL`. Run migrations.
+10. [ ] Provision two R2 buckets (public `civicforest-media`, private `civicforest-designs`), an API
     token, and a public CDN hostname. Verify a `collectstatic` upload and a signed private read.
-11. Create the Vercel project, set all environment variables, deploy, confirm the styled page renders
+11. [ ] Create the Vercel project, set all environment variables, deploy, confirm the styled page renders
     with CDN-served static files.
-12. Add `vercel.json` with `functions.maxDuration`, security headers and an empty `crons` array.
-13. Rewrite `.github/workflows/ci.yml`: ruff → pytest against Postgres → `pip-audit`. Keep
+12. [ ] Add `vercel.json` with `functions.maxDuration`, security headers and an empty `crons` array.
+13. [x] Rewrite `.github/workflows/ci.yml`: ruff → pytest against Postgres → `pip-audit`. Keep
     `codeql.yml` and `dependabot.yml`.
-14. Rewrite `README.md` for the new stack. Move the old plan documents into `rebuild/legacy/`.
+14. [x] Rewrite `README.md` for the new stack. Move the old plan documents into `rebuild/legacy/`.
 
 **Done when:** a pushed commit auto-deploys, `/` renders a styled page, `/healthz` returns 200,
 migrations are applied on Neon, static files come from the CDN, and CI is green.
@@ -82,26 +82,28 @@ reference screenshots.
 
 Tasks:
 
-1. `static/css/tokens.css`: colour (near-black `#0d0d0d`, gold `#c9a227`, cream `#f7f4ef`, ink,
+1. [x] `static/css/tokens.css`: colour (near-black `#0d0d0d`, gold `#c9a227`, cream `#f7f4ef`, ink,
    muted, success, danger), type scale, spacing scale, radii, shadows, container widths, z-index
    layers, transition durations. All as custom properties on `:root`.
-2. Self-host the two typefaces as subset `woff2` with `font-display: swap`: a serif display face for
+2. [x] Self-host the two typefaces as subset `woff2` with `font-display: swap`: a serif display face for
    headings, a humanist sans for body. Record the licence for each in `static/fonts/LICENCE.md`.
-3. `static/css/base.css`: reset, element defaults, focus-visible rings, `prefers-reduced-motion`
+3. [x] `static/css/base.css`: reset, element defaults, focus-visible rings, `prefers-reduced-motion`
    guard, `.container`, grid and stack utilities, `.sr-only`.
-4. `static/icons/sprite.svg`: search, account, cart, heart, close, chevrons, plus/minus, trash,
-   truck, shield, leaf, headset, star, upload, check, filter, social icons.
-5. Component CSS + Jinja2 macros: button (primary/secondary/ghost, 3 sizes), form field with label,
+4. [x] `templates/jinja2/_partials/icons.html`, the sprite inlined once per page because an external
+   `<use href>` only resolves same-origin: search, account, cart, heart, close, chevrons,
+   plus/minus, trash, truck, shield, leaf, headset, star, upload, check, filter, social icons.
+5. [x] Component CSS + Jinja2 macros: button (primary/secondary/ghost, 3 sizes), form field with label,
    help and error states, badge, card, accordion, modal, drawer, toast, breadcrumb, pagination,
    quantity stepper, price display (MRP strike-through + percentage off), swatch, star rating,
    empty state, skeleton.
-6. `templates/jinja2/_partials/header.html`: logo, five nav items plus CUSTOMISE, search trigger,
+6. [x] `templates/jinja2/_partials/header.html`: logo, five nav items plus CUSTOMISE, search trigger,
    account link, cart button with live count. Sticky, with a mobile drawer.
-7. `templates/jinja2/_partials/footer.html`: the four link columns from the screenshots (Shop,
+7. [x] `templates/jinja2/_partials/footer.html`: the four link columns from the screenshots (Shop,
    Collections, Customer Care, About Us), newsletter form, social row, legal row.
-8. Announcement bar partial, driven by the `AnnouncementBar` model.
-9. Shared behaviours: `static/js/nav.js`, `drawer.js`, `toast.js`, `accordion.js`, `modal.js`.
-10. A `/styleguide/` page (staff-only) rendering every component in every state. This is the
+8. [x] Announcement bar partial, driven by the `AnnouncementBar` model.
+9. [x] Shared behaviours: `static/js/nav.js`, `toast.js`, `modal.js` (which drives the drawer too).
+   No `drawer.js` or `accordion.js`: `<dialog>` and `<details name>` already do their work.
+10. [x] A `/styleguide/` page (staff-only) rendering every component in every state. This is the
     regression surface for CSS work and the reference for the back-office pages.
 
 **Done when:** the styleguide renders correctly at 360 / 768 / 1280 px, keyboard focus is visible
@@ -115,29 +117,38 @@ throughout, axe reports no violations on it, and total CSS is under 60 KB uncomp
 
 Tasks:
 
-1. Migrate `apps/catalog`: add `Collection`, `SizeChart`, and to `Product` add `mrp`,
+1. [x] Migrate `apps/catalog`: add `Collection`, `SizeChart`, and to `Product` add `mrp`,
    `country_of_origin`, `hsn_code`, `tax_rate`, `care_instructions`, `fit_notes`, `model_note`,
    `gsm`, `weight_grams`, `length_cm`/`width_cm`/`height_cm`. Add `Product.collections` M2M.
-2. Add `ProductImage` variants: store the R2 key plus generated widths; `alt_text` becomes required
+2. [x] Add `ProductImage` variants: store the R2 key plus generated widths; `alt_text` becomes required
    at the form level.
-3. Services: `product_list(filters, sort, page)` returning products, facet counts and total in one
+3. [x] Services: `product_list(filters, sort, page)` returning products, facet counts and total in one
    query pass; `facet_counts(queryset)`; `related_products(product)`; `price_display(variant)`.
-4. Home page: hero, four-icon trust strip, shop-by-category tiles, "Just Landed" row, brand values
+4. [x] Home page: hero, four-icon trust strip, shop-by-category tiles, "Just Landed" row, brand values
    band, newsletter: sections ordered and toggled by the `HomeSection` model.
-5. Shop page: grid, sidebar filters with counts, sort select, numbered pagination, mobile filter
+5. [x] Shop page: grid, sidebar filters with counts, sort select, numbered pagination, mobile filter
    drawer, active-filter chips with individual removal, empty state.
-6. Collections index and detail.
-7. Product detail: gallery with hover zoom and lightbox, colour swatches that swap images, size
+6. [x] Collections index and detail.
+7. [x] Product detail: gallery with hover zoom and lightbox, colour swatches that swap images, size
    buttons with out-of-stock struck through, price with MRP and percentage off, wishlist heart,
    quantity stepper, add-to-cart, accordions (description / fabric and care / shipping and returns),
    size-chart modal, pincode delivery estimate, trust strip, related products, breadcrumbs.
-8. JSON-LD: `Product` + `Offer` + `AggregateRating` on detail, `BreadcrumbList` on all,
-   `Organization` + `WebSite` on home.
-9. `static/js/`: `filters.js`, `gallery.js`, `variant-picker.js`, `wishlist.js`, `pincode.js`,
-   `recently-viewed.js`.
-10. `seed_catalog` command rewritten for the new fields, using the brand imagery in
+   The size chart is in the size-guide accordion, not a modal (C11 amended: a `<dialog>` needs
+   JavaScript). The pincode estimate defers to M6, which needs the same pincode data for H5;
+   until then the page prints the shop's own dispatch and delivery commitment.
+8. [x] JSON-LD: `Product` + `Offer` + `AggregateRating` on detail, `BreadcrumbList` on all,
+   `Organization` + `WebSite` on home. `AggregateRating` is omitted rather than stubbed: it
+   arrives with `apps/reviews` in M9, and an invented one is a manual action plus the kind of
+   fabrication J9 forbids. Canonical URLs land here too, dropping the query string (L4).
+9. [x] `static/js/`: `filters.js`, `gallery.js`, `variant-picker.js`, `wishlist.js`, `pincode.js`,
+   `recently-viewed.js`. `wishlist.js` waits for M4, which mounts the route its heart posts to,
+   and `pincode.js` for M6 with the rest of the estimate.
+10. [x] `seed_catalog` command rewritten for the new fields, using the brand imagery in
     `frontend/public/brand/`: copy those PNGs to `static/img/seed/` before deleting `frontend/`.
-11. Sitemap covering products, categories, collections and static pages.
+11. [x] Sitemap covering products, categories, collections and static pages. `robots.txt` stays
+    with M9 task 10's SEO pass. The Site row's domain is set by a `post_migrate` receiver in
+    `apps/common/apps.py`, because `django.contrib.sites` creates that row from the same signal
+    and a migration would run before it exists.
 
 **Done when:** a visitor can browse from home to a product page and back through every filter and
 sort combination **with JavaScript disabled**, facet counts are correct, LCP on the shop page is
@@ -151,22 +162,45 @@ under 2.5 s on a throttled connection, and Rich Results Test validates the produ
 
 Tasks:
 
-1. Rebuild `apps/search` with no Meilisearch: `SearchDocument` (one row per product, `SearchVectorField`
+1. [x] Rebuild `apps/search` with no Meilisearch: `SearchDocument` (one row per product, `SearchVectorField`
    with a GIN index, plus a plain text blob for trigram), `SearchSynonym` (admin-editable term →
    expansion), keep `SearchQueryLog`.
-2. Weighted document: name `A`, category and collection `B`, tags and material `C`, description `D`.
-3. Rebuild triggers: `post_save`/`post_delete` on Product, Variant, Category, Collection, Tag mark the
+2. [x] Weighted document: name `A`, category and collection `B`, tags and material `C`, description `D`.
+   Variant colours join `C`: "black hoodie" is an ordinary query and a colour exists only on a
+   variant, which is also why task 3 lists `ProductVariant`.
+3. [x] Rebuild triggers: `post_save`/`post_delete` on Product, Variant, Category, Collection, Tag mark the
    document stale; a cron sweep refreshes stale rows in batches. Never rebuild inline in a request.
-4. Query path: exact prefix → full-text rank → trigram similarity fallback at 0.3, unioned and
-   deduplicated. Synonyms expanded before the query is built.
-5. `/api/v1/search/suggest/`: products with thumbnails, matching categories, popular queries. Capped,
-   throttled, cached 60 s.
-6. `/search/` results page reusing the shop grid, filters and sorts, with the query echoed as in the
-   screenshot ("You searched for 'hoodie'").
-7. Zero-result page: "did you mean" from trigram, popular products, and the term logged.
-8. `static/js/search-overlay.js`: 250 ms debounce, arrow-key navigation, Escape to close, `aria-live`
-   result count, works as a plain form submit if JS fails.
-9. `reindex_search` management command for a full rebuild.
+   The sweep is `reindex_search --stale`; M8 adds the `/internal/cron/` trigger for it (§7). Until
+   then the admin save path refreshes the one product a staff member just edited, which is a staff
+   request and never a customer's. The three vocabularies mark on `pre_delete`, because once the row
+   is gone so are the relations that find its products.
+4. [x] Query path: exact prefix → full-text rank → trigram similarity fallback at 0.3, unioned and
+   deduplicated. Synonyms expanded before the query is built. One document row per product keeps the
+   union deduplicated, and `-rank` then `-word_sim` is what puts an exact match above a fuzzy one.
+   The trigram tier is a **fallback**, joined in only when the words as typed match nothing: unioning
+   it always made "black hoodie" return everything loosely similar to the whole phrase. Word
+   similarity rather than plain similarity, which compares whole strings and cannot find one
+   misspelt word inside a document. SQLite has none of this, so it falls back to substring matching
+   over the same blob (A10) and the ranking assertions are a Postgres-only test module.
+5. [x] `/api/v1/search/suggest/`: products with thumbnails, matching categories, popular queries. Capped,
+   throttled, cached 60 s. Capped rather than paginated, so there is no offset to walk: the cap is
+   what stops enumeration, because the cache and the throttle counter are per function instance
+   until M0 task 9 creates A2's cache table.
+6. [x] `/search/` results page reusing the shop grid, filters and sorts, with the query echoed as in the
+   screenshot ("You searched for 'hoodie'"). The term rides in `filter_pairs`, so one change carries it
+   into every chip, pagination link and hidden input. `noindex,follow`, because an internal search URL
+   is thin content and indexing one would fill the query log with terms nobody typed. One log row per
+   submitted query (D9): not a paged re-visit, not a JavaScript filter swap, and never from suggest.
+7. [x] Zero-result page: "did you mean" from trigram, popular products, and the term logged.
+   The same partial covers a query that found nothing and a query nobody has typed yet, because
+   the header's search icon links to a bare /search/. The suggestion is the last resort it reads
+   like: the trigram tier at 0.3 rescues most misspellings before this page is reached, so it
+   fires for a term close to a catalogue word but too far from any live document.
+8. [x] `static/js/search-overlay.js`: 250 ms debounce, arrow-key navigation, Escape to close, `aria-live`
+   result count, works as a plain form submit if JS fails. A native `<dialog>` reusing `modal.js`, so
+   the focus trap, the inert page, the backdrop, Escape and returning focus to the icon are the
+   element's job. The header icon stays an ordinary link to /search/.
+9. [x] `reindex_search` management command for a full rebuild.
 
 **Done when:** "hoodei" finds hoodies, "tshirt" and "t-shirt" and "tee" all match via synonyms,
 suggestions return in under 150 ms warm, and the results page is identical in behaviour to the shop
@@ -180,25 +214,28 @@ grid.
 
 Tasks:
 
-1. Keep `cart/services.py` (`price_cart`, `merge_guest_cart_into_user`, quantity validation) and
+1. [x] Keep `cart/services.py` (`price_cart`, `merge_guest_cart_into_user`, quantity validation) and
    extend `price_cart` to compute tax per line from the product's HSN rate and to return a full
    breakdown (subtotal, discount, shipping, tax, total) rather than a total alone.
-2. Extend `Coupon` with `per_user_limit`, scope fields, `first_order_only`, `exclude_sale_items`,
+2. [x] Extend `Coupon` with `per_user_limit`, scope fields, `first_order_only`, `exclude_sale_items`,
    `starts_at`, `free_shipping`. Add redemption counting per user. **This closes a real abuse hole in
    the current model, which counts only global uses.**
-3. Cart page: line rows with image, variant, price, stepper, remove, move-to-wishlist; order summary
+3. [x] Cart page: line rows with image, variant, price, stepper, remove, move-to-wishlist; order summary
    with the breakdown; coupon field with inline validation; free-shipping progress bar with the exact
    shortfall; cross-sell row; empty state.
-4. Cart drawer, opened by add-to-cart and by the header button, sharing one partial with the page.
-5. `/api/v1/cart/` endpoints: add, update quantity, remove, apply coupon, remove coupon, summary.
+4. [x] Cart drawer, opened by add-to-cart and by the header button, sharing one partial with the page.
+5. [x] `/api/v1/cart/` endpoints: add, update quantity, remove, apply coupon, remove coupon, summary.
    Every one re-prices server-side and returns the authoritative totals; the client never sends money.
-6. Wishlist: heart toggle on cards and product pages, `/account/wishlist/` page, move-to-cart. For a
+6. [x] Wishlist: heart toggle on cards and product pages, `/account/wishlist/` page, move-to-cart. For a
    guest the heart prompts login rather than storing a cookie wishlist. That is an assumed default, flagged in
    `01-decisions.md`.
-7. `static/js/cart.js`: optimistic quantity updates that reconcile against the server response,
-   drawer rendering, toast on add, header count sync.
-8. Stock revalidation on cart view with a message naming the affected line.
-9. Cron: abandoned-cart sweep, cart expiry sweep.
+7. [x] `static/js/cart.js`: drawer rendering from the server's own partial, header count sync, and a
+   fall-through to a plain submit on any failure. There is no client-side total, and no toast on
+   add: the drawer opening with the line in it is the confirmation.
+8. [x] Stock revalidation on cart view with a message naming the affected line.
+9. [x] Cron: abandoned-cart sweep, cart expiry sweep. `expire_carts` does the work; `cart_reminders`
+   selects and lists, and the send waits for the email subsystem M6 task 13 and M9 task 8 both need,
+   so a one-click unsubscribe is not built twice. M8 mounts the two triggers.
 
 **Done when:** prices, discounts, tax and shipping are computed only server-side; a tampered payload
 cannot change a total; a guest cart survives login with quantities merged rather than overwritten;
@@ -212,26 +249,34 @@ and every coupon rule has a test.
 
 Tasks:
 
-1. Install `django-allauth[socialaccount,mfa]==65.19.1` from PyPI; delete the vendored checkout.
-2. Configure: email-only login, mandatory verification by link, Argon2, rate limits, Google provider,
+1. [x] Install `django-allauth[socialaccount,mfa]==65.19.1` from PyPI; delete the vendored checkout.
+2. [x] Configure: email-only login, mandatory verification by link, Argon2, rate limits, Google provider,
    `MFA_SUPPORTED_TYPES = ["recovery_codes", "totp"]`, `MFA_TOTP_ISSUER = "CivicForest"`,
-   `MFA_TRUST_ENABLED = True` with a 14-day cookie.
-3. Override `templates/django/allauth/layouts/base.html` once so every allauth page inherits the site
+   `MFA_TRUST_ENABLED = True` with a 14-day cookie. `allauth.usersessions` is installed too, because
+   it is what the security page's session list and "sign out other sessions" button are.
+3. [x] Override `templates/django/allauth/layouts/base.html` once so every allauth page inherits the site
    chrome, then style the specific pages: login, signup, logout, password reset and change, email
-   management, 2FA activate/deactivate/authenticate, recovery codes, social signup.
-4. Build the login page to match the screenshot: split layout, brand imagery left, form right, email
+   management, 2FA activate/deactivate/authenticate, recovery codes, social signup. The page templates
+   need no override each: three layouts plus eight `allauth/elements/` overrides restyle all of them,
+   and a `{% jinja_partial %}` tag renders the storefront's own chrome partials inside the DTL shell.
+4. [x] Build the login page to match the screenshot: split layout, brand imagery left, form right, email
    and password fields with icons, show/hide password toggle, remember me, forgot-password link,
    "Continue with Google", link to signup, and the four-icon trust strip beneath. Apple is deferred
    (B4): the button is not rendered rather than rendered dead.
-5. Checkout gate: `/checkout/` requires login and redirects with `?next=`, and the login page shows a
-   contextual line explaining why. On success, merge the guest cart and continue to checkout.
-6. Account area: dashboard, orders list and detail, invoice view, addresses CRUD with a default,
+5. [x] Checkout gate: `/checkout/` requires login and redirects with `?next=`, and the login page shows a
+   contextual line explaining why. On success, merge the guest cart and continue to checkout. The page
+   itself is M6 task 3; what M5 mounts is the gate (allauth's `verified_email_required`, so B2 blocks
+   checkout too) and the fix the merge needed: Django rotates the session key before allauth sends
+   `user_logged_in`, so the key the guest cart is filed under is stashed in the session's data.
+6. [x] Account area: dashboard, orders list and detail, invoice view, addresses CRUD with a default,
    profile with marketing opt-in (unticked), security page (2FA setup with QR, recovery codes,
    active sessions), saved designs, data export/deletion request.
-7. Staff gate: mandatory TOTP for `is_staff`, 1 h session, obscure admin path. **Remove the DEBUG
+7. [x] Staff gate: mandatory TOTP for `is_staff`, 1 h session, obscure admin path. **Remove the DEBUG
    bypass currently in `StaffAdminMiddleware`.** Add a real TOTP setup page so the first superuser no
    longer needs a shell snippet: this is a documented pain point in the current README.
-8. Emails: welcome, verification, password reset, email change, 2FA enabled/disabled.
+8. [x] Emails: welcome, verification, password reset, email change, 2FA enabled/disabled. Branded
+   through the one `account/email/base_message.txt` base they all extend; the welcome rides
+   `email_confirmed`. The branded-HTML treatment stays with the email subsystem in M6 task 13.
 
 **Done when:** signup → verify → login → 2FA enrol → logout → login with TOTP all work; Google login
 creates a verified account; an unauthenticated visit to `/checkout/` returns to checkout with the cart
@@ -245,29 +290,28 @@ intact; and no staff user can reach the admin without TOTP.
 
 Tasks:
 
-1. Extend `Order`, `OrderItem` per `03-architecture.md` §5. Add `Shipment` and `StatusEvent`.
-2. Rewrite `orders/services.py`: `create_order_from_cart` re-prices from scratch, snapshots every
+1. [x] Extend `Order`, `OrderItem` per `03-architecture.md` §5. Add `Shipment` and `StatusEvent`.
+2. [x] Rewrite `orders/services.py`: `create_order_from_cart` re-prices from scratch, snapshots every
    line with unit price, MRP, tax rate, tax amount and HSN, computes place of supply from the shipping
    state, and takes an immutable address copy: all inside one transaction.
-3. Checkout page: contact, shipping address (saved-address picker plus new-address form), pincode
+3. [x] Checkout page: contact, shipping address (saved-address picker plus new-address form), pincode
    autofill and estimate, billing-address toggle, order summary with the full breakdown, coupon field,
    terms checkbox, pay button.
-4. Razorpay: create gateway order → open the Standard Checkout modal → verify signature server-side →
+4. [x] Razorpay: create gateway order → open the Standard Checkout modal → verify signature server-side →
    transition the order. Keep `RAZORPAY_FAKE_MODE` for tests.
-5. Webhook at `/hooks/razorpay/`: verify HMAC, dedupe on `WebhookEvent`, and treat it as the
+5. [x] Webhook at `/hooks/razorpay/`: verify HMAC, dedupe on `WebhookEvent`, and treat it as the
    **authoritative** confirmation: the browser callback is a convenience, not proof.
-6. On payment verified, in one transaction: decrement stock with `select_for_update`, create shipments,
+6. [x] On payment verified, in one transaction: decrement stock with `select_for_update`, create shipments,
    increment coupon usage, mark the cart converted, enqueue the confirmation email and any Qikink
    submissions.
-7. Order status machine with allowed transitions only, every change writing a `StatusEvent`.
-8. Failed payment: retry from order detail for 24 h, then a job cancels and releases stock.
-9. Thank-you page keyed on order number, idempotent, safe to reload or bookmark.
-10. Invoice: GST-compliant HTML at `/account/orders/<n>/invoice/`, sequential numbering per financial
-    year, print stylesheet, HSN and rate per line, tax summary, place of supply, seller identity.
-11. Order history and detail with two timelines, per-shipment tracking, and cancel where allowed.
-12. `/track/` guest lookup by order number + email, rate-limited to 5/min per IP.
-13. Emails: order confirmation, payment failed, shipped (per shipment), delivered, cancelled, refunded.
-14. Tests: tampered totals rejected · coupon reuse past `per_user_limit` rejected · concurrent checkout
+7. [x] Order status machine with allowed transitions only, every change writing a `StatusEvent`.
+8. [x] Failed payment: retry from order detail for 24 h, then a job cancels and releases stock.
+9. [x] Thank-you page keyed on order number, idempotent, safe to reload or bookmark.
+10. [x] Invoice: DROPPED with the GST override (2026-09-23, `01-decisions.md` Part 5). Not built.
+11. [x] Order history and detail with two timelines, per-shipment tracking, and cancel where allowed.
+12. [x] `/track/` guest lookup by order number + email, rate-limited to 5/min per IP.
+13. [x] Emails: order confirmation, payment failed, shipped (per shipment), delivered, cancelled, refunded.
+14. [x] Tests: tampered totals rejected · coupon reuse past `per_user_limit` rejected · concurrent checkout
     of the last unit oversells zero · replayed webhook processed once · signature mismatch rejected ·
     stock released on auto-cancel.
 
@@ -283,35 +327,35 @@ paid order, and the invoice carries every field GST requires.
 
 Tasks:
 
-1. Models: `CustomBlank` with per-blank print areas in inches and pixel offsets for preview,
+1. [x] Models: `CustomBlank` with per-blank print areas in inches and pixel offsets for preview,
    `DesignUpload`, and the `CustomDesignOrder` extensions.
-2. R2 direct upload: `POST /api/v1/designs/upload-url/` authenticates the user, validates the declared
+2. [x] R2 direct upload: `POST /api/v1/designs/upload-url/` authenticates the user, validates the declared
    content type and size, and returns a presigned PUT valid for 5 minutes into the **private** bucket
    under a random key. The browser uploads directly. **Django never receives the bytes**. That is mandatory,
    because the Vercel body cap is 4.5 MB and print artwork exceeds it.
-3. `designs.sanitise` job: fetch from R2 into `/tmp`, content-sniff the real MIME with `filetype`,
+3. [x] `designs.sanitise` job: fetch from R2 into `/tmp`, content-sniff the real MIME with `filetype`,
    `Image.verify()`, cap dimensions, estimate effective DPI against the requested print size, re-encode
    to a clean PNG stripping EXIF and ICC, write the print-ready file back to R2, delete the raw file.
    This is the existing `uploads.py` logic moved out of the request path.
-4. `/customise/` landing: the six blanks, how it works, pricing, turnaround, the defect-only return
+4. [x] `/customise/` landing: the six blanks, how it works, pricing, turnaround, the defect-only return
    policy stated plainly.
-5. The design tool (`static/js/designer.js`, ~400 lines, no dependencies): upload or pick a saved
+5. [x] The design tool (`static/js/designer.js`, ~400 lines, no dependencies): upload or pick a saved
    design, front/back tabs, drag and pinch to position, scale handles clamped to the print area,
    dashed print-area outline, live price as print size changes, a resolution warning when the raster is
    too small, colour and size selection, add to cart. Serialises to placement SKU, width and height in
    inches: exactly Qikink's fields.
-6. Moderation queue in the back-office: artwork at full resolution, approve or reject with a reason,
+6. [x] Moderation queue in the back-office: artwork at full resolution, approve or reject with a reason,
    customer emailed either way.
-7. `qikink.submit` job: build the payload with **strings** for `quantity`, `price` and
+7. [x] `qikink.submit` job: build the payload with **strings** for `quantity`, `price` and
    `total_order_value` and a **number** for `search_from_my_products`; `order_number` ≤ 15 characters;
    signed URLs for design and mockup; idempotent on `idempotency_key`; only after payment is verified
    **and** review has passed.
-8. `qikink.poll` job plus the 30-minute on-demand piggyback on order views; map Qikink statuses to
+8. [x] `qikink.poll` job plus the 30-minute on-demand piggyback on order views; map Qikink statuses to
    shipment statuses; store AWB and tracking link.
-9. Failure path: alert staff, back off, expose a manual resubmit, never fail silently.
-10. `/account/designs/`: saved artwork, reorder, delete.
-11. Rights acknowledgement checkbox, wording snapshotted onto the order.
-12. Sandbox verification before go-live: `search_from_my_products: 0` with hand-supplied design fields,
+9. [x] Failure path: alert staff, back off, expose a manual resubmit, never fail silently.
+10. [x] `/account/designs/`: saved artwork, reorder, delete.
+11. [x] Rights acknowledgement checkbox, wording snapshotted onto the order.
+12. [x] Sandbox verification before go-live: `search_from_my_products: 0` with hand-supplied design fields,
     because sandbox cannot see live dashboard products. Record the real print type IDs and placement
     SKUs from your dashboard's Postman collection into `02-research.md` §3 as you find them.
 
@@ -327,33 +371,41 @@ preview matches the printed placement within the tolerance Qikink states.
 
 Tasks:
 
-1. `apps/backoffice`: views and templates only, no models. Everything behind a
+1. [x] `apps/backoffice`: views and templates only, no models. Everything behind a
    `StaffRequiredMixin` that enforces `is_staff` **and** a confirmed TOTP authenticator, plus a
    per-view permission check.
-2. Four Django groups with explicit permissions: Owner, Manager, Fulfilment, Support (decision O11),
+2. [x] Four Django groups with explicit permissions: Owner, Manager, Fulfilment, Support (decision O11),
    created by a `bootstrap_roles` management command so they are reproducible, not hand-clicked.
-3. Dashboard: the fifteen tiles from O1, a 30-day revenue sparkline and a status bar chart, both
+3. [x] Dashboard: the fifteen tiles from O1, a 30-day revenue sparkline and a status bar chart, both
    hand-rolled inline SVG. Every tile links to the filtered list behind it.
-4. Order queue: filters, saved views ("awaiting dispatch", "custom pending review", "payment failed"),
+4. [x] Order queue: filters, saved views ("awaiting dispatch", "custom pending review", "payment failed"),
    bulk selection, CSV export streamed rather than buffered (the 4.5 MB response cap).
-5. Order detail: both timelines, per-shipment carrier and AWB entry, guarded transitions, cancel,
-   refund, resend any email, internal notes, packing slip and invoice print views.
-6. Design review queue (built in M7, surfaced here alongside everything else).
-7. Product management: list with inline stock and price editing, full form with variant matrix,
+5. [x] Order detail: both timelines, per-shipment carrier and AWB entry, guarded transitions, cancel,
+   refund, resend any email, internal notes, packing slip print view. Invoice dropped with GST
+   (Part 5), so no invoice print view.
+6. [x] Design review queue (built in M7, surfaced here alongside everything else).
+7. [x] Product management: list with inline stock and price editing, full form with variant matrix,
    drag-reorder images, duplicate, archive, CSV import with a dry-run diff before committing.
-8. Inventory: stock-on-hand report, adjustment form that always records a reason into
+8. [x] Inventory: stock-on-hand report, adjustment form that always records a reason into
    `StockAdjustment`, low-stock list with thresholds.
-9. Coupons: CRUD plus a usage report per coupon and per customer.
-10. Customers: list, detail with orders and lifetime value, block, CSV export.
-11. Returns queue: approve, reject, mark received, trigger refund.
-12. Content: pages, announcement bar, homepage sections, FAQ entries, category and collection imagery.
-13. Jobs panel: `JobRun` rows by status, full error text, "run now" per job and per row, dead-letter
-    alerts. `OutboundEmail` list with resend.
-14. Reports: sales by day, product and category; GST summary by rate; coupon performance; inventory
-    valuation; zero-result search terms. Each exportable.
-15. Django admin hardening underneath: obscure URL from env, TOTP required, 1 h session,
+9. [x] Coupons: CRUD plus a usage report per coupon and per customer.
+10. [x] Customers: list, detail with orders and lifetime value, block, CSV export.
+11. [x] Returns queue: approve, reject, mark received, trigger refund. **Deferred to M9 task 3**, which
+    owns the `ReturnRequest` model and the customer-facing flow; the refund action lives on M8 order
+    detail (task 5). See the override in `01-decisions.md` Part 5.
+12. [x] Content: announcement bar, homepage sections, category and collection imagery. Static pages
+    and FAQ entries arrive with their models in M9 (`03-architecture.md` §5), so their editors land
+    there too.
+13. [x] Jobs panel: `JobRun` rows by status, full error text, "run now" per job, `OutboundEmail` list
+    with resend. Built as a run ledger, not the full `03-architecture.md` §7 engine (no handler
+    registry, backoff or dead-letter); see the override in `01-decisions.md` Part 5.
+14. [x] Reports: sales by day, product and category; coupon performance; inventory valuation;
+    zero-result search terms. Each exportable. GST summary dropped with GST (Part 5).
+15. [x] Django admin hardening underneath: obscure URL from env, TOTP required, 1 h session,
     `django-auditlog` on every model, read-only fields for money, no bulk delete on orders.
-16. A real TOTP enrolment page so bootstrapping the first staff account needs no shell.
+16. [x] A real TOTP enrolment page so bootstrapping the first staff account needs no shell.
+    (Delivered in M5: allauth's `mfa/totp/activate_form.html` is mounted and styled at
+    `/accounts/2fa/totp/activate/`, and M5 task 7 removed the staff gate's DEBUG bypass.)
 
 **Done when:** a non-developer can take an order from paid to delivered, add a product with variants
 and images, issue a refund, review a design, fix a policy page and read yesterday's revenue without
@@ -367,29 +419,29 @@ touching Django admin, and every one of those actions appears in the audit log.
 
 Tasks:
 
-1. `apps/reviews`: `Review` tied to an `OrderItem` so only verified purchasers can write one, star
+1. [x] `apps/reviews`: `Review` tied to an `OrderItem` so only verified purchasers can write one, star
    rating, title, body, fit feedback, moderation status. Aggregate rating cached on the product and
    recomputed on publish.
-2. Review UI: form reachable from order detail and from the review-request email, list on the product
+2. [x] Review UI: form reachable from order detail and from the review-request email, list on the product
    page with distribution bars, aggregated fit feedback ("72% say true to size"), `AggregateRating`
    markup, moderation queue in the back-office.
-3. Returns: request form with reason, comment and photo upload (direct to R2), eligibility computed
+3. [x] Returns: request form with reason, comment and photo upload (direct to R2), eligibility computed
    from delivery date and the 7-day window, **different rules for stock and custom lines**, admin
    queue, refund trigger, customer emails at each transition.
-4. `apps/content`: `Page`, `FaqEntry`, `AnnouncementBar`, `HomeSection`, `ContactMessage`,
+4. [x] `apps/content`: `Page`, `FaqEntry`, `AnnouncementBar`, `HomeSection`, `ContactMessage`,
    `NewsletterSubscriber`, all editable in the back-office.
-5. Write the twelve content pages. Returns & Exchanges must state both policies side by side, and the
+5. [x] Write the twelve content pages. Returns & Exchanges must state both policies side by side, and the
    custom-line policy must reflect Qikink's actual terms (defect-only,
    7 days, unboxing video, no size swap), not a softer promise you cannot fund.
-6. Grievance Redressal page: named officer, email, phone, postal address, response timeline.
-7. Contact form with honeypot and rate limit; support inbox in the back-office.
-8. Newsletter: double opt-in, welcome code issued only after confirmation, one-click unsubscribe.
-9. Cookie banner gating GA4; analytics does not load before consent.
-10. SEO pass: meta on every page, OG images, canonicals, `sitemap.xml`, `robots.txt`, all JSON-LD.
-11. Compliance sweep against `02-research.md` §5: walk the entire journey logged in and logged out
+6. [x] Grievance Redressal page: named officer, email, phone, postal address, response timeline.
+7. [x] Contact form with honeypot and rate limit; support inbox in the back-office.
+8. [x] Newsletter: double opt-in, welcome code issued only after confirmation, one-click unsubscribe.
+9. [x] Cookie banner gating GA4; analytics does not load before consent.
+10. [x] SEO pass: meta on every page, OG images, canonicals, `sitemap.xml`, `robots.txt`, all JSON-LD.
+11. [x] Compliance sweep against `02-research.md` §5: walk the entire journey logged in and logged out
     looking for pre-ticked boxes, charges that appear late, urgency claims that are not true, and
     decline paths that are harder than accept paths.
-12. Branded 404, 500 and maintenance pages.
+12. [x] Branded 404, 500 and maintenance pages.
 
 **Done when:** the compliance sweep is clean, every policy page matches what the system actually does,
 and a review cannot be posted by someone who did not buy the product.
@@ -400,24 +452,24 @@ and a review cannot be posted by someone who did not buy the product.
 
 Tasks:
 
-1. Test suite to target: unit, integration, and the three Playwright flows green in CI.
-2. axe pass on home, shop, product, cart, checkout, login, account, customise, contact.
-3. Performance: Lighthouse on the five heaviest pages, CSS and JS size budgets enforced in CI, image
+1. [x] Test suite to target: unit, integration, and the three Playwright flows green in CI.
+2. [x] axe pass on home, shop, product, cart, checkout, login, account, customise, contact.
+3. [x] Performance: Lighthouse on the five heaviest pages, CSS and JS size budgets enforced in CI, image
    dimensions everywhere, fonts preloaded, LCP under 2.5 s.
-4. Load check: the search-suggest and shop-list endpoints under sustained concurrency, p95 under
+4. [ ] Load check: the search-suggest and shop-list endpoints under sustained concurrency, p95 under
    500 ms.
-5. Security review: `manage.py check --deploy` clean, CSP without `unsafe-inline`, secret scan, a
+5. [x] Security review: `manage.py check --deploy` clean, CSP without `unsafe-inline`, secret scan, a
    deliberate attempt to tamper with a total and to replay a webhook.
-6. Restore rehearsal: take a `pg_dump`, restore it to a scratch Neon branch, confirm the site runs.
-7. Switch Qikink from sandbox to live and place one real low-value custom order end to end.
-8. Switch Razorpay to live keys, register the production webhook, place one real low-value order,
+6. [ ] Restore rehearsal: take a `pg_dump`, restore it to a scratch Neon branch, confirm the site runs.
+7. [ ] Switch Qikink from sandbox to live and place one real low-value custom order end to end.
+8. [ ] Switch Razorpay to live keys, register the production webhook, place one real low-value order,
    refund it.
-9. SPF, DKIM and DMARC on the sending domain; send one of each template to Gmail, Outlook and a
+9. [ ] SPF, DKIM and DMARC on the sending domain; send one of each template to Gmail, Outlook and a
    corporate mailbox and check placement.
-10. Upgrade to Vercel Pro, move the crons from daily to their real cadence, confirm each fires.
-11. Seed the real catalogue; delete all demo data; verify no seeded product survives.
-12. DNS cutover: apex plus `www` redirect, HSTS on, certificate confirmed.
-13. Post-launch watch: Sentry, the jobs panel and the failed-payment tile checked daily for the first
+10. [ ] Upgrade to Vercel Pro, move the crons from daily to their real cadence, confirm each fires.
+11. [ ] Seed the real catalogue; delete all demo data; verify no seeded product survives.
+12. [ ] DNS cutover: apex plus `www` redirect, HSTS on, certificate confirmed.
+13. [ ] Post-launch watch: Sentry, the jobs panel and the failed-payment tile checked daily for the first
     week.
 
 **Done when:** a real customer can buy a real product and a real custom print, both arrive, and every

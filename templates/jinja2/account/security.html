@@ -1,0 +1,30 @@
+{% extends "account/base.html" %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/card.html" import card %}
+
+{% block title %}Security | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>Security</h1>
+  {% call card("Password") %}
+    <p>{{ "A password is set." if has_password else "This account signs in through a connected provider." }}</p>
+    {{ button("Manage password", href="/accounts/password/change/") }}
+  {% endcall %}
+  {% call card("Email addresses") %}
+    <p>{{ email_count }} saved, {{ unverified_count }} awaiting verification.</p>
+    {{ button("Manage email", href="/accounts/email/") }}
+  {% endcall %}
+  {% call card("Authenticator app") %}
+    <p>{{ "Two-factor authentication is active." if mfa_enabled else "Two-factor authentication is not active." }}</p>
+    <p>{{ recovery_code_count }} recovery code{{ "" if recovery_code_count == 1 else "s" }} available.</p>
+    {{ button("Manage two-factor authentication", href="/accounts/2fa/") }}
+  {% endcall %}
+  {% call card("Connected accounts") %}
+    <p>{{ social_count }} connected provider account{{ "" if social_count == 1 else "s" }}.</p>
+    {{ button("Manage connected accounts", href="/accounts/3rdparty/") }}
+  {% endcall %}
+  {% call card("Active sessions") %}
+    <p>{{ session_count }} active session{{ "" if session_count == 1 else "s" }}.</p>
+    {{ button("Manage sessions", href="/accounts/sessions/") }}
+  {% endcall %}
+{% endblock %}

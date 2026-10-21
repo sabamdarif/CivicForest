@@ -1,0 +1,45 @@
+{# The product accordions (E7): description, fabric and care, shipping and returns, size guide.
+
+   The size chart lives in the accordion rather than the modal C11 first described: a <dialog>
+   cannot be opened without JavaScript and P6 outranks it. One panel open at a time comes from
+   the shared name, with no script involved. #}
+{% from "_macros/accordion.html" import accordion %}
+
+<div class="accordions">
+  {% call accordion("Description", group="product", open=True) %}
+    {%- if product.description %}<p>{{ product.description }}</p>{% endif %}
+    {%- if product.fit_notes %}<p>{{ product.fit_notes }}</p>{% endif %}
+    {%- if product.model_note %}<p>{{ product.model_note }}</p>{% endif %}
+  {% endcall %}
+
+  {% call accordion("Fabric and care", group="product") %}
+    <dl class="spec">
+      {%- if product.material %}
+        <div><dt>Fabric</dt><dd>{{ product.material.name }}</dd></div>
+      {%- endif %}
+      {%- if product.gsm %}
+        <div><dt>Weight</dt><dd>{{ product.gsm }} GSM</dd></div>
+      {%- endif %}
+      <div><dt>Country of origin</dt><dd>{{ product.country_of_origin }}</dd></div>
+    </dl>
+    {%- if product.care_instructions %}<p>{{ product.care_instructions }}</p>{% endif %}
+  {% endcall %}
+
+  {% call accordion("Shipping and returns", group="product") %}
+    <p>
+      Dispatched in {{ promise.dispatch }} business days and delivered in
+      {{ promise.delivery }} business days across India. Shipping is a flat
+      {{ promise.flat|rupees(0) }}, free on orders above {{ promise.free_shipping|rupees(0) }}.
+    </p>
+    <p>
+      Returns are accepted within {{ promise.returns }} days of delivery, unworn and with tags
+      on. Prepaid orders only: there is no cash on delivery.
+    </p>
+  {% endcall %}
+
+  {%- if size_chart %}
+    {% call accordion("Size guide", group="product", id="size-guide") %}
+      {% include "product/_size_chart.html" %}
+    {% endcall %}
+  {%- endif %}
+</div>

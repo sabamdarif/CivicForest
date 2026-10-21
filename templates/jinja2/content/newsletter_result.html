@@ -1,0 +1,16 @@
+{# Newsletter confirm / unsubscribe landing (M9.8, J5). One page for both, driven by the view:
+   the heading and body are set per outcome, invalid links included. #}
+{% extends "base.html" %}
+
+{% block title %}{{ heading }} | CivicForest Clothing{% endblock %}
+{% block description %}CivicForest newsletter.{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <article class="prose">
+      <h1>{{ heading }}</h1>
+      <p>{{ body }}</p>
+      <p><a href="/">Back to the store</a></p>
+    </article>
+  </div>
+{% endblock %}

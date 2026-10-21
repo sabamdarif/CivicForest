@@ -1,0 +1,11 @@
+{% load allauth %}
+{# One row of the 2FA overview: what is on, what is off, and the actions for it. #}
+<section class="card account-panel">
+  <h2 class="card__title">{% slot title %}{% endslot %}</h2>
+  {% slot body %}{% endslot %}
+  {% if slots.actions %}
+    <div class="account-panel__actions">
+      {% for action in slots.actions %}{{ action }}{% endfor %}
+    </div>
+  {% endif %}
+</section>

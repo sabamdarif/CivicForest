@@ -1,0 +1,50 @@
+{# Back-office returns queue (M9.3, O9): status filter tabs, one row per request; each links to
+   the detail where it is approved, rejected, marked received and refunded. #}
+{% extends "base.html" %}
+{% from "_macros/pagination.html" import pagination %}
+
+{% block title %}Returns, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Returns</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <nav class="bo-tabs" aria-label="Filters">
+    <a class="bo-tab {{ 'bo-tab--on' if not status else '' }}" href="?">Requested</a>
+    {% for value, label in status_choices %}
+      <a class="bo-tab {{ 'bo-tab--on' if status == value else '' }}" href="?status={{ value }}">{{ label }}</a>
+    {% endfor %}
+    <a class="bo-tab {{ 'bo-tab--on' if status == 'all' else '' }}" href="?status=all">All</a>
+  </nav>
+
+  <table class="bo-table">
+    <thead>
+      <tr><th>Order</th><th>Reason</th><th>Items</th><th>Status</th><th>Refund</th><th>Requested</th></tr>
+    </thead>
+    <tbody>
+      {% for r in returns %}
+        <tr>
+          <td><a href="{{ url('backoffice:return_detail', kwargs={'pk': r.id}) }}">{{ r.order.order_number }}</a></td>
+          <td>{{ r.get_reason_display() }}</td>
+          <td>{{ r.items.count() }}</td>
+          <td><span class="bo-status">{{ r.get_status_display() }}</span></td>
+          <td>{{ r.refund_amount|rupees if r.refund_amount else "" }}</td>
+          <td>{{ r.created_at.date() }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="bo-empty">No returns here.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {{ pagination(returns.number, returns.paginator.num_pages) }}
+</div>
+{% endblock %}

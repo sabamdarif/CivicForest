@@ -1,0 +1,17 @@
+{# trail: (label, href) pairs for the ancestors. current is plain text, because the page you
+   are on is not a link. Emit the BreadcrumbList markup alongside it in M2 (L4). #}
+{% from "_macros/icon.html" import icon %}
+
+{% macro breadcrumbs(trail, current) -%}
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol class="breadcrumbs__list">
+      {%- for label, href in trail %}
+        <li class="breadcrumbs__item">
+          <a href="{{ href }}">{{ label }}</a>
+          <span class="breadcrumbs__sep" aria-hidden="true">{{ icon("chevron-right", 14) }}</span>
+        </li>
+      {%- endfor %}
+      <li class="breadcrumbs__item" aria-current="page">{{ current }}</li>
+    </ol>
+  </nav>
+{%- endmacro %}

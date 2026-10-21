@@ -1,0 +1,38 @@
+{# Back-office coupon create/edit (M8.9). The field loop renders selects, checkboxes and
+   date/time inputs without the bound() macro's text-input assumption. #}
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if coupon else 'New' }} coupon, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">{{ coupon.code if coupon else 'New coupon' }}</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <form method="post"
+        action="{{ url('backoffice:coupon_edit', kwargs={'pk': coupon.id}) if coupon else url('backoffice:coupon_new') }}">
+    {{ csrf_input }}
+    <section class="bo-card">
+      {% for f in form %}
+        <div class="field">
+          <label class="field__label" for="{{ f.id_for_label }}">
+            {{ f.label }}{% if f.field.required %} <span class="field__required" aria-hidden="true">*</span>{% endif %}
+          </label>
+          {{ f }}
+          {% if f.help_text %}<p class="field__hint">{{ f.help_text }}</p>{% endif %}
+          {% if f.errors %}<p class="field__error">{{ f.errors }}</p>{% endif %}
+        </div>
+      {% endfor %}
+    </section>
+    <button type="submit" class="btn btn--primary">Save coupon</button>
+    <a class="btn btn--ghost" href="{{ url('backoffice:coupons') }}">Back to coupons</a>
+  </form>
+</div>
+{% endblock %}

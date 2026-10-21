@@ -1,0 +1,19 @@
+{# Cookie consent banner (M9.9, L5). Rendered only when a GA4 id is configured, because with no
+   analytics there is nothing to consent to. Hidden until cookie-consent.js finds no stored choice,
+   so a no-JS visitor sees no banner and gets no analytics either: consent is a precondition for
+   loading gtag, never the other way round. Accept and Decline are the same button weight, so the
+   decline path is no harder than accept (no dark pattern). #}
+{% if google_analytics_id() %}
+  <section class="cookie-banner" data-cookie-banner data-ga-id="{{ google_analytics_id() }}"
+           aria-label="Cookie consent" hidden>
+    <p class="cookie-banner__text">
+      We use analytics cookies to understand how the site is used. You can accept or decline.
+      See our <a href="/privacy/">privacy policy</a>.
+    </p>
+    <div class="cookie-banner__actions">
+      <button class="btn btn--secondary" type="button" data-cookie-decline>Decline</button>
+      <button class="btn btn--secondary" type="button" data-cookie-accept>Accept</button>
+    </div>
+  </section>
+  <script type="module" src="{{ static('js/cookie-consent.js') }}"></script>
+{% endif %}

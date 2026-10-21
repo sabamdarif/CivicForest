@@ -1,0 +1,31 @@
+{% extends "account/base.html" %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/card.html" import card %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Your data | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>Your data</h1>
+  {{ notices(request) }}
+  {% call card("Download a copy") %}
+    <p>The JSON export includes your profile and consent, addresses, cart, wishlist, orders, payments, custom-design metadata, account requests, email addresses, connected-account profile metadata, safe authenticator metadata, and active-session metadata.</p>
+    <p>It omits reusable credentials: password hashes, session keys, OAuth tokens and secrets, TOTP secrets, recovery-code values, payment signatures, and internal idempotency keys.</p>
+    <form method="post" action="/account/data/export/">
+      {{ csrf_input }}
+      {{ button("Download my data", type="submit") }}
+    </form>
+  {% endcall %}
+  {% call card("Request erasure") %}
+    <p>This starts a reviewed request. It does not immediately delete your account.</p>
+    <p>Order, payment, fulfilment, and design records may be retained where accounting, legal obligations, fraud prevention, or disputes require them.</p>
+    {%- if open_erasure %}
+      <p><strong>Your request from {{ open_erasure.created_at.strftime("%d %B %Y") }} is awaiting review.</strong></p>
+    {%- else %}
+      <form method="post" action="/account/data/erasure/">
+        {{ csrf_input }}
+        {{ button("Submit erasure request", variant="danger", type="submit") }}
+      </form>
+    {%- endif %}
+  {% endcall %}
+{% endblock %}

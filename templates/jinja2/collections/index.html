@@ -1,0 +1,59 @@
+{# The collections index (C7): each curated group with its own copy, imagery and count.
+
+   The count is real, so a collection nobody has put anything in says so rather than promising
+   a page of products that is not there. #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/empty.html" import empty %}
+{% from "_macros/icon.html" import icon %}
+
+{% block title %}Collections | CivicForest Clothing{% endblock %}
+{% block description %}Timeless styles and premium fabrics, grouped into collections crafted for every version of you.{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/shop.css') }}">{% endblock %}
+
+{% block content %}
+  <section class="collection-hero on-dark">
+    <div class="container">
+      {{ breadcrumbs(trail, current) }}
+      <h1>Our collections</h1>
+      <p class="divider" aria-hidden="true">{{ icon("leaf", 16) }}</p>
+      <p>Timeless styles. Premium fabrics. Collections crafted for every version of you.</p>
+    </div>
+  </section>
+
+  <div class="container band">
+    {%- if collections %}
+      <ul class="collections-grid grid grid--auto" style="--col-min: 24rem">
+        {%- for collection in collections %}
+          <li>
+            <article class="collection-card">
+              {%- if collection.hero_image %}
+                <img class="collection-card__art" src="{{ collection.hero_image.url }}" alt=""
+                  width="1200" height="800" loading="{{ 'eager' if loop.index0 < 2 else 'lazy' }}"
+                  sizes="(min-width: 64rem) 46vw, 92vw">
+              {%- endif %}
+              <div class="collection-card__copy">
+                {%- if collection.tagline %}<p class="eyebrow">{{ collection.tagline }}</p>{% endif %}
+                <h2 class="collection-card__title">{{ collection.name }}</h2>
+                <p class="divider" aria-hidden="true">{{ icon("leaf", 16) }}</p>
+                {%- if collection.description %}<p>{{ collection.description }}</p>{% endif %}
+                <p class="collection-card__count">
+                  {{ collection.product_count }} product{{ "" if collection.product_count == 1 else "s" }}
+                </p>
+                {{ button("Shop " ~ collection.name, size="sm", href=collection.get_absolute_url(),
+                          icon_end="arrow-right") }}
+              </div>
+            </article>
+          </li>
+        {%- endfor %}
+      </ul>
+    {%- else %}
+      {% call empty("No collections yet", "The shop is still the place to browse everything.", icon_name="leaf") %}
+        <a class="btn btn--secondary" href="/shop/"><span>Shop all products</span></a>
+      {% endcall %}
+    {%- endif %}
+  </div>
+
+  {% include "_partials/trust_strip.html" %}
+{% endblock %}

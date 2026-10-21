@@ -1,0 +1,12 @@
+{# An empty state says what is missing and offers the way out of it. Use {% call %} for the
+   action, and say nothing that implies an error when nothing has gone wrong. #}
+{% from "_macros/icon.html" import icon %}
+
+{% macro empty(title, body="", icon_name="cart") -%}
+  <div class="empty">
+    <span class="empty__icon">{{ icon(icon_name, 48) }}</span>
+    <h2 class="empty__title">{{ title }}</h2>
+    {%- if body %}<p>{{ body }}</p>{% endif %}
+    {%- if caller is defined %}<p>{{ caller() }}</p>{% endif %}
+  </div>
+{%- endmacro %}

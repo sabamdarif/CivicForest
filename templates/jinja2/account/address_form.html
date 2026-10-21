@@ -1,0 +1,17 @@
+{% extends "account/base.html" %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/field.html" import bound %}
+
+{% block title %}{{ "Edit" if editing else "Add" }} address | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>{{ "Edit" if editing else "Add" }} address</h1>
+  <form class="auth-form" method="post">
+    {{ csrf_input }}
+    {%- for field in form %}{{ bound(field) }}{% endfor %}
+    <div class="account-panel__actions">
+      {{ button("Save address", type="submit") }}
+      {{ button("Cancel", variant="secondary", href="/account/addresses/") }}
+    </div>
+  </form>
+{% endblock %}

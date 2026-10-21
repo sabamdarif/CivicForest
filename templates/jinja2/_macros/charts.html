@@ -1,0 +1,42 @@
+{# Hand-rolled inline SVG charts for the back-office (O2): no charting library.
+   `sparkline` plots one 30-point revenue series; `bar_chart` plots orders by status. #}
+
+{% macro sparkline(series, width=680, height=120) %}
+{% set values = series|map(attribute='revenue')|list %}
+{% set peak = values|max %}
+{% set peak = peak if peak and peak > 0 else 1 %}
+{% set step = (width / (series|length - 1)) if series|length > 1 else width %}
+<svg class="bo-chart bo-chart--spark" viewBox="0 0 {{ width }} {{ height }}"
+     preserveAspectRatio="none" role="img"
+     aria-label="Revenue over the last 30 days">
+  <polyline class="bo-chart__line" fill="none" points="
+    {%- for point in series -%}
+      {{ (loop.index0 * step)|round(1) }},{{ (height - 4 - (point.revenue / peak) * (height - 8))|round(1) }}{{ " " }}
+    {%- endfor -%}
+  "/>
+</svg>
+{% endmacro %}
+
+{% macro bar_chart(pipeline, width=680, height=170) %}
+{% set counts = pipeline|map(attribute='count')|list %}
+{% set peak = counts|max %}
+{% set peak = peak if peak and peak > 0 else 1 %}
+{% set n = pipeline|length %}
+{% set gap = 8 %}
+{% set bw = (width - gap * (n - 1)) / n %}
+<svg class="bo-chart bo-chart--bars" viewBox="0 0 {{ width }} {{ height }}" role="img"
+     aria-label="Orders by status">
+  {% for bar in pipeline %}
+    {% set bh = (bar.count / peak) * (height - 34) %}
+    {% set x = loop.index0 * (bw + gap) %}
+    <rect class="bo-chart__col" x="{{ x|round(1) }}" y="{{ (height - 20 - bh)|round(1) }}"
+          width="{{ bw|round(1) }}" height="{{ bh|round(1) }}" rx="2">
+      <title>{{ bar.label }}: {{ bar.count }}</title>
+    </rect>
+    <text class="bo-chart__count" x="{{ (x + bw / 2)|round(1) }}"
+          y="{{ (height - 24 - bh)|round(1) }}" text-anchor="middle">{{ bar.count }}</text>
+    <text class="bo-chart__tick" x="{{ (x + bw / 2)|round(1) }}" y="{{ height - 5 }}"
+          text-anchor="middle">{{ bar.label[:4] }}</text>
+  {% endfor %}
+</svg>
+{% endmacro %}

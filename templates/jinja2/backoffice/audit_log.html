@@ -1,0 +1,34 @@
+{# Back-office audit log (M8.15, O12): recent django-auditlog entries, who changed what and when.
+   Read-only; Owner-gated. #}
+{% extends "base.html" %}
+{% from "_macros/pagination.html" import pagination %}
+
+{% block title %}Audit log, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Audit log</h1>
+
+  <table class="bo-table">
+    <thead>
+      <tr><th>When</th><th>Who</th><th>Action</th><th>Type</th><th>Object</th></tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+        <tr>
+          <td>{{ e.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ e.actor.email if e.actor else 'system' }}</td>
+          <td>{{ e.get_action_display() }}</td>
+          <td>{{ e.content_type.model }}</td>
+          <td>{{ e.object_repr }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="bo-empty">No audit entries yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {{ pagination(entries.number, entries.paginator.num_pages, '') }}
+</div>
+{% endblock %}

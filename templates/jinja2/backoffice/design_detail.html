@@ -1,0 +1,86 @@
+{# Back-office design detail (M8.6): full-resolution art through a short-lived signed R2 GET,
+   the artwork's metadata, the bound custom lines with their Qikink state, and the guarded
+   approve/reject/resubmit forms. Each form shows only to a user holding its permission. #}
+{% extends "base.html" %}
+
+{% block title %}Design {{ design.id }}, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% macro action_form(design, action) %}
+  <form method="post" action="{{ url('backoffice:design_action', kwargs={'pk': design.id}) }}">
+    {{ csrf_input }}<input type="hidden" name="action" value="{{ action }}">{{ caller() }}
+  </form>
+{% endmacro %}
+
+{% block content %}
+<div class="container bo">
+  <p><a href="{{ url('backoffice:designs') }}">&larr; Design review</a></p>
+  <h1 class="bo__title">Design <span class="bo-status">{{ design.get_review_status_display() }}</span></h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="bo-panels">
+    <section class="bo-card">
+      <h2 class="bo-card__title">Artwork</h2>
+      {% if print_link %}
+        <img class="bo-artwork" src="{{ print_link }}" alt="Print-ready artwork">
+        <p><a class="btn btn--ghost btn--sm" href="{{ print_link }}" download target="_blank" rel="noopener">Download print-ready file</a></p>
+      {% else %}
+        <p class="bo-empty">No print-ready file yet (status: {{ design.get_status_display() }}).</p>
+      {% endif %}
+    </section>
+
+    <section class="bo-card">
+      <h2 class="bo-card__title">Details</h2>
+      <ul class="bo-list">
+        <li><span>Customer</span><span class="bo-list__num">{{ design.user.email if design.user else 'guest' }}</span></li>
+        <li><span>Dimensions</span><span class="bo-list__num">{{ design.width_px }}&times;{{ design.height_px }} px</span></li>
+        <li><span>DPI estimate</span><span class="bo-list__num">{{ design.dpi_estimate }}</span></li>
+        <li><span>Status</span><span class="bo-list__num">{{ design.get_status_display() }}</span></li>
+      </ul>
+      {% if design.review_reason %}<p>Reason: {{ design.review_reason }}</p>{% endif %}
+    </section>
+  </div>
+
+  <section class="bo-card">
+    <h2 class="bo-card__title">Custom lines</h2>
+    {% for c in bound_orders %}
+      <div class="bo-shipment">
+        <p>{{ c.idempotency_key }}
+          {%- if c.order %} &middot; order {{ c.order.order_number }}{% endif %}
+          &middot; {{ c.get_submit_status_display() }}
+          {% if c.qikink_status %}&middot; Qikink: {{ c.qikink_status }}{% endif %}
+          {% if c.tracking_awb %}&middot; AWB {{ c.tracking_awb }}{% endif %}</p>
+        {% if c.last_error %}<p class="bo-message bo-message--error">{{ c.last_error }}</p>{% endif %}
+      </div>
+    {% else %}
+      <p class="bo-empty">Not yet bound to an order.</p>
+    {% endfor %}
+    {% if request.user.has_perm('custom_orders.change_customdesignorder') and bound_orders %}
+      {% call action_form(design, 'resubmit') %}
+        <button type="submit" class="btn btn--ghost btn--sm">Resubmit to Qikink</button>
+      {% endcall %}
+    {% endif %}
+  </section>
+
+  {% if request.user.has_perm('custom_orders.change_designupload') %}
+  <section class="bo-card">
+    <h2 class="bo-card__title">Decision</h2>
+    <div class="bo-actions">
+      {% call action_form(design, 'approve') %}
+        <button type="submit" class="btn btn--primary btn--sm">Approve</button>
+      {% endcall %}
+      {% call action_form(design, 'reject') %}
+        <label>Reason <input name="reason" maxlength="200"></label>
+        <button type="submit" class="btn btn--ghost btn--sm">Reject</button>
+      {% endcall %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

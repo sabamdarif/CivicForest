@@ -1,0 +1,19 @@
+{# The product grid, and the only place a Product is mapped onto the product_card macro.
+   Included wherever products are listed, so the home row, the shop grid, a collection page
+   and the related row cannot drift apart.
+
+   Context: products, plus optional col_min (the grid's track floor), card_sizes (the srcset
+   sizes attribute this layout renders at) and eager (how many images skip lazy loading,
+   for the ones above the fold). #}
+{% from "_macros/card.html" import product_card with context %}
+
+<ul class="product-grid grid grid--auto" style="--col-min: {{ col_min|default('15rem') }}">
+  {%- for product in products %}
+    {%- set data = product|card_data %}
+    {%- set loading = "eager" if loop.index0 < eager|default(0) else "lazy" %}
+    <li>
+      {{ product_card(sizes=card_sizes|default(""), loading=loading,
+                      wishlist_action="/account/wishlist/", wishlist_value=product.pk, **data) }}
+    </li>
+  {%- endfor %}
+</ul>

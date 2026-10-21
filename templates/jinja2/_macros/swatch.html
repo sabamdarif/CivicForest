@@ -1,0 +1,17 @@
+{# A colour swatch. The label is the accessible name, because colour alone is not one:
+   as_button makes it a real control for the variant picker. #}
+{% from "_macros/util.html" import attr %}
+
+{% macro swatch(hex, label, selected=False, out_of_stock=False, size="", as_button=False,
+                attrs={}) -%}
+  {%- set css = "swatch" ~ (" swatch--" ~ size if size else "") ~ (" swatch--out" if out_of_stock else "") -%}
+  {%- if as_button -%}
+    <button class="{{ css }}" type="button" style="background: {{ hex }}"
+      aria-pressed="{{ 'true' if selected else 'false' }}"
+      {%- if out_of_stock %} disabled{% endif %}
+      aria-label="{{ label }}{{ ', out of stock' if out_of_stock else '' }}"{{ attr(attrs) }}></button>
+  {%- else -%}
+    <span class="{{ css }}{{ ' swatch--selected' if selected else '' }}"
+      style="background: {{ hex }}" title="{{ label }}"></span>
+  {%- endif -%}
+{%- endmacro %}

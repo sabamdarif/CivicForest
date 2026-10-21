@@ -88,7 +88,7 @@ change until the milestone that builds them begins.
 | C8 | Category depth | Two levels | `parent` FK already nullable |
 | C9 | Badges | `New` auto from `created_at` window, `Sale` auto from the MRP gap, `Bestseller` manual | Matches the BESTSELLER / NEW / −15% badges in the shop screenshot |
 | C10 | Product fields | description · fabric/material · care instructions · fit notes · model height and size worn · GSM · sleeve/neck type · size chart · **country of origin** · HSN code · tax rate · weight · dimensions | Country of origin is legally required, not optional |
-| C11 | Size chart | Per-category table, admin-editable, opened in a modal | One chart maintained per garment type |
+| C11 | Size chart | Per-category table, admin-editable, in the product page's size-guide accordion | One chart maintained per garment type. E7 already lists size guide as an accordion, and a `<dialog>` cannot be opened without JavaScript, which P6 forbids relying on |
 | C12 | Images | Product-level and variant-level, ordered, alt text required, max 8 per product, hover zoom + lightbox. No video | Colour swatch selection swaps the gallery |
 | C13 | Related products | Same-category automatic, with a manual override list | Powers "You may also like" in the cart screenshot |
 | C14 | Bundles / sets | Out | |
@@ -113,6 +113,7 @@ change until the milestone that builds them begins.
 | D12 | Compare | Out | |
 | D13 | Navigation | Simple nav, dropdown on SHOP only, plus the CUSTOMISE item | Six items; no mega menu at this catalogue size |
 | D14 | Announcement bar | Admin-editable text, link and on/off toggle | Currently "FREE SHIPPING ON ALL ORDERS ABOVE ₹999" |
+| D15 | What search matches | Product name, then category and collections, then tags, material and **variant colours**, then the description at the lowest weight | "black hoodie" is an ordinary query and a colour exists only on a variant. Sizes are excluded: `M` and `L` as search tokens are noise. Prefix matching, synonyms and a trigram fallback all read this one document (decision 6) |
 
 ### E: Product page
 
@@ -202,8 +203,8 @@ change until the milestone that builds them begins.
 
 | ID | Decision | Chosen | Note |
 |---|---|---|---|
-| J1 | Coupon types | Percentage · flat amount · free shipping | No BOGO, no tiered |
-| J2 | Coupon rules | min order · max total uses · **per-user limit** · start and end date · category or product scope · first-order-only · exclude sale items | The per-user limit is new and closes a real abuse hole |
+| J1 | Coupon types | Percentage · flat amount · free shipping | No BOGO, no tiered. Free shipping is a flag on a percentage or flat coupon (§5's `free_shipping`) rather than a third exclusive type, so one code can take an amount off *and* waive the fee |
+| J2 | Coupon rules | min order · max total uses · **per-user limit** · start and end date · category or product scope · first-order-only · exclude sale items | The per-user limit is new and closes a real abuse hole. A use is a **paid order**, recorded as a `cart.CouponRedemption` row, so applying a code and walking away never spends one. A scoped category covers its child categories, and "on sale" is whatever `price_display` calls a genuine discount |
 | J3 | Automatic promotions without a code | Out | |
 | J4 | Scheduled sale pricing | Per variant, with start and end datetimes | Drives the `Sale` badge and the strike-through |
 | J5 | Newsletter + welcome code | In, **double opt-in**, checkbox unticked, one-click unsubscribe | The footer already promises 10% off the first order |
@@ -290,7 +291,7 @@ change until the milestone that builds them begins.
 | P5 | JS-driven interactions | cart drawer · search overlay · filters · gallery zoom · variant picker · accordions · mobile nav · size-chart modal · design tool · pincode check · toasts · quantity steppers |
 | P6 | No-JS baseline | Browse, filter, sort, paginate, add to cart and check out **all work without JavaScript**, forms post normally and re-render | The design tool is the one exception and says so |
 | P7 | Icons | One inline SVG sprite | |
-| P8 | Images | `srcset` with three widths, `loading="lazy"` below the fold, AVIF and WebP with JPEG fallback, explicit dimensions to prevent layout shift | |
+| P8 | Images | `srcset` with three widths, `loading="lazy"` below the fold, WebP, explicit dimensions to prevent layout shift | WebP only, no AVIF and no JPEG fallback: WebP has been universal since 2020, so nine derivatives per image would triple storage and upload time for nothing. Never upscaled, so a narrow original is offered at fewer widths |
 | P9 | Motion | Subtle, 150 ms, honours `prefers-reduced-motion` | |
 | P10 | Dark mode toggle | Out | |
 | P11 | Performance budget | LCP under 2.5 s on a throttled 4G profile, CLS under 0.1, under 50 KB JS and 60 KB CSS per page | Enforced by a check in CI |
@@ -349,6 +350,80 @@ multi-warehouse stock · returns pickup scheduling · automated fraud scoring ·
 a CRM integration.
 
 Anything on this list can be added later; none of it is architecturally blocked by the choices above.
+
+## Part 5: Overrides
+
+Decisions changed after the register was first written. Recorded here so the original entry and the
+change both survive.
+
+**2026-09-23, GST dropped (overrides C3 and H8).** The store will not be GST-registered for now, so
+prices carry no tax: none is added or extracted, and the total is subtotal minus discount plus
+shipping. Removed with this decision: the GST invoice page (M6 task 10, not built), the order-level
+tax snapshot, the tax computation in `cart/services.py`, `Product.hsn_code` and `Product.tax_rate`
+(migration drops the columns), and every "prices include GST" line in the storefront. `country_of_origin`
+stays (that is Consumer Protection, not GST).
+
+Risk accepted knowingly: selling through an e-commerce channel in India requires GST registration
+regardless of turnover, and a tax invoice must carry HSN, rate and place of supply
+(`02-research.md` §5). Shipping without these is non-compliant. Reversing this means re-registering,
+re-adding the per-product HSN and rate, restoring the tax extraction, and building the invoice; the
+pricing is tax-exclusive now, so re-introducing tax would change customer-facing totals.
 The two that cost measurable revenue, guest checkout and COD, are called out again in
 `02-research.md` §6 so the trade-off stays visible.
+
+**2026-09-24, M8 jobs built as a run ledger, not the §7 engine (scopes O-series task 13).**
+`common.JobRun` and `common.OutboundEmail` are built as per-run history rows (name, status,
+timings, items processed, last error) with cron endpoints that call the existing management
+commands' services in bounded batches. The full `03-architecture.md` §7 design (handler registry,
+per-unit `key` dedup, exponential backoff, dead-letter) is not built: every deferred operation is
+already an idempotent management command with its own idempotency guard (`idempotency_key`,
+`WebhookEvent`, `CouponRedemption`), nothing enqueues rows, and on one Vercel function with no
+broker the engine would be infrastructure nothing consumes. §7 stays the design of record; the
+ledger is what M8 shipped against it. Reversing means adding the registry and backoff fields to
+`JobRun` and having producers enqueue rows, which is additive.
+
+**2026-09-24, M8 returns queue deferred to M9 (moves O9 / build-plan M8 task 11).** The
+`orders.ReturnRequest` model and the returns flow (customer request form, eligibility from the
+delivery date, photo upload to R2, per-transition emails, and the different stock versus custom
+rules) are one unit, and M9 task 3 owns the customer-facing half. Building a staff queue in M8
+against a model nothing can yet write rows to is half a feature, so M8 ships only the direct refund
+action on order detail (task 5) and M9 builds the model, the queue and the customer side together.
+
+**2026-09-28, returns built (I4, I5, I8, F13, O9).** `orders.ReturnRequest` carries its own status
+(requested, approved, rejected, received, refunded) kept off `Order.status`, so the order state
+machine is untouched: a return is a separate record against a delivered order. Eligibility is per
+line, from that line's own shipment delivery date plus `RETURN_WINDOW_DAYS` (7). Stock lines return
+for any reason inside the window; custom lines only for a defect, damage or wrong item (Qikink's
+terms). The refund is a partial gateway refund recorded on the request and added to the order as a
+status-event note; it does not move the whole order to REFUNDED, because a return is usually part of
+an order (the whole-order refund stays the separate order-detail action). Photos are optional: the
+core request is a plain no-JS form, and where scripting is on the browser uploads straight to R2 and
+posts only keys, which the server content-sniffs and re-encodes before storing (never trusting a
+posted key). The refund action is gated by `orders.refund_order`, the same permission as an order
+refund; approve, reject and receive by `orders.change_returnrequest`.
+
+**2026-09-28, grievance page and seller identity from settings (L1, research §5).** The Grievance
+Redressal page is legally required and must always carry the named officer's real contact details,
+so it renders straight from env settings (`GRIEVANCE_OFFICER_NAME`, `GRIEVANCE_EMAIL`,
+`GRIEVANCE_PHONE`, `GRIEVANCE_ADDRESS`, `GRIEVANCE_RESPONSE_HOURS`, plus `SELLER_LEGAL_NAME` and
+`SELLER_ADDRESS`) rather than an editable `Page`, which staff could unpublish or blank. The twelve
+content pages that are policy copy are `Page` rows (L2, editable without a redeploy); grievance is
+the deliberate exception because a missing grievance officer is a compliance failure, not a typo.
+
+**2026-10-01, CSP shipped strict on script, permissive on style (M10.5, architecture §XSS row).**
+`script-src` carries no `'unsafe-inline'` and no nonce: every script the site serves is an external
+module, so the one remaining inline script (the admin dashboard chart) moved to a static file. The
+policy is one header set by `common.ContentSecurityPolicyMiddleware`, built from settings so the R2
+and gateway origins are not hardcoded. `style-src` keeps `'unsafe-inline'`: dynamic `style=`
+attributes (swatch colours, meters) are spread across templates and are not an XSS vector worth a
+template-wide refactor, so the "without unsafe-inline" rule is read as the script control it exists
+to be.
+
+**2026-10-01, cron endpoints answer GET as well as POST (M10.10, revises §7 deploy note).** Vercel
+Cron issues an HTTP GET and injects `Authorization: Bearer $CRON_SECRET` itself, so `run_job` accepts
+both methods behind the same bearer gate rather than POST only. `vercel.json` ships only daily cron
+entries, because Hobby rejects a sub-daily schedule at build time; the real Pro cadence (sanitise and
+reindex and poll on their minutes) is applied at the Pro upgrade, with the §7 on-demand piggyback
+covering the gap until then. The committed cron paths are the seven jobs that actually have endpoints
+(`CRON_JOBS`), not the aspirational §7 names in the architecture draft.
 

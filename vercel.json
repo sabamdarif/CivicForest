@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": { "config/wsgi.py": { "maxDuration": 60 } },
+  "crons": [
+    { "path": "/internal/cron/sanitise_designs/", "schedule": "0 2 * * *" },
+    { "path": "/internal/cron/poll_qikink/", "schedule": "15 2 * * *" },
+    { "path": "/internal/cron/reindex_search/", "schedule": "30 2 * * *" },
+    { "path": "/internal/cron/cart_reminders/", "schedule": "45 2 * * *" },
+    { "path": "/internal/cron/cancel_stale_orders/", "schedule": "0 3 * * *" },
+    { "path": "/internal/cron/review_requests/", "schedule": "30 3 * * *" },
+    { "path": "/internal/cron/expire_carts/", "schedule": "30 21 * * *" }
+  ]
+}

@@ -1,0 +1,60 @@
+{# Back-office product CSV import (M8.7, C16): a two-step dry run. Step one uploads a file and this
+   page renders the diff below; step two posts the same CSV back (carried in a hidden field) and
+   only then are rows written. Product-level and keyed on slug; variants are edited in the matrix. #}
+{% extends "base.html" %}
+
+{% block title %}Import products, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Import products</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if plan %}
+    <p>Review the changes below. Nothing is written until you confirm.</p>
+    <table class="bo-table">
+      <thead>
+        <tr><th>Line</th><th>Slug</th><th>Action</th><th>Name</th><th>Detail</th></tr>
+      </thead>
+      <tbody>
+        {% for row in plan %}
+          <tr class="bo-diff bo-diff--{{ row.action }}">
+            <td>{{ row.line }}</td>
+            <td>{{ row.slug }}</td>
+            <td>{{ row.action }}</td>
+            <td>{{ row.name }}</td>
+            <td>{{ row.error if row.error else (row.changes|join(', ') if row.changes else '') }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <form method="post" action="{{ url('backoffice:product_import') }}">
+      {{ csrf_input }}
+      <input type="hidden" name="step" value="confirm">
+      <textarea name="csv" hidden>{{ csv_text }}</textarea>
+      <button type="submit" class="btn btn--primary">Apply changes</button>
+      <a class="btn btn--ghost" href="{{ url('backoffice:product_import') }}">Cancel</a>
+    </form>
+  {% else %}
+    <form method="post" enctype="multipart/form-data" action="{{ url('backoffice:product_import') }}">
+      {{ csrf_input }}
+      <input type="hidden" name="step" value="preview">
+      <label>CSV file <input type="file" name="file" accept=".csv,text/csv" required></label>
+      <button type="submit" class="btn btn--primary">Preview import</button>
+    </form>
+    <p class="field__hint">
+      Columns: {{ ', '.join(header) }}. The slug is the key: a matching slug updates that product,
+      a new one creates it. Category and material are slugs and must already exist.
+    </p>
+    <p><a class="btn btn--ghost btn--sm" href="{{ url('backoffice:product_import') }}?export=csv">Export current products</a></p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{# The free-shipping bar (G2). The shortfall is the real one, computed from the same
+   post-discount amount the cart charges shipping on, and the bar is not rendered at all for an
+   empty cart. J9 forbids inventing either number.
+
+   Context: progress, which is None until there is something in the cart. #}
+{% from "_macros/icon.html" import icon %}
+
+{%- if progress %}
+  <div class="ship-progress">
+    <p class="ship-progress__text">
+      {{ icon("truck", 20) }}
+      {%- if progress.shortfall %}
+        <span>Add <strong>{{ progress.shortfall|rupees(0) }}</strong> more to get
+          <strong class="ship-progress__prize">free shipping</strong></span>
+      {%- else %}
+        <span class="ship-progress__prize">You qualify for free shipping</span>
+      {%- endif %}
+    </p>
+    <progress class="ship-progress__bar" value="{{ progress.percent }}" max="100" aria-hidden="true"></progress>
+  </div>
+{%- endif %}

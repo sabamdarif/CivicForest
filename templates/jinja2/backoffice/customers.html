@@ -1,0 +1,54 @@
+{# Back-office customer list (M8.10, O8): search, a blocked filter, order count and lifetime value,
+   and a streamed CSV export. No impersonation is offered. #}
+{% extends "base.html" %}
+{% from "_macros/pagination.html" import pagination %}
+
+{% block title %}Customers, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Customers</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <form class="bo-filters" method="get" action="{{ url('backoffice:customers') }}">
+    <label>Status
+      <select name="status">
+        <option value="">All</option>
+        <option value="active" {{ 'selected' if status == 'active' else '' }}>Active</option>
+        <option value="blocked" {{ 'selected' if status == 'blocked' else '' }}>Blocked</option>
+      </select>
+    </label>
+    <label>Search <input type="search" name="q" value="{{ q }}" placeholder="Email or name" maxlength="64"></label>
+    <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+    <a class="btn btn--ghost btn--sm" href="?{{ query }}{{ '&' if query else '' }}export=csv">Export CSV</a>
+  </form>
+
+  <table class="bo-table">
+    <thead>
+      <tr><th>Email</th><th>Name</th><th>Orders</th><th>Lifetime value</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      {% for c in customers %}
+        <tr class="{{ 'bo-row--archived' if not c.is_active else '' }}">
+          <td><a href="{{ url('backoffice:customer_detail', kwargs={'pk': c.id}) }}">{{ c.email }}</a></td>
+          <td>{{ c.get_full_name() }}</td>
+          <td>{{ c.order_count }}</td>
+          <td>{{ (c.lifetime_value or 0)|rupees(decimals=0) }}</td>
+          <td>{{ 'Blocked' if not c.is_active else 'Active' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="bo-empty">No customers match.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {{ pagination(customers.number, customers.paginator.num_pages, query) }}
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+/* The cart page's own layout: the dark head band and the two-column body.
+ *
+ * The row, the summary, the coupon and the progress bar live in components.css instead,
+ * because the drawer renders all four on every page and cannot reach a page sheet.
+ */
+
+.cart__head {
+  padding-block: var(--space-5) var(--space-7);
+  background: var(--ink);
+}
+
+.cart__title {
+  margin-block: var(--space-3) var(--space-2);
+  font-size: var(--step-5);
+  line-height: var(--leading-tight);
+}
+
+.cart__title-accent {
+  color: var(--gold);
+}
+
+.cart__count {
+  color: var(--muted-on-dark);
+  font-family: var(--font-body);
+  font-size: var(--step-2);
+}
+
+.cart__lede {
+  margin-block-end: var(--space-4);
+  color: var(--muted-on-dark);
+}
+
+.cart__layout {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-6);
+  align-items: start;
+}
+
+.cart__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-start: var(--space-5);
+}
+
+@media (min-width: 64rem) {
+  .cart__layout {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    gap: var(--space-7);
+  }
+
+  /* The summary follows a long list of lines down the page. */
+  .cart__aside {
+    position: sticky;
+    top: var(--space-5);
+  }
+}

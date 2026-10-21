@@ -1,0 +1,34 @@
+{# One collection, browsed with the shop's own grid, filters and sorts: the same region, so a
+   collection page cannot start disagreeing with /shop/ about what matches.
+
+   The filter panel posts to /shop/, which is why the collection stays visible as a chip
+   afterwards instead of silently scoping a URL that no longer says so. #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/icon.html" import icon %}
+
+{% block title %}{{ collection.name }} | CivicForest Clothing{% endblock %}
+{% block description %}{{ collection.description or collection.tagline or "Shop the " ~ collection.name ~ " at CivicForest." }}{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/shop.css') }}">{% endblock %}
+
+{% block content %}
+  <section class="collection-hero on-dark">
+    <div class="container">
+      {{ breadcrumbs(trail, current) }}
+      {%- if collection.tagline %}<p class="eyebrow">{{ collection.tagline }}</p>{% endif %}
+      <h1>{{ collection.name }}</h1>
+      <p class="divider" aria-hidden="true">{{ icon("leaf", 16) }}</p>
+      {%- if collection.description %}<p>{{ collection.description }}</p>{% endif %}
+    </div>
+  </section>
+
+  <div class="container shop__region" data-shop>
+    {% include "shop/_shop.html" %}
+  </div>
+
+  {% include "_partials/trust_strip.html" %}
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{{ static('js/filters.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,45 @@
+{# The order summary: every charge visible before the customer commits (J9, and the
+   Consumer Protection Rules' breakdown requirement).
+
+   Context: priced, progress, cta (false on the checkout page, where the button would link to
+   the page the customer is already on). #}
+{% from "_macros/button.html" import button %}
+{% from "_macros/icon.html" import icon %}
+
+<div class="summary">
+  <h2 class="summary__title">Order summary</h2>
+
+  <dl class="summary__rows">
+    <div class="summary__row">
+      <dt>Subtotal ({{ priced.item_count }} item{{ '' if priced.item_count == 1 else 's' }})</dt>
+      <dd>{{ priced.subtotal|rupees }}</dd>
+    </div>
+    {%- if priced.discount %}
+      <div class="summary__row summary__row--credit">
+        <dt>Discount</dt>
+        <dd>&minus;{{ priced.discount|rupees }}</dd>
+      </div>
+    {%- endif %}
+    <div class="summary__row">
+      <dt>Shipping</dt>
+      <dd>{{ priced.shipping|rupees }}</dd>
+    </div>
+  </dl>
+
+  {% include "cart/_coupon.html" %}
+
+  {%- if progress and not progress.shortfall %}
+    <p class="summary__note summary__note--good">{{ icon("check-circle", 16) }}
+      <span>Free shipping applied</span></p>
+  {%- endif %}
+
+  <div class="summary__total">
+    <span>Total</span>
+    <strong>{{ priced.total|rupees }}</strong>
+  </div>
+
+  {%- if cta|default(true) %}
+    {{ button("Proceed to checkout", href="/checkout/", size="lg", block=True, icon_end="arrow-right") }}
+    <p class="summary__trust">{{ icon("shield", 16) }}<span>Secure checkout, prepaid only.</span></p>
+  {%- endif %}
+</div>

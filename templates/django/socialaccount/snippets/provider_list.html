@@ -1,0 +1,19 @@
+{% load socialaccount %}
+{% comment %} One button per provider, as a POST form. allauth answers a GET on the provider URL with
+an intermediate "Continue" page, which is a click nobody needs, and a POST starts the flow straight
+away without weakening login CSRF (SOCIALACCOUNT_LOGIN_ON_GET stays False).
+
+provider_login_url copies ?next= from the request, so the checkout wall survives the round trip
+through Google. The sprite carries a mark per configured provider (_partials/icons_auth.html).
+{% endcomment %}
+{% get_providers as socialaccount_providers %}
+{% for provider in socialaccount_providers %}
+  {% provider_login_url provider process=process as provider_url %}
+  <form class="provider" action="{{ provider_url }}" method="post">
+    {% csrf_token %}
+    <button class="btn btn--secondary btn--block" type="submit">
+      <svg class="icon" width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-{{ provider.id }}"></use></svg>
+      <span>Continue with {{ provider.name }}</span>
+    </button>
+  </form>
+{% endfor %}

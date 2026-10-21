@@ -1,0 +1,394 @@
+/* Page chrome: the announcement bar, the header and its nav, the search overlay, and the footer.
+
+   Everything here appears on every page, so it is the one sheet where a byte costs the
+   most. The header is sticky and the mobile panel is a <details>, which is what keeps the
+   nav working with JavaScript off (P6). */
+
+/* ── Announcement bar ─────────────────────────────────────────────────────── */
+.announcement {
+  background: var(--ink);
+  color: var(--gold);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-wide);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.announcement__inner {
+  margin: 0;
+  padding-block: var(--space-2);
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding-block: var(--space-3);
+}
+
+.wordmark {
+  display: block;
+  margin: 0;
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  letter-spacing: var(--tracking-wider);
+  line-height: 1.15;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.wordmark__sub {
+  display: block;
+  color: var(--muted-on-dark);
+  font-family: var(--font-body);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-wider);
+}
+
+.nav__list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.nav__list--stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.nav__link {
+  display: inline-block;
+  padding-block: var(--space-2);
+  border-bottom: 2px solid transparent;
+  color: var(--cream);
+  font-size: var(--step--1);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wide);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color var(--motion) var(--ease);
+
+  &:hover {
+    color: var(--gold);
+  }
+
+  &[aria-current="page"] {
+    border-bottom-color: var(--gold);
+    color: var(--gold);
+  }
+}
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ── SHOP submenu (D13) ───────────────────────────────────────────────────── */
+.nav__item--menu {
+  position: relative;
+}
+
+.nav__menu {
+  position: absolute;
+  top: 100%;
+  left: calc(var(--space-3) * -1);
+  display: none;
+  min-width: 12rem;
+  padding: var(--space-2);
+  margin: 0;
+  border-radius: var(--radius);
+  background: var(--ink-soft);
+  box-shadow: var(--shadow-2);
+  list-style: none;
+}
+
+/* :focus-within is what makes it keyboard operable with no JavaScript: tabbing to SHOP opens
+   it, and tabbing on walks into it. */
+.nav__item--menu:hover .nav__menu,
+.nav__item--menu:focus-within .nav__menu {
+  display: block;
+}
+
+.nav__menu-link {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--cream);
+  font-size: var(--step--1);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    background: rgb(255 255 255 / 8%);
+    color: var(--gold);
+  }
+}
+
+/* Stacked in the mobile panel there is nowhere to pop out to, so it is an indented sublist. */
+.nav__list--stacked .nav__menu {
+  position: static;
+  display: block;
+  padding: 0 0 var(--space-2) var(--space-4);
+  background: none;
+  box-shadow: none;
+}
+
+.cart-link {
+  position: relative;
+}
+
+.cart-link__count {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  min-width: 1.15rem;
+  padding-inline: 0.2rem;
+  border-radius: var(--radius-pill);
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 0.6875rem;
+  font-weight: var(--weight-bold);
+  line-height: 1.15rem;
+  text-align: center;
+}
+
+/* ── Mobile nav: a <details> panel, no JavaScript required ─────────────────── */
+.nav-toggle {
+  display: none;
+}
+
+.nav-toggle__btn {
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.nav-toggle__close,
+.nav-toggle[open] .nav-toggle__open {
+  display: none;
+}
+
+.nav-toggle[open] .nav-toggle__close {
+  display: block;
+}
+
+/* The X sits where the hamburger was, above the panel that would otherwise cover it. */
+.nav-toggle[open] .nav-toggle__btn {
+  position: relative;
+  z-index: calc(var(--z-drawer) + 1);
+}
+
+.nav-toggle__scrim {
+  position: fixed;
+  z-index: var(--z-scrim);
+  inset: 0;
+  background: var(--scrim);
+}
+
+.nav-toggle__panel {
+  position: fixed;
+  z-index: var(--z-drawer);
+  top: 0;
+  right: 0;
+  width: min(18rem, 85vw);
+  height: 100dvh;
+  padding: var(--space-9) var(--space-5) var(--space-5);
+  overflow-y: auto;
+  background: var(--ink);
+}
+
+@media (width < 60rem) {
+  .site-header__nav {
+    display: none;
+  }
+
+  .nav-toggle {
+    display: block;
+  }
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+.site-footer {
+  margin-block-start: var(--space-9);
+  padding-block: var(--space-8) var(--space-5);
+  background: var(--ink);
+  color: var(--muted-on-dark);
+  font-size: var(--step--1);
+}
+
+.site-footer__grid {
+  --grid-gap: var(--space-6);
+}
+
+.site-footer__tagline {
+  max-width: 22rem;
+}
+
+.site-footer__heading {
+  margin-bottom: var(--space-3);
+  color: var(--gold);
+  font-family: var(--font-body);
+  font-size: var(--step--2);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+
+.site-footer__links,
+.site-footer__social {
+  display: flex;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.site-footer__links {
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.site-footer__social {
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+}
+
+.site-footer a {
+  text-decoration: none;
+
+  &:hover {
+    color: var(--gold);
+    text-decoration: underline;
+  }
+}
+
+.newsletter {
+  display: flex;
+  margin-top: var(--space-3);
+}
+
+.newsletter__input {
+  min-height: 2.75rem;
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.newsletter__submit {
+  min-height: 2.75rem;
+  padding-inline: var(--space-4);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.site-footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-start: var(--space-7);
+  padding-block-start: var(--space-4);
+  border-top: 1px solid rgb(255 255 255 / 12%);
+  font-size: var(--step--2);
+
+  & p {
+    margin: 0;
+  }
+}
+
+.site-footer__policies {
+  display: flex;
+  gap: var(--space-4);
+}
+
+/* ── Search overlay (D7) ──────────────────────────────────────────────────── */
+/* A .modal, so the backdrop, the entry transition and modal.js's dismissal come free. It sits
+   near the top rather than centred, because the results grow downwards from the field. */
+.search-overlay {
+  width: min(38rem, calc(100vw - var(--space-5)));
+  margin-block: max(var(--space-7), 8vh) auto;
+  padding: var(--space-5);
+}
+
+.search-suggest {
+  max-height: 60vh;
+  margin-block-start: var(--space-4);
+  overflow-y: auto;
+}
+
+.search-suggest__group + .search-suggest__group {
+  margin-block-start: var(--space-4);
+}
+
+.search-suggest__title {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.search-suggest__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-suggest__hit,
+.search-suggest__term {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.75rem;
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--cream-deep);
+  }
+}
+
+.search-suggest__thumb {
+  flex: none;
+  width: 3rem;
+  height: 4rem;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.search-suggest__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.search-suggest__price {
+  display: flex;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+
+.search-suggest__none {
+  margin: var(--space-4) 0 0;
+  color: var(--muted);
+}

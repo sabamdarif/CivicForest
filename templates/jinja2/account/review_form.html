@@ -1,0 +1,31 @@
+{# Write a review (M9.2). Reached from the order detail and the review-request email. The manual
+   field loop renders the rating and fit selects and the body textarea without the bound() macro. #}
+{% extends "account/base.html" %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Write a review | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>Review {{ item.product_name }}</h1>
+  <p class="field__hint">{% if item.size %}{{ item.size }}{% endif %}{% if item.color %}, {{ item.color }}{% endif %} · order {{ item.order.order_number }}</p>
+  {{ notices(request) }}
+
+  <form class="auth-form" method="post">
+    {{ csrf_input }}
+    {%- for f in form %}
+      <div class="field">
+        <label class="field__label" for="{{ f.id_for_label }}">
+          {{ f.label }}{% if f.field.required %} <span class="field__required" aria-hidden="true">*</span>{% endif %}
+        </label>
+        {{ f }}
+        {% if f.help_text %}<p class="field__hint">{{ f.help_text }}</p>{% endif %}
+        {% if f.errors %}<p class="field__error">{{ f.errors }}</p>{% endif %}
+      </div>
+    {%- endfor %}
+    <div class="account-panel__actions">
+      {{ button("Submit review", type="submit") }}
+      {{ button("Cancel", variant="secondary", href="/account/orders/" ~ item.order.order_number ~ "/") }}
+    </div>
+  </form>
+{% endblock %}

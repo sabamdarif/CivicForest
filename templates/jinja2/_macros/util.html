@@ -1,0 +1,5 @@
+{# Renders a dict as HTML attributes, the escape hatch every macro needs for data-*,
+   formaction, name and value without growing a parameter per case. #}
+{% macro attr(attrs) -%}
+  {%- for key, value in attrs.items() %} {{ key }}="{{ value }}"{% endfor -%}
+{%- endmacro %}

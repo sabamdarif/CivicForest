@@ -1,0 +1,5 @@
+{# Server-rendered feedback, in one file so the DTL auth pages print it exactly as the Jinja2
+   pages do. Render it once per response: iterating the message storage marks it used but does
+   not clear the list, so a second call prints everything twice. #}
+{% from "_macros/notice.html" import notices %}
+{{ notices(request) }}

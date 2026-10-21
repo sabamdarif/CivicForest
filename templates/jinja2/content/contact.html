@@ -1,0 +1,42 @@
+{# Contact form (N1): a plain POST that works without JavaScript, with a honeypot and a rate limit
+   instead of a CAPTCHA. The honeypot field is hidden from people; a bot that fills every field
+   trips it and the view silently drops the submission. #}
+{% extends "base.html" %}
+{% from "_macros/breadcrumbs.html" import breadcrumbs %}
+{% from "_macros/button.html" import button %}
+{% from "_macros/notice.html" import notices %}
+
+{% block title %}Contact us | CivicForest Clothing{% endblock %}
+{% block description %}Get in touch with the CivicForest team.{% endblock %}
+
+{% block content %}
+  <div class="container">
+    {{ breadcrumbs([("Home", "/")], "Contact") }}
+    <h1>Contact us</h1>
+    <p>Send us a message and we'll get back to you. If it's about an order, add the order number.</p>
+    {{ notices(request) }}
+
+    <form class="auth-form" method="post">
+      {{ csrf_input }}
+      {%- for f in form %}
+        <div class="field">
+          <label class="field__label" for="{{ f.id_for_label }}">
+            {{ f.label }}{% if f.field.required %} <span class="field__required" aria-hidden="true">*</span>{% endif %}
+          </label>
+          {{ f }}
+          {% if f.errors %}<p class="field__error">{{ f.errors }}</p>{% endif %}
+        </div>
+      {%- endfor %}
+
+      {# Honeypot: hidden from people, irresistible to a naive bot. Left empty by every real user. #}
+      <div class="sr-only" aria-hidden="true">
+        <label for="hp-website">Website</label>
+        <input type="text" id="hp-website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="account-panel__actions">
+        {{ button("Send message", type="submit") }}
+      </div>
+    </form>
+  </div>
+{% endblock %}

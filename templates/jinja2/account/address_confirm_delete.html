@@ -1,0 +1,16 @@
+{% extends "account/base.html" %}
+{% from "_macros/button.html" import button %}
+
+{% block title %}Delete address | CivicForest Clothing{% endblock %}
+
+{% block account_content %}
+  <h1>Delete address</h1>
+  <p>Delete the address for <strong>{{ address.full_name }}</strong> at {{ address.line1 }}?</p>
+  <form method="post">
+    {{ csrf_input }}
+    <div class="account-panel__actions">
+      {{ button("Delete address", variant="danger", type="submit") }}
+      {{ button("Keep address", variant="secondary", href="/account/addresses/") }}
+    </div>
+  </form>
+{% endblock %}

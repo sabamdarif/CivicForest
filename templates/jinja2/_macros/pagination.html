@@ -1,0 +1,42 @@
+{# Numbered pagination (D5), server-rendered, so it works with JavaScript off and every page
+   is a shareable URL. query is the current query string without page, already encoded. #}
+{% from "_macros/icon.html" import icon %}
+
+{% macro _href(n, query) -%}
+  ?page={{ n }}{{ "&" ~ query if query else "" }}
+{%- endmacro %}
+
+{% macro pagination(page, pages, query="") -%}
+  {%- if pages > 1 -%}
+    {%- set shown = ([1, pages] + range([1, page - 1]|max, [pages, page + 1]|min + 1)|list)|unique|sort -%}
+    {%- set ns = namespace(last=0) -%}
+    <nav aria-label="Pagination">
+      <ul class="pagination__list">
+        <li>
+          {%- if page > 1 -%}
+            <a class="pagination__link" href="{{ _href(page - 1, query) }}" rel="prev" aria-label="Previous page">{{ icon("arrow-left", 16) }}</a>
+          {%- else -%}
+            <span class="pagination__link pagination__link--disabled">{{ icon("arrow-left", 16) }}</span>
+          {%- endif -%}
+        </li>
+        {%- for n in shown %}
+          {%- if ns.last and n > ns.last + 1 %}
+            <li class="pagination__gap" aria-hidden="true">...</li>
+          {%- endif %}
+          <li>
+            <a class="pagination__link" href="{{ _href(n, query) }}"
+              {%- if n == page %} aria-current="page"{% endif %}>{{ n }}</a>
+          </li>
+          {%- set ns.last = n %}
+        {%- endfor %}
+        <li>
+          {%- if page < pages -%}
+            <a class="pagination__link" href="{{ _href(page + 1, query) }}" rel="next" aria-label="Next page">{{ icon("arrow-right", 16) }}</a>
+          {%- else -%}
+            <span class="pagination__link pagination__link--disabled">{{ icon("arrow-right", 16) }}</span>
+          {%- endif -%}
+        </li>
+      </ul>
+    </nav>
+  {%- endif -%}
+{%- endmacro %}

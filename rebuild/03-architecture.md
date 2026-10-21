@@ -40,7 +40,6 @@ CivicForest/
 ├── static/
 │   ├── css/                       # tokens.css, base.css, and one sheet per page area
 │   ├── js/                        # one ES module per interactive feature
-│   ├── icons/sprite.svg
 │   └── fonts/                     # self-hosted woff2 subsets
 ├── designs/                       # reference screenshots (unchanged)
 └── rebuild/                       # these documents
@@ -152,7 +151,7 @@ environment globals above, each a callable that resolves lazily from the request
 /cart/                               cart page
 /checkout/                           login-gated; address → summary → pay
 /checkout/complete/<order_number>/   thank-you, idempotent, safe to reload
-/about/  /contact/  /faq/  /size-guide/
+/about/  /contact/  /faq/  /size-guide/  /sustainability/
 /shipping-delivery/  /returns-exchanges/  /privacy/  /terms/  /grievance-redressal/
 /track/                              guest order tracking by number + email
 /account/                            dashboard
@@ -188,9 +187,10 @@ environment globals above, each a callable that resolves lazily from the request
 
 | Model | Change | Why |
 |---|---|---|
+| `Category` | + `image` | The shop-by-category tiles on the home page, staff-editable (O10) |
 | `Product` | + `mrp`, `country_of_origin`, `hsn_code`, `tax_rate`, `care_instructions`, `fit_notes`, `model_note`, `gsm`, `weight_grams`, `length_cm`, `width_cm`, `height_cm`, `collections` M2M | C2, C3, C10 and courier data |
 | `ProductVariant` | + `low_stock_threshold`, `qikink_sku` (blank for stock-only products) | A6 alerts, F11 mapping |
-| `ProductImage` | `image` becomes an R2 key; + `width_variants` JSON of generated widths | A1 |
+| `ProductImage` | + `width_variants` JSON of the generated widths | A1. `image` stays an `ImageField`: it already holds the storage key and resolves it through `STORAGES["default"]`, so moving the catalogue onto R2 is a settings change and never a migration |
 | `Coupon` | + `per_user_limit`, `scope_categories`, `scope_products`, `first_order_only`, `exclude_sale_items`, `starts_at`, `free_shipping` | J2. **`per_user_limit` is the gap that makes the current coupon abusable** |
 | `Order` | + `fulfilment_kind` (stock / custom / mixed), `tax_total`, `place_of_supply`, `invoice_number`, `invoice_date`, `cancelled_at`, `cancel_reason`, `rights_ack_text` | Split fulfilment, GST invoice, cancellation |
 | `OrderItem` | + `tax_rate`, `tax_amount`, `hsn_code`, `mrp_at_purchase` | Snapshotted for the invoice; tax must never be recomputed from live product data |
@@ -201,6 +201,7 @@ environment globals above, each a callable that resolves lazily from the request
 | Model | Fields | Purpose |
 |---|---|---|
 | `catalog.Collection` | name, slug, tagline, description, hero image, display order, is_active | C7: curated groups with their own copy |
+| `cart.CouponRedemption` | coupon FK, user FK, order FK, unique on coupon + order | J2's per-user limit. A row is written by the payment transaction, so a use is a paid order and a replayed webhook cannot count twice |
 | `catalog.SizeChart` | category FK, rows JSON, notes, unit | C11 |
 | `orders.Shipment` | order FK, kind (stock/custom), carrier, awb, tracking_url, shipped_at, delivered_at, items M2M | One order, two shipments (decision #10) |
 | `orders.StatusEvent` | order FK, from_status, to_status, actor, note, created_at | Customer timeline and staff audit in one place |
@@ -211,7 +212,7 @@ environment globals above, each a callable that resolves lazily from the request
 | `content.Page` | slug, title, body, meta fields, is_published | L2 |
 | `content.FaqEntry` | question, answer, category, display order | N3 |
 | `content.AnnouncementBar` | text, url, is_active, starts_at, ends_at | D14 |
-| `content.HomeSection` | kind, title, subtitle, image, target, display order, is_active | Editable homepage |
+| `content.HomeSection` | kind, eyebrow, title, subtitle, image, target, cta_label, display order, is_active | Editable homepage: one row per kind, and the row carries the chrome while the catalogue fills the band |
 | `content.ContactMessage` | name, email, order_number, subject, message, handled_by, handled_at, internal_note | N1, N2 |
 | `content.NewsletterSubscriber` | email, confirmed_at, unsubscribed_at, source | J5, double opt-in |
 | `common.JobRun` | name, key, status, payload JSON, attempts, next_attempt_at, last_error, started_at, finished_at | The whole deferred-work system (§7) |
@@ -304,8 +305,9 @@ Two buckets, because product photography and customer artwork have opposite acce
 | `civicforest-media` | Public, behind a CDN hostname | product and collection imagery, homepage art, generated widths, static files from `collectstatic` | `products/<uuid>/<width>.webp` |
 | `civicforest-designs` | **Private**, no public read | raw customer uploads, sanitised print-ready PNGs, generated mockups | `designs/raw/<uuid>.bin`, `designs/print/<uuid>.png` |
 
-- Product images: the admin uploads once; a job generates 400 / 800 / 1600 px WebP plus a JPEG
-  fallback and records the keys. Templates ask for a width and get a CDN URL.
+- Product images: the admin uploads once, the 400 / 800 / 1600 px WebP derivatives are written
+  beside the original and their keys recorded on the row. Templates ask for a width and get a CDN
+  URL. Generated inline today, because §7's job system is not built yet.
 - Design files are **never** publicly readable. Qikink receives a presigned GET valid for 24 hours,
   long enough for them to fetch it and short enough to be useless if leaked.
 - Raw uploads are deleted once sanitisation succeeds. Only the re-encoded PNG is retained.
@@ -337,8 +339,9 @@ static/css/
 ├── components.css  button, field, badge, card, accordion, modal, drawer, toast, breadcrumb,
 │                   pagination, stepper, price, swatch, rating, empty state, skeleton
 ├── layout.css      header, nav, footer, announcement bar
-├── shop.css        grid, filters, sort, pagination
-├── product.css     gallery, buy panel, accordions, size chart
+├── home.css        hero band, category tiles, the Just Landed row, values strip
+├── shop.css        grid, filters, sort, pagination, collection cards
+├── product.css     gallery, buy panel and picker, accordions, size chart
 ├── cart.css        cart page and drawer
 ├── checkout.css    checkout and thank-you
 ├── account.css     account area and auth pages (shared with the DTL allauth templates)
@@ -358,15 +361,21 @@ markup rather than by script tag:
 
 ```
 static/js/
-├── util.js            fetch wrapper with CSRF, rupee formatter, debounce, focus trap
-├── nav.js  drawer.js  modal.js  accordion.js  toast.js
+├── nav.js  modal.js  toast.js
 ├── filters.js         URL-param sync, fetch-and-replace grid, chip removal
 ├── search-overlay.js  debounced suggest, keyboard nav, aria-live
 ├── gallery.js  variant-picker.js  pincode.js  recently-viewed.js
-├── cart.js            add/update/remove, drawer render, header count
+├── cart.js            drawer render and swap, header count
 ├── wishlist.js  checkout.js  designer.js
 └── backoffice.js      table filters, bulk select, inline stock edit, sparkline render
 ```
+
+`util.js` was planned here as a fetch-with-CSRF wrapper, a rupee formatter, a debounce and a focus
+trap. It is deliberately **not** built: forms carry `{{ csrf_input }}`, so `FormData` brings the
+token and no wrapper is needed; money is formatted server-side, so a rupee formatter in JavaScript
+would be a second implementation of Indian digit grouping that could drift; the one debounce is
+three inline lines; and the focus trap is the `<dialog>` element's own. Extract it when a second
+module genuinely shares something.
 
 **The contract:** every one of these enhances markup that already works. Filters are a `<form>` that
 submits. Add-to-cart is a `<form>` that posts and redirects. The design tool is the single exception
@@ -380,9 +389,9 @@ and tells the customer so if JavaScript is unavailable.
 
 | Group | Templates |
 |---|---|
-| Shell | `base.html`, `_partials/{header,footer,announcement,nav_drawer,search_overlay,cart_drawer,toast,cookie_banner,breadcrumbs,pagination,trust_strip}.html` |
-| Macros | `_macros/{button,field,card,badge,price,swatch,rating,accordion,modal,stepper,empty}.html` |
-| Storefront | `home.html`, `shop/{list,_grid,_filters,_sort,_filter_drawer}.html`, `collections/{index,detail}.html`, `product/{detail,_gallery,_buy_panel,_accordions,_size_chart,_related}.html`, `search/{results,_zero}.html` |
+| Shell | `base.html`, `_partials/{header,footer,announcement,icons,search_overlay,cart_drawer,toast,cookie_banner,trust_strip}.html` |
+| Macros | `_macros/{icon,button,field,card,badge,price,swatch,rating,accordion,modal,stepper,empty,breadcrumbs,pagination,notice,util}.html` |
+| Storefront | `home.html`, `shop/{list,_shop,_grid,_filters,_sort,_filter_drawer}.html`, `collections/{index,detail}.html`, `product/{detail,_gallery,_buy_panel,_accordions,_size_chart,_related}.html`, `search/{results,_zero}.html` |
 | Custom line | `customise/{landing,designer,_blank_card,_upload_panel,_placement_tabs}.html` |
 | Cart & checkout | `cart/{page,_lines,_summary,_coupon,_progress}.html`, `checkout/{page,_address,_summary,complete}.html` |
 | Account | `account/{dashboard,orders,order_detail,invoice,returns,return_form,wishlist,addresses,address_form,profile,security,designs,data}.html` |
@@ -428,18 +437,18 @@ verifiable by reading code rather than by assertion.
 
 | Requirement | Where it lives |
 |---|---|
-| Total price with full breakdown before commitment | `price_cart` returns subtotal, discount, shipping, tax and total; the cart and checkout summaries render every line; nothing is added after the terms checkbox |
+| Total price with full breakdown before commitment | `price_cart` returns subtotal, discount, shipping and total; the cart and checkout summaries render every line; nothing is added after the terms checkbox |
 | Country of origin per product | `Product.country_of_origin`, required in the admin form, rendered in the product accordions and on the invoice |
 | Return / refund / exchange policy | `/returns-exchanges/` plus a per-line policy note on the product page, differing for stock and custom |
 | Delivery timelines | Pincode estimate on the product page, SLA on the shipping page, per-shipment estimate on the order |
 | Seller identity and contact | Footer, contact page, invoice header |
 | Named grievance officer with timelines | `/grievance-redressal/`, linked in the footer |
 | No pre-ticked consent | Newsletter, marketing opt-in and terms all default to unticked; a test asserts this |
-| No drip pricing | Shipping and tax are shown in the cart before login, let alone before payment |
+| No drip pricing | Shipping is shown in the cart before login, let alone before payment; prices carry no tax (GST dropped, Part 5 override) |
 | No false urgency | Low-stock messaging is derived from `stock_quantity` and `low_stock_threshold`; there is no countdown component in the codebase at all |
 | Equal-prominence decline | Shared button macro; secondary variant is the same size, not greyed into invisibility |
 | One-click unsubscribe | Signed token link in every marketing email; no login required |
-| GST invoice fields | `print/invoice.html` renders HSN, description, quantity with UQC, taxable value, rate, tax amount, place of supply and seller identity from snapshotted `OrderItem` fields |
+| GST invoice fields | Not applicable: the store is not GST-registered, so no tax invoice is issued (`01-decisions.md` Part 5, 2026-09-23 override; risk accepted there) |
 | DPDP consent and rights | `User.marketing_opt_in`, `/privacy/`, `/account/data/` for export and deletion requests |
 
 ## 14. Observability

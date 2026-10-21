@@ -1,0 +1,50 @@
+{# Back-office design review queue (M8.6): the M7 moderation flow surfaced. Filter tabs across
+   review statuses plus a failed-Qikink view; each row links to the full-resolution detail. #}
+{% extends "base.html" %}
+{% from "_macros/pagination.html" import pagination %}
+
+{% block title %}Design review, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Design review</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <nav class="bo-tabs" aria-label="Filters">
+    <a class="bo-tab {{ 'bo-tab--on' if not review and not submit else '' }}" href="?">Flagged</a>
+    {% for value, label in review_choices %}
+      <a class="bo-tab {{ 'bo-tab--on' if review == value else '' }}" href="?review={{ value }}">{{ label }}</a>
+    {% endfor %}
+    <a class="bo-tab {{ 'bo-tab--on' if submit == 'failed' else '' }}" href="?submit=failed">Failed Qikink</a>
+  </nav>
+
+  <table class="bo-table">
+    <thead>
+      <tr><th>Design</th><th>Customer</th><th>Review</th><th>Size</th><th>DPI</th><th>Uploaded</th></tr>
+    </thead>
+    <tbody>
+      {% for d in designs %}
+        <tr>
+          <td><a href="{{ url('backoffice:design_detail', kwargs={'pk': d.id}) }}">{{ d.id|string|truncate(8, True, '') }}</a></td>
+          <td>{{ d.user.email if d.user else 'guest' }}</td>
+          <td><span class="bo-status">{{ d.get_review_status_display() }}</span></td>
+          <td>{{ d.width_px }}&times;{{ d.height_px }}</td>
+          <td>{{ d.dpi_estimate }}</td>
+          <td>{{ d.created_at.date() }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="bo-empty">No designs here.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {{ pagination(designs.number, designs.paginator.num_pages) }}
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{# Back-office inventory (M8.8, O6): stock on hand per variant, a low-stock filter, a streamed
+   export and a per-row adjustment form. Every change records a reason, so stock is never edited
+   silently. Works with no JavaScript: each row is its own small POST. #}
+{% extends "base.html" %}
+{% from "_macros/pagination.html" import pagination %}
+
+{% block title %}Inventory, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Inventory</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <form class="bo-filters" method="get" action="{{ url('backoffice:inventory') }}">
+    <label>Search <input type="search" name="q" value="{{ q }}" placeholder="SKU or product" maxlength="64"></label>
+    <label class="check"><input type="checkbox" name="low" value="1" {{ 'checked' if low == '1' else '' }}> Low stock only</label>
+    <button type="submit" class="btn btn--primary btn--sm">Filter</button>
+    <a class="btn btn--ghost btn--sm" href="?{{ query }}{{ '&' if query else '' }}export=csv">Export CSV</a>
+  </form>
+
+  <table class="bo-table">
+    <thead>
+      <tr>
+        <th scope="col">Product</th>
+        <th scope="col">SKU</th>
+        <th scope="col">Size / Colour</th>
+        <th scope="col">Stock</th>
+        <th scope="col">Threshold</th>
+        <th scope="col">Adjust</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in variants %}
+        <tr>
+          <td>{{ v.product.name }}</td>
+          <td>{{ v.sku }}</td>
+          <td>{{ v.size }} / {{ v.color }}</td>
+          <td class="{{ 'bo-num--low' if v.is_low_stock else '' }}">{{ v.stock_quantity }}</td>
+          <td>{{ v.low_stock_at }}</td>
+          <td>
+            <form class="bo-adjust" method="post" action="{{ url('backoffice:inventory_adjust', kwargs={'pk': v.id}) }}">
+              {{ csrf_input }}
+              <input type="hidden" name="next" value="{{ query }}">
+              <input type="number" name="delta" step="1" required aria-label="Change for {{ v.sku }}" placeholder="+/-">
+              <select name="reason" aria-label="Reason">
+                {% for value, label in reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+              </select>
+              <input type="text" name="note" maxlength="200" placeholder="Note (optional)" aria-label="Note">
+              <button type="submit" class="btn btn--primary btn--sm">Apply</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="bo-empty">No variants match.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {{ pagination(variants.number, variants.paginator.num_pages, query) }}
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{
+  "name": "civicforest-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Playwright end-to-end and axe accessibility tests for the CivicForest storefront.",
+  "scripts": {
+    "e2e": "playwright test",
+    "lighthouse": "lhci autorun"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@lhci/cli": "0.14.0",
+    "@playwright/test": "1.63.0"
+  }
+}

@@ -1,0 +1,45 @@
+{# Back-office support inbox (M9.7, N2): contact messages, defaulting to the unhandled ones. Each
+   row links to the detail, where a staffer notes and marks it handled. #}
+{% extends "base.html" %}
+{% from "_macros/pagination.html" import pagination %}
+
+{% block title %}Messages, CivicForest back-office{% endblock %}
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/backoffice.css') }}">{% endblock %}
+
+{% block content %}
+<div class="container bo">
+  <h1 class="bo__title">Support inbox</h1>
+
+  {% set msgs = get_messages(request) %}
+  {% if msgs %}
+    <ul class="bo-messages">
+      {% for m in msgs %}<li class="bo-message bo-message--{{ m.level_tag }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <nav class="bo-tabs" aria-label="Filters">
+    <a class="bo-tab {{ 'bo-tab--on' if handled != '1' else '' }}" href="?">Unhandled</a>
+    <a class="bo-tab {{ 'bo-tab--on' if handled == '1' else '' }}" href="?handled=1">Handled</a>
+  </nav>
+
+  <table class="bo-table">
+    <thead>
+      <tr><th>Subject</th><th>From</th><th>Order</th><th>Received</th></tr>
+    </thead>
+    <tbody>
+      {% for m in inbox %}
+        <tr>
+          <td><a href="{{ url('backoffice:message_detail', kwargs={'pk': m.id}) }}">{{ m.subject }}</a></td>
+          <td>{{ m.name }} &lt;{{ m.email }}&gt;</td>
+          <td>{{ m.order_number or "" }}</td>
+          <td>{{ m.created_at.date() }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="bo-empty">No messages here.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {{ pagination(inbox.number, inbox.paginator.num_pages) }}
+</div>
+{% endblock %}

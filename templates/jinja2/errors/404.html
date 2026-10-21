@@ -1,0 +1,18 @@
+{# Branded 404 (M9.12). The database is up on a 404, so this uses the full shell. #}
+{% extends "base.html" %}
+{% from "_macros/button.html" import button %}
+
+{% block title %}Page not found | CivicForest Clothing{% endblock %}
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+
+{% block content %}
+  <div class="container error-page">
+    <p class="error-page__code">404</p>
+    <h1>We can't find that page</h1>
+    <p>The link may be broken, or the page may have moved. Let's get you back on track.</p>
+    <div class="error-page__actions">
+      {{ button("Back to home", href="/") }}
+      {{ button("Shop everything", href="/shop/", variant="secondary") }}
+    </div>
+  </div>
+{% endblock %}

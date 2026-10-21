@@ -1,0 +1,9 @@
+{% load allauth socialaccount %}
+{% comment %} The "or continue with" row from the login screenshot, replacing allauth's rule plus
+"Or use a third-party" heading. Overridden here rather than on the login page so signup and every
+other entrance page shows the same thing. {% endcomment %}
+{% get_providers as socialaccount_providers %}
+{% if socialaccount_providers %}
+  <p class="divider auth-or"><span>or continue with</span></p>
+  {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+{% endif %}

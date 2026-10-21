@@ -1,0 +1,48 @@
+{# Product reviews (M9.2): the published set, the star distribution, and the aggregated fit
+   feedback. Everything here is server-rendered from moderated rows; nothing shows until a
+   moderator publishes it, and the average and count come from the same published set. #}
+{% from "_macros/rating.html" import rating %}
+
+<section class="container product-reviews" id="reviews" aria-labelledby="reviews-heading">
+  <h2 id="reviews-heading">Customer reviews</h2>
+
+  {%- if reviews.count %}
+    <div class="product-reviews__summary">
+      <div class="product-reviews__score">
+        <strong class="product-reviews__average">{{ reviews.average }}</strong>
+        {{ rating(reviews.average, reviews.count) }}
+      </div>
+      <ul class="product-reviews__bars" aria-label="Rating distribution">
+        {%- for star, n in reviews.distribution.items() %}
+          <li>
+            <span class="product-reviews__bar-label">{{ star }} star</span>
+            <span class="product-reviews__bar" aria-hidden="true">
+              <span class="product-reviews__bar-fill" style="width: {{ (n * 100 / reviews.count)|round|int }}%"></span>
+            </span>
+            <span class="product-reviews__bar-count">{{ n }}</span>
+          </li>
+        {%- endfor %}
+      </ul>
+      {%- if reviews.fit %}
+        <p class="product-reviews__fit">{{ reviews.fit.dominant_pct }}% say this {{ reviews.fit.dominant_label|lower }}.</p>
+      {%- endif %}
+    </div>
+
+    <ol class="product-reviews__list">
+      {%- for review in reviews.reviews %}
+        <li class="product-review">
+          {{ rating(review.rating) }}
+          {%- if review.title %}<h3 class="product-review__title">{{ review.title }}</h3>{% endif %}
+          {%- if review.body %}<p class="product-review__body">{{ review.body }}</p>{% endif %}
+          <p class="product-review__meta">
+            Verified purchase
+            {%- if review.fit_feedback %} · {{ review.get_fit_feedback_display() }}{% endif %}
+            · {{ review.published_at.strftime("%d %b %Y") if review.published_at else "" }}
+          </p>
+        </li>
+      {%- endfor %}
+    </ol>
+  {%- else %}
+    <p class="product-reviews__empty">No reviews yet. Reviews come from verified buyers.</p>
+  {%- endif %}
+</section>

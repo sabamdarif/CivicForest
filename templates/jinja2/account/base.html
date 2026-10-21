@@ -1,0 +1,13 @@
+{# Shared account shell for customer-owned Jinja2 pages. #}
+{% extends "base.html" %}
+
+{% block page_css %}<link rel="stylesheet" href="{{ static('css/account.css') }}">{% endblock %}
+
+{% block content %}
+  <div class="container account">
+    {% include "_partials/account_nav.html" %}
+    <section class="account__main">
+      {% block account_content %}{% endblock %}
+    </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,5 @@
+{# Badges are decoration over data that already exists: New from a date window, Sale from
+   the MRP gap, Bestseller set by hand (C9). Never write one that is not derived. #}
+{% macro badge(label, variant="") -%}
+  <span class="badge{{ ' badge--' ~ variant if variant else '' }}">{{ label }}</span>
+{%- endmacro %}
